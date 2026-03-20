@@ -47,7 +47,6 @@ export default function AdminDashboard() {
 
       setProfile(profileData)
 
-      // Load all profiles
       const { data: allProfiles } = await supabase
         .from('profiles')
         .select('*')
@@ -93,6 +92,32 @@ export default function AdminDashboard() {
       })
     }
     setUpdatingId(null)
+  }
+
+  async function handleDeleteUser(userId: string) {
+    if (!confirm('Are you sure you want to delete this user? This cannot be undone.')) return
+
+    const res = await fetch('/api/admin/delete-user', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+
+    if (res.ok) {
+      setProfiles(prev => prev.filter(p => p.id !== userId))
+      setStats(prev => {
+        if (!prev) return prev
+        const updated = profiles.filter(p => p.id !== userId)
+        return {
+          totalUsers: updated.length,
+          totalAthletes: updated.filter(p => p.role === 'athlete').length,
+          totalCoaches: updated.filter(p => p.role === 'coach').length,
+          totalAdmins: updated.filter(p => ['admin', 'super_admin'].includes(p.role)).length,
+        }
+      })
+    } else {
+      alert('Failed to delete user.')
+    }
   }
 
   async function handleSignOut() {
@@ -159,7 +184,6 @@ export default function AdminDashboard() {
         {/* Overview Tab */}
         {activeTab === 'overview' && stats && (
           <>
-            {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
               {[
                 { label: 'Total Users', value: stats.totalUsers, color: 'text-white' },
@@ -174,7 +198,6 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* Quick links */}
             <h2 className="font-semibold text-sm text-zinc-400 uppercase tracking-wider mb-3">
               Quick actions
             </h2>
@@ -222,19 +245,27 @@ export default function AdminDashboard() {
                       <span className={`text-xs px-2 py-1 rounded-lg border ${roleColor(p.role)}`}>
                         {p.role}
                       </span>
-                      {/* Role change — only super_admin can change roles */}
                       {profile.role === 'super_admin' && p.id !== profile.id && (
-                        <select
-                          value={p.role}
-                          disabled={updatingId === p.id}
-                          onChange={e => handleRoleChange(p.id, e.target.value)}
-                          className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-green-500 disabled:opacity-50"
-                        >
-                          <option value="athlete">athlete</option>
-                          <option value="coach">coach</option>
-                          <option value="admin">admin</option>
-                          <option value="super_admin">super_admin</option>
-                        </select>
+                        <>
+                          <select
+                            value={p.role}
+                            disabled={updatingId === p.id}
+                            onChange={e => handleRoleChange(p.id, e.target.value)}
+                            className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-green-500 disabled:opacity-50"
+                          >
+                            <option value="athlete">athlete</option>
+                            <option value="coach">coach</option>
+                            <option value="admin">admin</option>
+                            <option value="super_admin">super_admin</option>
+                          </select>
+                          <button
+                            onClick={() => handleDeleteUser(p.id)}
+                            className="text-zinc-600 hover:text-red-400 transition-colors text-xs px-2 py-1 rounded-lg hover:bg-red-400/10 border border-transparent hover:border-red-400/20"
+                            title="Delete user"
+                          >
+                            🗑️
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
