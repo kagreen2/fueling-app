@@ -142,10 +142,10 @@ export default function Home() {
                 items: ['Calorie targets', 'Macro recommendations', 'Hydration goals', 'Recovery plans'],
               },
             ].map((section, i) => (
-              <div key={i} className="space-y-4">
-                <div className="text-3xl mb-2">{section.icon}</div>
+              <div key={i} className="space-y-4 text-center">
+                <div className="text-3xl mb-2 flex justify-center">{section.icon}</div>
                 <h3 className="text-2xl font-semibold">{section.title}</h3>
-                <ul className="space-y-2">
+                <ul className="space-y-2 flex flex-col items-center">
                   {section.items.map((item, j) => (
                     <li key={j} className="flex items-center gap-3 text-slate-300">
                       <span className="text-green-400">✓</span>
