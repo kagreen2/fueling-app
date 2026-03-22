@@ -127,6 +127,8 @@ export default function MealsPage() {
       }
     }
 
+    const today = new Date().toISOString().split('T')[0]
+    
     await supabase.from('meal_logs').insert({
       athlete_id: athlete.id,
       meal_title: form.mealTitle,
@@ -140,6 +142,8 @@ export default function MealsPage() {
       ai_feedback: analysis.feedback,
       ai_next_step: analysis.nextStep,
       clarifying_question: analysis.clarifyingQuestion || null,
+      date: today,
+      logged_at: new Date().toISOString(),
     })
 
     setSaved(true)

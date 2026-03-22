@@ -86,9 +86,31 @@ export default function AthleteDashboard() {
   })
   const [recentMeals, setRecentMeals] = useState<any[]>([])
   const [todayCheckin, setTodayCheckin] = useState<any>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     loadData()
+    
+    // Subscribe to real-time meal updates
+    const subscription = supabase
+      .channel('meal-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'meal_logs',
+        },
+        (payload) => {
+          // Reload data when a new meal is logged
+          loadData()
+        }
+      )
+      .subscribe()
+    
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function loadData() {
@@ -203,6 +225,12 @@ export default function AthleteDashboard() {
       console.error('Error loading data:', error)
       setLoading(false)
     }
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    await loadData()
+    setRefreshing(false)
   }
 
   if (loading) {
@@ -428,23 +456,107 @@ export default function AthleteDashboard() {
         {/* Recent Meals */}
         {recentMeals.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Recent Meals</h3>
-            <div className="space-y-3">
-              {recentMeals.map((meal, i) => (
-                <Card key={i}>
-                  <CardContent>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-white">{meal.meal_title}</h4>
-                        <p className="text-sm text-slate-400 mt-1">
-                          {meal.calories} cal • {meal.protein}g protein • {meal.carbs}g carbs
-                        </p>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider">Recent Meals</h3>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="text-xs px-3 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+            <div className="space-y-4">
+              {recentMeals.map((meal, i) => {
+                const totalMacros = (meal.protein || 0) + (meal.carbs || 0) + (meal.fat || 0)
+                const proteinPct = totalMacros > 0 ? ((meal.protein || 0) / totalMacros) * 100 : 0
+                const carbsPct = totalMacros > 0 ? ((meal.carbs || 0) / totalMacros) * 100 : 0
+                const fatPct = totalMacros > 0 ? ((meal.fat || 0) / totalMacros) * 100 : 0
+                
+                return (
+                  <Card key={i} className="hover:border-purple-600/50 transition-all">
+                    <CardContent>
+                      <div className="space-y-3">
+                        {/* Title and confidence */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-white text-lg">{meal.meal_title}</h4>
+                            {meal.confidence && (
+                              <span className={`text-xs font-medium mt-1 inline-block px-2 py-1 rounded ${
+                                meal.confidence === 'high' ? 'bg-green-500/20 text-green-300' :
+                                meal.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                                'bg-orange-500/20 text-orange-300'
+                              }`}>
+                                {meal.confidence === 'high' ? '✓ High confidence' :
+                                 meal.confidence === 'medium' ? '~ Medium confidence' :
+                                 '? Low confidence'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-purple-400">{meal.calories}</p>
+                            <p className="text-xs text-slate-400">calories</p>
+                          </div>
+                        </div>
+
+                        {/* Macro breakdown */}
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div className="bg-slate-700/50 rounded-lg p-2">
+                            <p className="text-slate-400 text-xs">Protein</p>
+                            <p className="font-semibold text-white">{meal.protein || 0}g</p>
+                            <div className="text-xs text-slate-500 mt-1">{Math.round(proteinPct)}%</div>
+                          </div>
+                          <div className="bg-slate-700/50 rounded-lg p-2">
+                            <p className="text-slate-400 text-xs">Carbs</p>
+                            <p className="font-semibold text-white">{meal.carbs || 0}g</p>
+                            <div className="text-xs text-slate-500 mt-1">{Math.round(carbsPct)}%</div>
+                          </div>
+                          <div className="bg-slate-700/50 rounded-lg p-2">
+                            <p className="text-slate-400 text-xs">Fat</p>
+                            <p className="font-semibold text-white">{meal.fat || 0}g</p>
+                            <div className="text-xs text-slate-500 mt-1">{Math.round(fatPct)}%</div>
+                          </div>
+                        </div>
+
+                        {/* Macro progress bar */}
+                        <div className="flex h-2 rounded-full overflow-hidden bg-slate-700">
+                          <div
+                            className="bg-blue-500"
+                            style={{ width: `${proteinPct}%` }}
+                            title="Protein"
+                          />
+                          <div
+                            className="bg-orange-500"
+                            style={{ width: `${carbsPct}%` }}
+                            title="Carbs"
+                          />
+                          <div
+                            className="bg-yellow-500"
+                            style={{ width: `${fatPct}%` }}
+                            title="Fat"
+                          />
+                        </div>
+
+                        {/* AI feedback */}
+                        {meal.ai_feedback && (
+                          <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3">
+                            <p className="text-xs text-purple-300 font-medium mb-1">💡 Coach's Feedback</p>
+                            <p className="text-sm text-slate-300">{meal.ai_feedback}</p>
+                          </div>
+                        )}
+
+                        {/* Next step */}
+                        {meal.ai_next_step && (
+                          <div className="bg-slate-700/50 rounded-lg p-3">
+                            <p className="text-xs text-slate-400 font-medium mb-1">Next Step</p>
+                            <p className="text-sm text-slate-200">{meal.ai_next_step}</p>
+                          </div>
+                        )}
                       </div>
-                      <div className="text-2xl">🍽️</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </div>
         )}
