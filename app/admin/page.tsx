@@ -201,15 +201,23 @@ export default function AdminDashboard() {
               </h1>
               <p className="text-sm text-slate-400 mt-1">{profile?.full_name}</p>
             </div>
-            <button
-              onClick={() => router.push('/athlete/profile')}
-              className="w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center transition-colors"
-            >
-              👤
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => router.push('/coach')}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                👥 Coach Dashboard
+              </button>
+              <button
+                onClick={() => router.push('/athlete/profile')}
+                className="w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center transition-colors"
+              >
+                👤
+              </button>
+            </div>
           </div>
 
-          {/* Tabs */}
+          {/* Tabs and Navigation */}
           <div className="flex gap-2 border-b border-slate-800 -mb-4">
             {['overview', 'users', 'analytics'].map(tab => (
               <button
