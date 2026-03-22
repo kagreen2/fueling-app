@@ -43,7 +43,7 @@ export default function AdminDashboard() {
   })
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'assignments'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'assignments' | 'settings'>('overview')
   const [athletes, setAthletes] = useState<any[]>([])
   const [coaches, setCoaches] = useState<any[]>([])
   const [athleteCoachMap, setAthleteCoachMap] = useState<Record<string, string>>({})
@@ -51,6 +51,8 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [allowCoachAdjustments, setAllowCoachAdjustments] = useState(false)
+  const [savingSettings, setSavingSettings] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -144,11 +146,36 @@ export default function AdminDashboard() {
       }
       }
 
+      // Load admin settings
+      const settingsRes = await fetch('/api/admin/settings')
+      const settings = await settingsRes.json()
+      setAllowCoachAdjustments(settings.allow_coach_recommendation_adjustments || false)
+
       setLoading(false)
     } catch (error) {
       console.error('Error loading data:', error)
       setLoading(false)
     }
+  }
+
+  async function handleToggleCoachAdjustments() {
+    setSavingSettings(true)
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          setting_key: 'allow_coach_recommendation_adjustments',
+          setting_value: !allowCoachAdjustments,
+        }),
+      })
+      if (response.ok) {
+        setAllowCoachAdjustments(!allowCoachAdjustments)
+      }
+    } catch (error) {
+      console.error('Error updating settings:', error)
+    }
+    setSavingSettings(false)
   }
 
   async function handleRoleChange(userId: string, newRole: string) {
@@ -249,7 +276,7 @@ export default function AdminDashboard() {
 
           {/* Tabs and Navigation */}
           <div className="flex gap-2 border-b border-slate-800 -mb-4">
-            {['overview', 'users', 'analytics', 'assignments'].map(tab => (
+            {['overview', 'users', 'analytics', 'assignments', 'settings'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -644,6 +671,74 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div>
+            <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-6">System Settings</h3>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Coach Permissions */}
+              <Card>
+                <CardHeader title="Coach Permissions" />
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-slate-300 mb-3">Allow coaches to adjust AI-generated nutrition recommendations</p>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleToggleCoachAdjustments}
+                          disabled={savingSettings}
+                          className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                            allowCoachAdjustments ? 'bg-purple-600' : 'bg-slate-700'
+                          } ${savingSettings ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <span
+                            className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                              allowCoachAdjustments ? 'translate-x-7' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                        <span className="text-sm font-medium text-white">
+                          {allowCoachAdjustments ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-slate-700/50 rounded-lg p-3 mt-4">
+                      <p className="text-xs text-slate-400">
+                        <strong>When enabled:</strong> Coaches can modify nutrition recommendations for their athletes.
+                      </p>
+                      <p className="text-xs text-slate-400 mt-2">
+                        <strong>When disabled:</strong> Coaches can only view AI-generated recommendations (read-only).
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* System Info */}
+              <Card>
+                <CardHeader title="System Information" />
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-slate-400">Total Users</p>
+                      <p className="text-2xl font-bold text-white">{stats.totalUsers}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Active Athletes</p>
+                      <p className="text-2xl font-bold text-white">{stats.totalAthletes}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Coaches</p>
+                      <p className="text-2xl font-bold text-white">{stats.totalCoaches}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
       </div>

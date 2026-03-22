@@ -40,9 +40,13 @@ export default function CoachDashboard() {
     alertsCount: 0,
   })
   const [athletes, setAthletes] = useState<AthleteStatus[]>([])
-  const [activeTab, setActiveTab] = useState<'overview' | 'athletes' | 'supplements' | 'alerts'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'athletes' | 'supplements' | 'alerts' | 'recommendations'>('overview')
   const [supplements, setSupplements] = useState<any[]>([])
   const [alerts, setAlerts] = useState<any[]>([])
+  const [recommendations, setRecommendations] = useState<Record<string, any>>({})
+  const [allowAdjustments, setAllowAdjustments] = useState(false)
+  const [editingRecommendation, setEditingRecommendation] = useState<string | null>(null)
+  const [editValues, setEditValues] = useState<any>({})
 
   useEffect(() => {
     loadData()
@@ -187,10 +191,41 @@ export default function CoachDashboard() {
         }))
       }
 
+      // Load admin settings
+      const settingsRes = await fetch('/api/admin/settings')
+      const settings = await settingsRes.json()
+      setAllowAdjustments(settings.allow_coach_recommendation_adjustments || false)
+
       setLoading(false)
     } catch (error) {
       console.error('Error loading data:', error)
       setLoading(false)
+    }
+  }
+
+  async function handleSaveAdjustment(athleteId: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const rec = recommendations[athleteId]
+      if (!rec) return
+
+      // Save adjustment
+      await supabase.from('coach_recommendation_adjustments').insert({
+        recommendation_id: rec.id,
+        coach_id: user.id,
+        daily_calories: editValues.calories,
+        daily_protein_g: editValues.protein,
+        daily_carbs_g: editValues.carbs,
+        daily_fat_g: editValues.fat,
+        adjustment_reason: editValues.reason,
+      })
+
+      setEditingRecommendation(null)
+      setEditValues({})
+    } catch (error) {
+      console.error('Error saving adjustment:', error)
     }
   }
 
