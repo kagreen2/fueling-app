@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -118,9 +120,11 @@ export default function CoachDashboard() {
             .eq('athlete_id', athlete.id)
             .eq('status', 'pending')
 
+          const profileName = (athlete.profiles as any)?.full_name || 'Unknown'
+
           athleteStats.push({
             id: athlete.id,
-            name: athlete.profiles.full_name,
+            name: profileName || 'Unknown',
             sport: athlete.sport || 'Unknown',
             position: athlete.position || 'N/A',
             lastCheckin: checkinData?.created_at || 'No check-in',
