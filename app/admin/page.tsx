@@ -43,7 +43,11 @@ export default function AdminDashboard() {
   })
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'analytics' | 'assignments'>('overview')
+  const [athletes, setAthletes] = useState<any[]>([])
+  const [coaches, setCoaches] = useState<any[]>([])
+  const [athleteCoachMap, setAthleteCoachMap] = useState<Record<string, string>>({})
+  const [assigningId, setAssigningId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
@@ -103,15 +107,41 @@ export default function AdminDashboard() {
           .from('alerts')
           .select('id', { count: 'exact' })
 
-        setStats({
-          totalUsers: allProfiles.length,
-          totalAthletes: athleteCount,
-          totalCoaches: coachCount,
-          totalAdmins: adminCount,
-          totalMeals: mealsCount || 0,
-          totalSupplements: supplementsCount || 0,
-          totalAlerts: alertsCount || 0,
+      setStats({
+        totalUsers: allProfiles.length,
+        totalAthletes: athleteCount,
+        totalCoaches: coachCount,
+        totalAdmins: adminCount,
+        totalMeals: mealsCount || 0,
+        totalSupplements: supplementsCount || 0,
+        totalAlerts: alertsCount || 0,
+      })
+
+      // Load athletes and coaches for assignment
+      const { data: athletesData } = await supabase
+        .from('athletes')
+        .select('id, profile_id, profiles!athletes_profile_id_fkey(full_name, email)')
+
+      const { data: coachesData } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('role', 'coach')
+
+      if (athletesData) setAthletes(athletesData)
+      if (coachesData) setCoaches(coachesData)
+
+      // Load current assignments
+      const { data: assignmentsData } = await supabase
+        .from('athlete_coach_assignments')
+        .select('athlete_id, coach_id')
+
+      if (assignmentsData) {
+        const map: Record<string, string> = {}
+        assignmentsData.forEach((assignment: any) => {
+          map[assignment.athlete_id] = assignment.coach_id
         })
+        setAthleteCoachMap(map)
+      }
       }
 
       setLoading(false)
@@ -219,7 +249,7 @@ export default function AdminDashboard() {
 
           {/* Tabs and Navigation */}
           <div className="flex gap-2 border-b border-slate-800 -mb-4">
-            {['overview', 'users', 'analytics'].map(tab => (
+            {['overview', 'users', 'analytics', 'assignments'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -507,6 +537,113 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+        )}
+
+        {/* Assignments Tab */}
+        {activeTab === 'assignments' && (
+          <div>
+            <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Athlete-Coach Assignments</h3>
+            
+            {athletes.length > 0 ? (
+              <div className="space-y-3">
+                {athletes.map(athlete => {
+                  const athleteName = (athlete.profiles as any)?.full_name || 'Unknown'
+                  const athleteEmail = (athlete.profiles as any)?.email || ''
+                  const assignedCoachId = athleteCoachMap[athlete.id]
+                  const assignedCoach = coaches.find(c => c.id === assignedCoachId)
+
+                  return (
+                    <Card key={athlete.id}>
+                      <CardContent>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-white text-lg">{athleteName}</h4>
+                            <p className="text-sm text-slate-400 mt-1">{athleteEmail}</p>
+                            {assignedCoach && (
+                              <p className="text-xs text-purple-400 mt-2">Assigned to: {assignedCoach.full_name}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <select
+                              value={assignedCoachId || ''}
+                              onChange={async (e) => {
+                                setAssigningId(athlete.id)
+                                const coachId = e.target.value
+                                
+                                try {
+                                  if (coachId) {
+                                    // Check if assignment exists
+                                    const { data: existing } = await supabase
+                                      .from('athlete_coach_assignments')
+                                      .select('id')
+                                      .eq('athlete_id', athlete.id)
+                                      .single()
+
+                                    if (existing) {
+                                      // Update existing
+                                      await supabase
+                                        .from('athlete_coach_assignments')
+                                        .update({ coach_id: coachId })
+                                        .eq('athlete_id', athlete.id)
+                                    } else {
+                                      // Create new
+                                      await supabase
+                                        .from('athlete_coach_assignments')
+                                        .insert({
+                                          athlete_id: athlete.id,
+                                          coach_id: coachId,
+                                        })
+                                    }
+
+                                    // Update local state
+                                    setAthleteCoachMap(prev => ({
+                                      ...prev,
+                                      [athlete.id]: coachId,
+                                    }))
+                                  } else {
+                                    // Remove assignment
+                                    await supabase
+                                      .from('athlete_coach_assignments')
+                                      .delete()
+                                      .eq('athlete_id', athlete.id)
+
+                                    setAthleteCoachMap(prev => {
+                                      const newMap = { ...prev }
+                                      delete newMap[athlete.id]
+                                      return newMap
+                                    })
+                                  }
+                                } catch (error) {
+                                  console.error('Error assigning coach:', error)
+                                } finally {
+                                  setAssigningId(null)
+                                }
+                              }}
+                              disabled={assigningId === athlete.id}
+                              className="px-3 py-2 bg-slate-700 border border-slate-600 text-white rounded-lg focus:outline-none focus:border-purple-600 text-sm"
+                            >
+                              <option value="">-- No Coach --</option>
+                              {coaches.map(coach => (
+                                <option key={coach.id} value={coach.id}>
+                                  {coach.full_name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            ) : (
+              <Card>
+                <CardContent>
+                  <p className="text-slate-400 text-center py-8">No athletes found</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
