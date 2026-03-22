@@ -194,7 +194,7 @@ export default function HydrationPage() {
                 <button
                   key={oz}
                   onClick={() => addWater(oz)}
-                  className="bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-purple-300 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                  className="bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 text-blue-300 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
                 >
                   +{oz}oz
                 </button>
@@ -221,7 +221,7 @@ export default function HydrationPage() {
                 <button
                   key={oz}
                   onClick={() => update('electrolyteOz', form.electrolyteOz + oz)}
-                  className="bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-300 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                  className="bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 text-green-300 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
                 >
                   +{oz}
                 </button>
@@ -299,13 +299,13 @@ export default function HydrationPage() {
         <Card className="mb-6">
           <CardHeader title="Notes" />
           <CardContent>
-              <textarea
-                value={form.notes}
-                onChange={e => update('notes', e.target.value)}
-                placeholder="Hot practice today, sweated a lot..."
-                rows={3}
-                className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
-              />
+            <textarea
+              value={form.notes}
+              onChange={e => update('notes', e.target.value)}
+              placeholder="Hot practice today, sweated a lot..."
+              rows={3}
+              className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
+            />
           </CardContent>
         </Card>
 
@@ -314,7 +314,7 @@ export default function HydrationPage() {
           onClick={handleSubmit}
           isLoading={loading}
           size="lg"
-          className="bg-purple-500 hover:bg-purple-600"
+          className="bg-blue-500 hover:bg-blue-600"
         >
           Save Hydration Log
         </Button>

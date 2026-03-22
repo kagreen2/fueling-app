@@ -131,9 +131,9 @@ export default function AthleteDashboard() {
               <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">
                 {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </p>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-purple-500 bg-clip-text text-transparent">
-            {greeting()} 👋
-          </h1>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
+                {greeting()} 👋
+              </h1>
               {profile && (
                 <p className="text-sm text-slate-400 mt-1">{profile.full_name}</p>
               )}
@@ -186,7 +186,7 @@ export default function AthleteDashboard() {
           <Button
             variant="ghost"
             size="sm"
-            className="w-full mt-3 text-xs text-purple-400 hover:text-purple-300"
+            className="w-full mt-3 text-xs"
             onClick={() => router.push('/athlete/onboarding')}
           >
             Complete setup to unlock personalized targets →
@@ -206,7 +206,7 @@ export default function AthleteDashboard() {
                 className={`
                   bg-slate-800 border border-slate-700 rounded-2xl p-4
                   text-left transition-all duration-200 active:scale-95
-                  hover:border-purple-500/50 hover:bg-slate-700/50
+                  ${colorMap[action.color]}
                 `}
               >
                 <div className="text-3xl mb-3">{action.icon}</div>

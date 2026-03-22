@@ -32,7 +32,7 @@ function SliderField({ label, field, value, onChange }: SliderFieldProps) {
         max="10"
         value={value}
         onChange={e => onChange(field, parseInt(e.target.value))}
-        className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+        className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-green-500"
       />
       <div className="flex justify-between text-xs text-slate-500 mt-2">
         <span>Low</span>
@@ -212,7 +212,7 @@ export default function CheckInPage() {
                   onClick={() => update('trainingType', form.trainingType === type ? '' : type)}
                   className={`py-3 px-2 rounded-lg text-xs font-semibold capitalize transition-all active:scale-95 ${
                     form.trainingType === type
-                      ? 'bg-purple-500 text-white'
+                      ? 'bg-green-500 text-black'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                   }`}
                 >
@@ -232,7 +232,7 @@ export default function CheckInPage() {
               onChange={e => update('notes', e.target.value)}
               placeholder="Anything else worth noting today..."
               rows={3}
-              className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
+              className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all resize-none"
             />
           </CardContent>
         </Card>
@@ -242,7 +242,7 @@ export default function CheckInPage() {
           onClick={handleSubmit}
           isLoading={loading}
           size="lg"
-          className="bg-purple-500 hover:bg-purple-600"
+          className="bg-green-500 hover:bg-green-600"
         >
           Save Check-in
         </Button>

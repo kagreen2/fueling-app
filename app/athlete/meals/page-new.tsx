@@ -203,7 +203,7 @@ export default function MealsPage() {
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:border-purple-500 hover:bg-slate-800/50 transition-all">
+                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:border-green-500 hover:bg-slate-800/50 transition-all">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <div className="text-4xl mb-2">📸</div>
                     <p className="text-sm text-slate-400">Click to upload meal photo</p>
@@ -241,7 +241,7 @@ export default function MealsPage() {
                   onChange={e => update('description', e.target.value)}
                   placeholder="Describe what you ate..."
                   rows={3}
-                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition-all resize-none"
                 />
               </div>
             </div>
@@ -358,7 +358,7 @@ export default function MealsPage() {
               onClick={analyzeMeal}
               isLoading={analyzing}
               size="lg"
-              className="bg-purple-500 hover:bg-purple-600"
+              className="bg-green-500 hover:bg-green-600"
             >
               {analyzing ? 'Analyzing...' : 'Analyze with AI'}
             </Button>
@@ -368,7 +368,7 @@ export default function MealsPage() {
                 onClick={handleSubmit}
                 isLoading={loading}
                 size="lg"
-                className="bg-purple-500 hover:bg-purple-600"
+                className="bg-green-500 hover:bg-green-600"
               >
                 {loading ? 'Saving...' : 'Save Meal'}
               </Button>
