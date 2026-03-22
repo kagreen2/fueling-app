@@ -194,7 +194,7 @@ export default function HydrationPage() {
                 <button
                   key={oz}
                   onClick={() => addWater(oz)}
-                  className="bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-purple-300 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                  className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/50 text-purple-400 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
                 >
                   +{oz}oz
                 </button>
@@ -304,7 +304,7 @@ export default function HydrationPage() {
                 onChange={e => update('notes', e.target.value)}
                 placeholder="Hot practice today, sweated a lot..."
                 rows={3}
-                className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
+                className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all resize-none"
               />
           </CardContent>
         </Card>
@@ -314,7 +314,7 @@ export default function HydrationPage() {
           onClick={handleSubmit}
           isLoading={loading}
           size="lg"
-          className="bg-purple-500 hover:bg-purple-600"
+          className="bg-purple-600 hover:bg-purple-700"
         >
           Save Hydration Log
         </Button>

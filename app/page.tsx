@@ -11,7 +11,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="fixed top-0 z-50 w-full bg-slate-900/80 backdrop-blur border-b border-slate-800">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-purple-500 bg-clip-text text-transparent">
+          <div className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent">
             ⚡ Fuel Different
           </div>
           <div className="flex gap-3">
@@ -25,7 +25,7 @@ export default function Home() {
               <Button
                 onClick={() => router.push('/signup')}
                 size="sm"
-                className="bg-purple-500 hover:bg-purple-600"
+                className="bg-purple-600 hover:bg-purple-700"
               >
                 Get Started
               </Button>
@@ -38,14 +38,14 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           {/* Animated background elements */}
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl" />
+            <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
           </div>
 
           {/* Main content */}
           <div className="relative z-10">
-            <div className="inline-block mb-6 px-4 py-2 bg-purple-500/10 border border-purple-500/30 rounded-full">
-              <span className="text-sm font-semibold text-purple-400">
+            <div className="inline-block mb-6 px-4 py-2 bg-purple-600/10 border border-purple-600/30 rounded-full">
+              <span className="text-sm font-semibold text-purple-500">
                 🏆 Built for High School & College Athletes
               </span>
             </div>
@@ -53,7 +53,7 @@ export default function Home() {
             <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Performance Fueling
               <br />
-              <span className="bg-gradient-to-r from-purple-400 to-purple-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent">
                 Made Simple
               </span>
             </h1>
@@ -66,7 +66,7 @@ export default function Home() {
               <Button
                 onClick={() => router.push('/signup')}
                 size="lg"
-                className="bg-purple-500 hover:bg-purple-600 text-lg"
+                className="bg-purple-600 hover:bg-purple-700 text-lg"
               >
                 Start Free Trial →
               </Button>
@@ -100,7 +100,7 @@ export default function Home() {
               ].map((feature, i) => (
                 <div
                   key={i}
-                  className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 hover:border-purple-500/50 transition-all duration-300"
+                  className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 hover:border-purple-600/50 transition-all duration-300"
                 >
                   <div className="text-4xl mb-3">{feature.icon}</div>
                   <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
@@ -114,12 +114,12 @@ export default function Home() {
 
       {/* Features Section */}
       <div className="py-20 px-4 border-t border-slate-800">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-16">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-4xl font-bold text-center mb-20">
             Everything You Need to Perform
           </h2>
 
-          <div className="grid md:grid-cols-2 gap-12">
+          <div className="grid md:grid-cols-2 gap-16 items-start">
             {[
               {
                 icon: '✅',
@@ -211,7 +211,7 @@ export default function Home() {
           <Button
             onClick={() => router.push('/signup')}
             size="lg"
-            className="bg-purple-500 hover:bg-purple-600 text-lg"
+            className="bg-purple-600 hover:bg-purple-700 text-lg"
           >
             Get Started Free →
           </Button>

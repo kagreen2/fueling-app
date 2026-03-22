@@ -35,7 +35,7 @@ export function Input({
           className={clsx(
             'w-full bg-slate-700 border border-slate-600 text-white',
             'rounded-lg px-4 py-3 placeholder-slate-400',
-            'focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20',
+            'focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20',
             'transition-all duration-200',
             'disabled:opacity-50 disabled:cursor-not-allowed',
             error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
@@ -79,7 +79,7 @@ export function Select({
         className={clsx(
           'w-full bg-slate-700 border border-slate-600 text-white',
           'rounded-lg px-4 py-3',
-          'focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20',
+          'focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20',
           'transition-all duration-200',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           'appearance-none',
@@ -124,7 +124,7 @@ export function TextArea({
         className={clsx(
           'w-full bg-slate-700 border border-slate-600 text-white',
           'rounded-lg px-4 py-3 placeholder-slate-400',
-          'focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20',
+          'focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20',
           'transition-all duration-200',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           'resize-none',

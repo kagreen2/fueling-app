@@ -4,10 +4,10 @@
  */
 
 export const colors = {
-  // Primary brand colors - Premium Purple
-  primary: '#A855F7', // Vibrant purple (premium, luxury)
-  primaryLight: '#E9D5FF',
-  primaryDark: '#7E22CE',
+  // Primary brand colors - Premium Purple (Toned Down)
+  primary: '#9333EA', // Sophisticated purple (premium, luxury)
+  primaryLight: '#DDD6FE',
+  primaryDark: '#6B21A8',
 
   // Secondary colors - Gold accents
   success: '#FBBF24', // Gold (premium accent)

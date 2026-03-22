@@ -27,9 +27,9 @@ export function Button({
   `
 
   const variantStyles = {
-    primary: 'bg-purple-500 text-white hover:bg-purple-600 focus:ring-purple-500',
+    primary: 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-600',
     secondary: 'bg-slate-700 text-white hover:bg-slate-600 focus:ring-slate-500',
-    ghost: 'bg-transparent text-purple-400 hover:bg-purple-500/10 focus:ring-purple-500',
+    ghost: 'bg-transparent text-purple-500 hover:bg-purple-500/10 focus:ring-purple-600',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
   }
 
