@@ -71,19 +71,20 @@ export default function CoachDashboard() {
         return
       }
 
-      // Get coach's team
-      const { data: staffData } = await supabase
-        .from('staff')
-        .select('team_id')
-        .eq('profile_id', user.id)
-        .single()
+      // Get athletes assigned to this coach
+      const { data: assignmentData } = await supabase
+        .from('athlete_coach_assignments')
+        .select('athlete_id')
+        .eq('coach_id', user.id)
 
-      if (!staffData?.team_id) {
+      if (!assignmentData || assignmentData.length === 0) {
         setLoading(false)
         return
       }
 
-      // Get team athletes
+      const athleteIds = assignmentData.map(a => a.athlete_id)
+
+      // Get athlete data
       const { data: athleteData } = await supabase
         .from('athletes')
         .select(`
@@ -93,7 +94,7 @@ export default function CoachDashboard() {
           position,
           profiles!athletes_profile_id_fkey(full_name, id)
         `)
-        .eq('team_id', staffData.team_id)
+        .in('id', athleteIds)
 
       if (athleteData) {
         // Get stats for each athlete
