@@ -87,6 +87,8 @@ export default function AthleteDashboard() {
   const [recentMeals, setRecentMeals] = useState<any[]>([])
   const [todayCheckin, setTodayCheckin] = useState<any>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [recommendations, setRecommendations] = useState<any>(null)
+  const [athlete, setAthlete] = useState<any>(null)
 
   useEffect(() => {
     loadData()
@@ -140,6 +142,25 @@ export default function AthleteDashboard() {
       if (!athleteData) {
         router.push('/athlete/onboarding')
         return
+      }
+
+      setAthlete(athleteData)
+
+      // Get nutrition recommendations
+      const { data: recsData } = await supabase
+        .from('nutrition_recommendations')
+        .select('*')
+        .eq('athlete_id', athleteData.id)
+        .single()
+
+      if (recsData) {
+        setRecommendations(recsData)
+        // Update stats with recommendation goals
+        setStats(prev => ({
+          ...prev,
+          calorieGoal: recsData.daily_calories,
+          proteinGoal: recsData.daily_protein_g,
+        }))
       }
 
       // Get today's meals
@@ -452,6 +473,61 @@ export default function AthleteDashboard() {
             </Card>
           )}
         </div>
+
+        {/* Personalized Nutrition Targets */}
+        {recommendations && (
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Your Personalized Targets</h3>
+            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/30">
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Daily Targets */}
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="bg-slate-800/50 rounded-lg p-4">
+                      <p className="text-sm text-slate-400 mb-2">Daily Calories</p>
+                      <p className="text-3xl font-bold text-purple-400">{recommendations.daily_calories}</p>
+                      <p className="text-xs text-slate-500 mt-2">Current: {Math.round(stats.todayCalories)}</p>
+                      <div className="w-full bg-slate-700 rounded-full h-2 mt-2">
+                        <div
+                          className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
+                          style={{ width: `${Math.min((stats.todayCalories / recommendations.daily_calories) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-4">
+                      <p className="text-sm text-slate-400 mb-2">Daily Protein</p>
+                      <p className="text-3xl font-bold text-blue-400">{recommendations.daily_protein_g}g</p>
+                      <p className="text-xs text-slate-500 mt-2">Current: {Math.round(stats.todayProtein)}g</p>
+                      <div className="w-full bg-slate-700 rounded-full h-2 mt-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full"
+                          style={{ width: `${Math.min((stats.todayProtein / recommendations.daily_protein_g) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-4">
+                      <p className="text-sm text-slate-400 mb-2">Carbs & Fat</p>
+                      <div className="flex gap-2 mb-2">
+                        <div className="flex-1">
+                          <p className="text-xs text-orange-400 font-medium">{recommendations.daily_carbs_g}g</p>
+                          <p className="text-xs text-slate-500">Carbs</p>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-yellow-400 font-medium">{recommendations.daily_fat_g}g</p>
+                          <p className="text-xs text-slate-500">Fat</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-slate-700">
+                        <div className="bg-orange-500 flex-1" />
+                        <div className="bg-yellow-500 flex-1" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Recent Meals */}
         {recentMeals.length > 0 && (

@@ -73,7 +73,10 @@ export default function OnboardingPage() {
       .eq('profile_id', user.id)
       .single()
 
+    let athleteId: string
+
     if (existing) {
+      athleteId = existing.id
       const { error: err } = await supabase
         .from('athletes')
         .update({
@@ -92,7 +95,7 @@ export default function OnboardingPage() {
         .eq('profile_id', user.id)
       if (err) { setError(err.message); setLoading(false); return }
     } else {
-      const { error: err } = await supabase
+      const { data: newAthlete, error: err } = await supabase
         .from('athletes')
         .insert({
           profile_id: user.id,
@@ -108,7 +111,21 @@ export default function OnboardingPage() {
           training_schedule: form.trainingSchedule,
           onboarding_complete: true,
         })
+        .select('id')
+        .single()
       if (err) { setError(err.message); setLoading(false); return }
+      athleteId = newAthlete.id
+    }
+
+    // Generate personalized nutrition recommendations
+    try {
+      await fetch('/api/recommendations/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ athleteId }),
+      })
+    } catch (e) {
+      console.error('Error generating recommendations:', e)
     }
 
     router.push('/athlete/dashboard')
