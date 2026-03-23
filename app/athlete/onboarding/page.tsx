@@ -20,6 +20,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [teamLookup, setTeamLookup] = useState<{ name: string; sport: string | null } | null>(null)
+  const [teamLookupError, setTeamLookupError] = useState('')
 
   const [form, setForm] = useState({
     // Step 1 — Personal
@@ -32,6 +34,7 @@ export default function OnboardingPage() {
     position: '',
     teamLevel: '',
     seasonPhase: '',
+    inviteCode: '',
     // Step 3 — Body
     heightFt: '',
     heightIn: '',
@@ -46,6 +49,29 @@ export default function OnboardingPage() {
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
+    // Clear team lookup when invite code changes
+    if (field === 'inviteCode') {
+      setTeamLookup(null)
+      setTeamLookupError('')
+    }
+  }
+
+  async function lookupTeam() {
+    if (!form.inviteCode.trim()) return
+    setTeamLookupError('')
+    setTeamLookup(null)
+
+    const { data, error: err } = await supabase
+      .from('teams')
+      .select('name, sport')
+      .eq('invite_code', form.inviteCode.trim().toUpperCase())
+      .single()
+
+    if (err || !data) {
+      setTeamLookupError('No team found with that code. Check with your coach and try again.')
+    } else {
+      setTeamLookup({ name: data.name, sport: data.sport })
+    }
   }
 
   function next() {
@@ -123,6 +149,29 @@ export default function OnboardingPage() {
         .single()
       if (err) { setError(err.message); setLoading(false); return }
       athleteId = newAthlete.id
+    }
+
+    // Join team if invite code was provided
+    if (form.inviteCode.trim()) {
+      try {
+        const { data: team } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('invite_code', form.inviteCode.trim().toUpperCase())
+          .single()
+
+        if (team) {
+          await supabase
+            .from('team_members')
+            .upsert({
+              team_id: team.id,
+              athlete_id: athleteId,
+            }, { onConflict: 'team_id,athlete_id' })
+        }
+      } catch (e) {
+        console.error('Error joining team:', e)
+        // Don't block onboarding if team join fails
+      }
     }
 
     // Generate personalized nutrition recommendations
@@ -262,6 +311,41 @@ export default function OnboardingPage() {
                   <option value="postseason">Postseason</option>
                   <option value="summer">Summer</option>
                 </select>
+              </div>
+
+              {/* Team Invite Code */}
+              <div className="mt-2 pt-4 border-t border-slate-700">
+                <label className="text-slate-300 text-sm font-medium mb-1 block">Team invite code <span className="text-slate-500">(optional)</span></label>
+                <p className="text-slate-500 text-xs mb-2">If your coach gave you a team code, enter it here to join their team.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={form.inviteCode}
+                    onChange={e => update('inviteCode', e.target.value.toUpperCase())}
+                    placeholder="e.g. TEAM-ABC123"
+                    maxLength={20}
+                    className="flex-1 bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500 uppercase tracking-wider font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={lookupTeam}
+                    disabled={!form.inviteCode.trim()}
+                    className="px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Verify
+                  </button>
+                </div>
+                {teamLookup && (
+                  <div className="mt-2 flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 text-sm px-3 py-2 rounded-lg">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    <span>Joining <strong>{teamLookup.name}</strong>{teamLookup.sport ? ` — ${teamLookup.sport.replace(/_/g, ' ')}` : ''}</span>
+                  </div>
+                )}
+                {teamLookupError && (
+                  <div className="mt-2 text-red-400 text-sm px-1">
+                    {teamLookupError}
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -1,0 +1,660 @@
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+
+interface Team {
+  id: string
+  name: string
+  sport: string | null
+  invite_code: string
+}
+
+interface AthleteRow {
+  athlete_id: string
+  team_id: string
+  athlete: {
+    id: string
+    profile_id: string
+    sport: string | null
+    position: string | null
+    weight_lbs: number | null
+    goal_phase: string | null
+    season_phase: string | null
+    profile: {
+      full_name: string
+      email: string
+    }
+  }
+}
+
+interface MealLog {
+  athlete_id: string
+  date: string
+  calories: number
+  protein: number
+}
+
+interface Recommendation {
+  athlete_id: string
+  daily_calories: number
+  daily_protein: number
+}
+
+interface AthleteData {
+  id: string
+  profileId: string
+  name: string
+  email: string
+  sport: string | null
+  position: string | null
+  weight: number | null
+  goal: string | null
+  season: string | null
+  teamId: string
+  teamName: string
+  todayCalories: number
+  todayProtein: number
+  targetCalories: number
+  targetProtein: number
+  loggedToday: boolean
+  daysActive: number
+  totalDays: number
+  complianceRate: number
+  streak: number
+  lastLogDate: string | null
+  daysSinceLastLog: number
+}
+
+function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatGoal(goal: string | null): string {
+  const map: Record<string, string> = {
+    gain_lean_mass: 'Gain Lean Mass',
+    lose_body_fat: 'Lose Body Fat',
+    maintain_performance: 'Maintain & Perform',
+    in_season_maintenance: 'In-Season Maintenance',
+    recover_rebuild: 'Recover & Rebuild',
+  }
+  return goal ? map[goal] || goal.replace(/_/g, ' ') : 'Not set'
+}
+
+function formatSport(sport: string | null): string {
+  if (!sport) return 'N/A'
+  return sport.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+export default function CoachDashboardPage() {
+  const router = useRouter()
+  const supabase = createClient()
+  const [loading, setLoading] = useState(true)
+  const [teams, setTeams] = useState<Team[]>([])
+  const [athletes, setAthletes] = useState<AthleteData[]>([])
+  const [selectedTeam, setSelectedTeam] = useState<string>('all')
+  const [timeRange, setTimeRange] = useState<number>(7)
+  const [view, setView] = useState<'overview' | 'leaderboard' | 'alerts'>('overview')
+  const [coachName, setCoachName] = useState('')
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  async function loadData() {
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
+
+    // Get coach profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || (profile.role !== 'coach' && profile.role !== 'super_admin')) {
+      router.push('/login')
+      return
+    }
+    setCoachName(profile.full_name || 'Coach')
+
+    // Get coach's teams
+    const { data: teamsData } = await supabase
+      .from('teams')
+      .select('id, name, sport, invite_code')
+      .eq('coach_id', user.id)
+
+    if (!teamsData || teamsData.length === 0) {
+      setTeams([])
+      setAthletes([])
+      setLoading(false)
+      return
+    }
+    setTeams(teamsData)
+
+    const teamIds = teamsData.map(t => t.id)
+    const teamMap = Object.fromEntries(teamsData.map(t => [t.id, t.name]))
+
+    // Get team members with athlete + profile data
+    const { data: members } = await supabase
+      .from('team_members')
+      .select(`
+        athlete_id,
+        team_id,
+        athlete:athletes(
+          id,
+          profile_id,
+          sport,
+          position,
+          weight_lbs,
+          goal_phase,
+          season_phase,
+          profile:profiles(full_name, email)
+        )
+      `)
+      .in('team_id', teamIds)
+
+    if (!members || members.length === 0) {
+      setAthletes([])
+      setLoading(false)
+      return
+    }
+
+    // Get all athlete IDs
+    const athleteIds = [...new Set(members.map(m => m.athlete_id))]
+
+    // Get today's date and date range
+    const today = getLocalDateString()
+    const rangeStart = new Date()
+    rangeStart.setDate(rangeStart.getDate() - 30) // Always fetch 30 days for flexibility
+    const rangeStartStr = getLocalDateString(rangeStart)
+
+    // Get meal logs for all athletes in the date range
+    const { data: mealLogs } = await supabase
+      .from('meal_logs')
+      .select('athlete_id, date, calories, protein')
+      .in('athlete_id', athleteIds)
+      .gte('date', rangeStartStr)
+      .lte('date', today)
+
+    // Get nutrition recommendations for all athletes
+    const { data: recs } = await supabase
+      .from('nutrition_recommendations')
+      .select('athlete_id, daily_calories, daily_protein')
+      .in('athlete_id', athleteIds)
+
+    const recsMap = Object.fromEntries((recs || []).map(r => [r.athlete_id, r]))
+
+    // Process each athlete
+    const athleteDataList: AthleteData[] = members.map((m: any) => {
+      const athlete = m.athlete
+      const profileData = athlete?.profile
+      const rec = recsMap[m.athlete_id]
+      const logs = (mealLogs || []).filter(l => l.athlete_id === m.athlete_id)
+
+      // Today's totals
+      const todayLogs = logs.filter(l => l.date === today)
+      const todayCalories = todayLogs.reduce((sum, l) => sum + (l.calories || 0), 0)
+      const todayProtein = todayLogs.reduce((sum, l) => sum + (l.protein || 0), 0)
+      const loggedToday = todayLogs.length > 0
+
+      // Get unique dates with logs
+      const logDates = [...new Set(logs.map(l => l.date))].sort()
+      const daysActive = logDates.length
+
+      // Calculate total days in range (up to 30)
+      const totalDays = 30
+      const complianceRate = totalDays > 0 ? Math.round((daysActive / totalDays) * 100) : 0
+
+      // Calculate streak (consecutive days ending today or yesterday)
+      let streak = 0
+      const dateSet = new Set(logDates)
+      const checkDate = new Date()
+      // If they didn't log today, start checking from yesterday
+      if (!dateSet.has(getLocalDateString(checkDate))) {
+        checkDate.setDate(checkDate.getDate() - 1)
+      }
+      while (dateSet.has(getLocalDateString(checkDate))) {
+        streak++
+        checkDate.setDate(checkDate.getDate() - 1)
+      }
+
+      // Last log date
+      const lastLogDate = logDates.length > 0 ? logDates[logDates.length - 1] : null
+      let daysSinceLastLog = 999
+      if (lastLogDate) {
+        const lastDate = new Date(lastLogDate + 'T12:00:00')
+        const now = new Date()
+        daysSinceLastLog = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+      }
+
+      return {
+        id: m.athlete_id,
+        profileId: athlete?.profile_id || '',
+        name: profileData?.full_name || 'Unknown Athlete',
+        email: profileData?.email || '',
+        sport: athlete?.sport,
+        position: athlete?.position,
+        weight: athlete?.weight_lbs,
+        goal: athlete?.goal_phase,
+        season: athlete?.season_phase,
+        teamId: m.team_id,
+        teamName: teamMap[m.team_id] || 'Unknown Team',
+        todayCalories,
+        todayProtein,
+        targetCalories: rec?.daily_calories || 2500,
+        targetProtein: rec?.daily_protein || 150,
+        loggedToday,
+        daysActive,
+        totalDays,
+        complianceRate,
+        streak,
+        lastLogDate,
+        daysSinceLastLog,
+      }
+    })
+
+    setAthletes(athleteDataList)
+    setLoading(false)
+  }
+
+  // Filter athletes by selected team
+  const filteredAthletes = useMemo(() => {
+    if (selectedTeam === 'all') return athletes
+    return athletes.filter(a => a.teamId === selectedTeam)
+  }, [athletes, selectedTeam])
+
+  // Leaderboard: sorted by compliance rate, then streak
+  const leaderboard = useMemo(() => {
+    return [...filteredAthletes].sort((a, b) => {
+      if (b.complianceRate !== a.complianceRate) return b.complianceRate - a.complianceRate
+      return b.streak - a.streak
+    })
+  }, [filteredAthletes])
+
+  // Red flag athletes
+  const redFlags = useMemo(() => {
+    return filteredAthletes.filter(a => {
+      // Haven't logged in 3+ days
+      if (a.daysSinceLastLog >= 3) return true
+      // Compliance below 30%
+      if (a.complianceRate < 30) return true
+      // Consistently under 50% of calorie target when they do log
+      if (a.todayCalories > 0 && a.todayCalories < a.targetCalories * 0.5) return true
+      return false
+    }).sort((a, b) => b.daysSinceLastLog - a.daysSinceLastLog)
+  }, [filteredAthletes])
+
+  // Summary stats
+  const stats = useMemo(() => {
+    const total = filteredAthletes.length
+    const loggedToday = filteredAthletes.filter(a => a.loggedToday).length
+    const avgCompliance = total > 0
+      ? Math.round(filteredAthletes.reduce((sum, a) => sum + a.complianceRate, 0) / total)
+      : 0
+    const avgStreak = total > 0
+      ? Math.round(filteredAthletes.reduce((sum, a) => sum + a.streak, 0) / total * 10) / 10
+      : 0
+    return { total, loggedToday, avgCompliance, avgStreak, redFlagCount: redFlags.length }
+  }, [filteredAthletes, redFlags])
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Loading dashboard...</p>
+        </div>
+      </main>
+    )
+  }
+
+  // No teams state
+  if (teams.length === 0) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3">Welcome, {coachName}!</h2>
+          <p className="text-slate-400 mb-6">Create your first team to start tracking athlete compliance. Share the invite code with your athletes so they can join.</p>
+          <button
+            onClick={() => router.push('/coach/teams')}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors"
+          >
+            Create Your First Team
+          </button>
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
+      {/* Header */}
+      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white">Coach Dashboard</h1>
+            <p className="text-slate-400 text-sm">Welcome back, {coachName}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/coach/teams')}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg border border-slate-700 transition-colors"
+            >
+              Manage Teams
+            </button>
+            <button
+              onClick={loadData}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg border border-slate-700 transition-colors"
+              title="Refresh"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {/* Team Filter + View Tabs */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedTeam}
+              onChange={e => setSelectedTeam(e.target.value)}
+              className="bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-purple-600 appearance-none"
+            >
+              <option value="all">All Teams ({athletes.length})</option>
+              {teams.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({athletes.filter(a => a.teamId === t.id).length})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-1">
+            {[
+              { key: 'overview', label: 'Overview' },
+              { key: 'leaderboard', label: 'Leaderboard' },
+              { key: 'alerts', label: `Alerts${redFlags.length > 0 ? ` (${redFlags.length})` : ''}` },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setView(tab.key as any)}
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  view === tab.key
+                    ? 'bg-purple-600 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Athletes</p>
+            <p className="text-2xl font-bold text-white mt-1">{stats.total}</p>
+          </div>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Logged Today</p>
+            <p className="text-2xl font-bold text-white mt-1">
+              <span className={stats.loggedToday > 0 ? 'text-green-400' : 'text-slate-500'}>{stats.loggedToday}</span>
+              <span className="text-slate-500 text-lg">/{stats.total}</span>
+            </p>
+          </div>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Avg Compliance</p>
+            <p className="text-2xl font-bold text-white mt-1">
+              <span className={stats.avgCompliance >= 70 ? 'text-green-400' : stats.avgCompliance >= 40 ? 'text-yellow-400' : 'text-red-400'}>
+                {stats.avgCompliance}%
+              </span>
+            </p>
+          </div>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Avg Streak</p>
+            <p className="text-2xl font-bold text-white mt-1">{stats.avgStreak} <span className="text-slate-500 text-sm">days</span></p>
+          </div>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Red Flags</p>
+            <p className="text-2xl font-bold mt-1">
+              <span className={stats.redFlagCount > 0 ? 'text-red-400' : 'text-green-400'}>{stats.redFlagCount}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Overview View */}
+        {view === 'overview' && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+              <h3 className="text-white font-semibold">Team Overview</h3>
+              <p className="text-slate-400 text-sm">{filteredAthletes.length} athletes</p>
+            </div>
+
+            {filteredAthletes.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-slate-400">No athletes have joined this team yet. Share the invite code with your athletes.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-700 text-left">
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Athlete</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Today</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Calories</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Protein</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Streak</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Compliance</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {filteredAthletes.map(a => {
+                      const calPct = a.targetCalories > 0 ? Math.round((a.todayCalories / a.targetCalories) * 100) : 0
+                      const proPct = a.targetProtein > 0 ? Math.round((a.todayProtein / a.targetProtein) * 100) : 0
+                      return (
+                        <tr key={a.id} className="hover:bg-slate-700/30 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-sm font-bold flex-shrink-0">
+                                {a.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-white text-sm font-medium">{a.name}</p>
+                                <p className="text-slate-500 text-xs">{formatSport(a.sport)}{a.position ? ` · ${a.position}` : ''}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {a.loggedToday ? (
+                              <span className="inline-flex items-center gap-1 text-green-400 text-xs font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                                Logged
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-slate-500 text-xs font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                                Not yet
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 bg-slate-700 rounded-full h-1.5">
+                                <div
+                                  className={`h-1.5 rounded-full transition-all ${calPct >= 80 ? 'bg-green-500' : calPct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                  style={{ width: `${Math.min(calPct, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-slate-300 text-xs font-mono w-20">
+                                {a.todayCalories}/{a.targetCalories}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 bg-slate-700 rounded-full h-1.5">
+                                <div
+                                  className={`h-1.5 rounded-full transition-all ${proPct >= 80 ? 'bg-green-500' : proPct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                  style={{ width: `${Math.min(proPct, 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-slate-300 text-xs font-mono w-16">
+                                {a.todayProtein}/{a.targetProtein}g
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-white text-sm font-medium">{a.streak}</span>
+                            <span className="text-slate-500 text-xs ml-1">days</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`text-sm font-semibold ${
+                              a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
+                            }`}>
+                              {a.complianceRate}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => router.push(`/coach/athlete/${a.id}`)}
+                              className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Leaderboard View */}
+        {view === 'leaderboard' && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-700">
+              <h3 className="text-white font-semibold">Commitment Leaderboard</h3>
+              <p className="text-slate-400 text-sm mt-0.5">Ranked by 30-day compliance rate</p>
+            </div>
+
+            {leaderboard.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-slate-400">No athletes to rank yet.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-700/50">
+                {leaderboard.map((a, i) => {
+                  const rank = i + 1
+                  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null
+                  return (
+                    <div
+                      key={a.id}
+                      className="px-4 py-4 flex items-center gap-4 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/coach/athlete/${a.id}`)}
+                    >
+                      <div className="w-10 text-center flex-shrink-0">
+                        {medal ? (
+                          <span className="text-xl">{medal}</span>
+                        ) : (
+                          <span className="text-slate-500 text-sm font-bold">#{rank}</span>
+                        )}
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold flex-shrink-0">
+                        {a.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium text-sm truncate">{a.name}</p>
+                        <p className="text-slate-500 text-xs">{a.teamName} · {formatSport(a.sport)}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className={`text-lg font-bold ${
+                          a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
+                        }`}>
+                          {a.complianceRate}%
+                        </p>
+                        <p className="text-slate-500 text-xs">{a.streak} day streak</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Alerts View */}
+        {view === 'alerts' && (
+          <div className="space-y-4">
+            {redFlags.length === 0 ? (
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center">
+                <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h3 className="text-white font-semibold mb-1">All Clear!</h3>
+                <p className="text-slate-400 text-sm">No athletes need attention right now.</p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
+                  <p className="text-red-400 text-sm font-medium">{redFlags.length} athlete{redFlags.length !== 1 ? 's' : ''} need{redFlags.length === 1 ? 's' : ''} your attention</p>
+                </div>
+
+                {redFlags.map(a => {
+                  const reasons: string[] = []
+                  if (a.daysSinceLastLog >= 3) reasons.push(`Haven't logged in ${a.daysSinceLastLog} days`)
+                  if (a.complianceRate < 30) reasons.push(`Only ${a.complianceRate}% compliance (30 days)`)
+                  if (a.todayCalories > 0 && a.todayCalories < a.targetCalories * 0.5) reasons.push(`Under 50% of calorie target today`)
+
+                  return (
+                    <div
+                      key={a.id}
+                      className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/coach/athlete/${a.id}`)}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 font-bold flex-shrink-0">
+                          {a.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-white font-medium">{a.name}</p>
+                            <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
+                          </div>
+                          <p className="text-slate-500 text-xs mb-2">{a.teamName} · {formatSport(a.sport)}</p>
+                          <div className="flex flex-col gap-1">
+                            {reasons.map((r, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                                <span className="text-slate-300 text-sm">{r}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </main>
+  )
+}
