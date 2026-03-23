@@ -129,7 +129,7 @@ export default function MealsPage() {
 
     const today = new Date().toISOString().split('T')[0]
     
-    await supabase.from('meal_logs').insert({
+    const { error: insertError } = await supabase.from('meal_logs').insert({
       athlete_id: athlete.id,
       meal_title: form.mealTitle,
       description: form.description || null,
@@ -145,6 +145,13 @@ export default function MealsPage() {
       date: today,
       logged_at: new Date().toISOString(),
     })
+
+    if (insertError) {
+      console.error('Error saving meal:', insertError)
+      setError('Failed to save meal. Please try again.')
+      setLoading(false)
+      return
+    }
 
     setSaved(true)
     setLoading(false)
