@@ -8,11 +8,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  output: 'standalone',
 };
-
-// Override for protected routes - disable static generation
-if (process.env.NODE_ENV === 'production') {
-  nextConfig.output = 'standalone';
-}
 
 export default nextConfig;
