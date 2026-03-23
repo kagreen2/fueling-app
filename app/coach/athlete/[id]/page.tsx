@@ -56,9 +56,66 @@ export default function CoachAthleteDetailPage() {
   const [dailyData, setDailyData] = useState<DayData[]>([])
   const [timeRange, setTimeRange] = useState<number>(14)
 
+  // Coach Notes state
+  const [notes, setNotes] = useState<Array<{ id: string; note: string; created_at: string }>>([])
+  const [newNote, setNewNote] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [notesLoading, setNotesLoading] = useState(true)
+
   useEffect(() => {
     loadAthleteData()
+    loadNotes()
   }, [athleteId, timeRange])
+
+  async function loadNotes() {
+    setNotesLoading(true)
+    const { data } = await supabase
+      .from('coach_notes')
+      .select('id, note, created_at')
+      .eq('athlete_id', athleteId)
+      .order('created_at', { ascending: false })
+    setNotes(data || [])
+    setNotesLoading(false)
+  }
+
+  async function addNote() {
+    if (!newNote.trim()) return
+    setSavingNote(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { error } = await supabase.from('coach_notes').insert({
+      coach_id: user.id,
+      athlete_id: athleteId,
+      note: newNote.trim(),
+    })
+
+    if (!error) {
+      setNewNote('')
+      loadNotes()
+    }
+    setSavingNote(false)
+  }
+
+  async function deleteNote(noteId: string) {
+    await supabase.from('coach_notes').delete().eq('id', noteId)
+    loadNotes()
+  }
+
+  function formatNoteDate(dateStr: string): string {
+    const d = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - d.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
+  }
 
   async function loadAthleteData() {
     setLoading(true)
@@ -438,6 +495,75 @@ export default function CoachAthleteDetailPage() {
               )
             })}
           </div>
+        </div>
+        {/* Coach Notes */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              <h3 className="text-white font-semibold">Coach Notes</h3>
+            </div>
+            <span className="text-slate-500 text-xs">{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {/* Add Note Input */}
+          <div className="px-5 py-4 border-b border-slate-700/50">
+            <div className="flex gap-3">
+              <textarea
+                value={newNote}
+                onChange={e => setNewNote(e.target.value)}
+                placeholder="Add a private note about this athlete..."
+                rows={2}
+                className="flex-1 bg-slate-900/50 border border-slate-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 placeholder-slate-500 resize-none"
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault()
+                    addNote()
+                  }
+                }}
+              />
+              <button
+                onClick={addNote}
+                disabled={!newNote.trim() || savingNote}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors self-end"
+              >
+                {savingNote ? 'Saving...' : 'Add Note'}
+              </button>
+            </div>
+            <p className="text-slate-600 text-xs mt-1.5">Press Cmd+Enter to save. Notes are private — only you can see them.</p>
+          </div>
+
+          {/* Notes List */}
+          {notesLoading ? (
+            <div className="p-6 text-center">
+              <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : notes.length === 0 ? (
+            <div className="p-8 text-center">
+              <svg className="w-8 h-8 text-slate-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <p className="text-slate-500 text-sm">No notes yet. Add your first note above.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-700/50">
+              {notes.map(n => (
+                <div key={n.id} className="px-5 py-3 group hover:bg-slate-700/20 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-200 text-sm whitespace-pre-wrap">{n.note}</p>
+                      <p className="text-slate-500 text-xs mt-1">{formatNoteDate(n.created_at)}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteNote(n.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition-all flex-shrink-0"
+                      title="Delete note"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </main>

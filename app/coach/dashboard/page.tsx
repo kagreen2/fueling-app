@@ -68,6 +68,7 @@ interface AthleteData {
   streak: number
   lastLogDate: string | null
   daysSinceLastLog: number
+  trend: 'up' | 'down' | 'stable'
 }
 
 function getLocalDateString(date: Date = new Date()): string {
@@ -214,6 +215,17 @@ export default function CoachDashboardPage() {
       const totalDays = 30
       const complianceRate = totalDays > 0 ? Math.round((daysActive / totalDays) * 100) : 0
 
+      // Calculate weekly trend: compare last 7 days vs prior 7 days
+      const now = new Date()
+      const last7Start = new Date(now)
+      last7Start.setDate(last7Start.getDate() - 7)
+      const prior7Start = new Date(now)
+      prior7Start.setDate(prior7Start.getDate() - 14)
+      const last7Days = logDates.filter(d => d >= getLocalDateString(last7Start) && d <= today).length
+      const prior7Days = logDates.filter(d => d >= getLocalDateString(prior7Start) && d < getLocalDateString(last7Start)).length
+      const trendDiff = last7Days - prior7Days
+      const trend: 'up' | 'down' | 'stable' = trendDiff >= 2 ? 'up' : trendDiff <= -2 ? 'down' : 'stable'
+
       // Calculate streak (consecutive days ending today or yesterday)
       let streak = 0
       const dateSet = new Set(logDates)
@@ -259,6 +271,7 @@ export default function CoachDashboardPage() {
         streak,
         lastLogDate,
         daysSinceLastLog,
+        trend,
       }
     })
 
@@ -459,7 +472,7 @@ export default function CoachDashboardPage() {
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Calories</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Protein</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Streak</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Compliance</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Compliance <span className="normal-case text-slate-500">(7d trend)</span></th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
                     </tr>
                   </thead>
@@ -524,11 +537,22 @@ export default function CoachDashboardPage() {
                             <span className="text-slate-500 text-xs ml-1">days</span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`text-sm font-semibold ${
-                              a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
-                            }`}>
-                              {a.complianceRate}%
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-sm font-semibold ${
+                                a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
+                              }`}>
+                                {a.complianceRate}%
+                              </span>
+                              {a.trend === 'up' && (
+                                <svg className="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                              )}
+                              {a.trend === 'down' && (
+                                <svg className="w-3.5 h-3.5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                              )}
+                              {a.trend === 'stable' && (
+                                <span className="text-slate-500 text-xs font-bold">—</span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <button

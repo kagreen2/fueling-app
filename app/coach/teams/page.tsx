@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface Team {
   id: string
@@ -34,6 +35,7 @@ export default function CoachTeamsPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [showQR, setShowQR] = useState<string | null>(null)
 
   useEffect(() => {
     loadTeams()
@@ -307,7 +309,30 @@ export default function CoachTeamsPage() {
                       )}
                     </button>
                   </div>
-                  <p className="text-slate-500 text-xs mt-2">Share this code with your athletes. They'll enter it during signup to join this team.</p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <button
+                      onClick={() => setShowQR(showQR === team.id ? null : team.id)}
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-lg border border-slate-600 transition-colors flex items-center gap-1.5"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                      {showQR === team.id ? 'Hide QR' : 'Show QR Code'}
+                    </button>
+                    <p className="text-slate-500 text-xs">Share this code with your athletes. They'll enter it during signup to join this team.</p>
+                  </div>
+
+                  {/* QR Code Display */}
+                  {showQR === team.id && (
+                    <div className="mt-4 flex flex-col items-center gap-3 p-4 bg-white rounded-xl">
+                      <QRCodeSVG
+                        value={`https://fueling-app.vercel.app/signup?invite=${team.invite_code}`}
+                        size={200}
+                        level="H"
+                        includeMargin={true}
+                      />
+                      <p className="text-slate-600 text-xs text-center font-medium">Scan to join {team.name}</p>
+                      <p className="text-slate-400 text-xs text-center">Athletes scan this QR code to sign up with the invite code pre-filled</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

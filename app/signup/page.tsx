@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input'
 
 export default function SignupPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -20,6 +21,14 @@ export default function SignupPage() {
     confirmPassword: '',
     inviteCode: '',
   })
+
+  // Pre-fill invite code from URL params (e.g., from QR code scan)
+  useEffect(() => {
+    const invite = searchParams.get('invite')
+    if (invite) {
+      setForm(prev => ({ ...prev, inviteCode: invite.toUpperCase() }))
+    }
+  }, [searchParams])
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
