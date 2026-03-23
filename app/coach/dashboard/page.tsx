@@ -45,6 +45,18 @@ interface Recommendation {
   daily_protein_g: number
 }
 
+interface WellnessCheckin {
+  athlete_id: string
+  date: string
+  energy: number
+  stress: number
+  soreness: number
+  hydration: number
+  sleep_hours: number
+  training_type: string | null
+  wellness_score: number
+}
+
 interface AthleteData {
   id: string
   profileId: string
@@ -69,6 +81,12 @@ interface AthleteData {
   lastLogDate: string | null
   daysSinceLastLog: number
   trend: 'up' | 'down' | 'stable'
+  // Wellness fields
+  wellnessScore: number | null
+  wellnessLabel: 'thriving' | 'okay' | 'watch' | 'concern' | null
+  wellnessDate: string | null
+  wellnessDaysAgo: number | null
+  recentCheckins: WellnessCheckin[]
 }
 
 function getLocalDateString(date: Date = new Date()): string {
@@ -92,6 +110,33 @@ function formatGoal(goal: string | null): string {
 function formatSport(sport: string | null): string {
   if (!sport) return 'N/A'
   return sport.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function getWellnessLabel(score: number): 'thriving' | 'okay' | 'watch' | 'concern' {
+  if (score >= 80) return 'thriving'
+  if (score >= 60) return 'okay'
+  if (score >= 40) return 'watch'
+  return 'concern'
+}
+
+function getWellnessColor(label: string | null): string {
+  switch (label) {
+    case 'thriving': return 'text-green-400'
+    case 'okay': return 'text-yellow-400'
+    case 'watch': return 'text-orange-400'
+    case 'concern': return 'text-red-400'
+    default: return 'text-slate-500'
+  }
+}
+
+function getWellnessBgColor(label: string | null): string {
+  switch (label) {
+    case 'thriving': return 'bg-green-500/10'
+    case 'okay': return 'bg-yellow-500/10'
+    case 'watch': return 'bg-orange-500/10'
+    case 'concern': return 'bg-red-500/10'
+    default: return 'bg-slate-500/10'
+  }
 }
 
 export default function CoachDashboardPage() {
@@ -194,6 +239,26 @@ export default function CoachDashboardPage() {
 
     const recsMap = Object.fromEntries((recs || []).map(r => [r.athlete_id, r]))
 
+    // Get wellness check-ins for all athletes (last 14 days for trend detection)
+    const wellnessStart = new Date()
+    wellnessStart.setDate(wellnessStart.getDate() - 14)
+    const wellnessStartStr = getLocalDateString(wellnessStart)
+
+    const { data: wellnessData } = await supabase
+      .from('coach_wellness_summary')
+      .select('athlete_id, date, energy, stress, soreness, hydration, sleep_hours, training_type, wellness_score')
+      .in('athlete_id', athleteIds)
+      .gte('date', wellnessStartStr)
+      .lte('date', today)
+      .order('date', { ascending: false })
+
+    // Group wellness data by athlete
+    const wellnessMap: Record<string, WellnessCheckin[]> = {}
+    for (const w of (wellnessData || [])) {
+      if (!wellnessMap[w.athlete_id]) wellnessMap[w.athlete_id] = []
+      wellnessMap[w.athlete_id].push(w)
+    }
+
     // Process each athlete
     const athleteDataList: AthleteData[] = members.map((m: any) => {
       const athlete = m.athlete
@@ -248,6 +313,19 @@ export default function CoachDashboardPage() {
         daysSinceLastLog = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
       }
 
+      // Wellness data processing
+      const athleteWellness = wellnessMap[m.athlete_id] || []
+      const latestCheckin = athleteWellness.length > 0 ? athleteWellness[0] : null
+      const wellnessScore = latestCheckin ? latestCheckin.wellness_score : null
+      const wellnessLabel = wellnessScore !== null ? getWellnessLabel(wellnessScore) : null
+      const wellnessDate = latestCheckin ? latestCheckin.date : null
+      let wellnessDaysAgo: number | null = null
+      if (wellnessDate) {
+        const wDate = new Date(wellnessDate + 'T12:00:00')
+        const nowDate = new Date()
+        wellnessDaysAgo = Math.floor((nowDate.getTime() - wDate.getTime()) / (1000 * 60 * 60 * 24))
+      }
+
       return {
         id: m.athlete_id,
         profileId: athlete?.profile_id || '',
@@ -272,6 +350,11 @@ export default function CoachDashboardPage() {
         lastLogDate,
         daysSinceLastLog,
         trend,
+        wellnessScore,
+        wellnessLabel,
+        wellnessDate,
+        wellnessDaysAgo,
+        recentCheckins: athleteWellness,
       }
     })
 
@@ -306,6 +389,114 @@ export default function CoachDashboardPage() {
     }).sort((a, b) => b.daysSinceLastLog - a.daysSinceLastLog)
   }, [filteredAthletes])
 
+  // Wellness alerts
+  const wellnessAlerts = useMemo(() => {
+    const alerts: { athlete: AthleteData; type: string; severity: 'high' | 'medium' | 'low'; message: string }[] = []
+
+    filteredAthletes.forEach(a => {
+      const checkins = a.recentCheckins
+      if (checkins.length === 0) return
+
+      const latest = checkins[0]
+
+      // Acute stress: single check-in with stress >= 8 AND energy <= 3
+      if (latest.stress >= 8 && latest.energy <= 3) {
+        alerts.push({
+          athlete: a,
+          type: 'acute_stress',
+          severity: 'high',
+          message: `${a.name} reported very high stress (${latest.stress}/10) and very low energy (${latest.energy}/10) today`,
+        })
+      }
+
+      // Sustained stress: stress >= 7 for 3+ consecutive check-ins
+      if (checkins.length >= 3) {
+        const last3 = checkins.slice(0, 3)
+        if (last3.every(c => c.stress >= 7)) {
+          // Count how many consecutive days
+          let count = 0
+          for (const c of checkins) {
+            if (c.stress >= 7) count++
+            else break
+          }
+          alerts.push({
+            athlete: a,
+            type: 'sustained_stress',
+            severity: 'high',
+            message: `${a.name} has reported high stress (7+) for ${count} days in a row`,
+          })
+        }
+      }
+
+      // Energy decline: energy dropped 3+ points over last 3 check-ins
+      if (checkins.length >= 3) {
+        const oldest = checkins[Math.min(2, checkins.length - 1)]
+        const drop = oldest.energy - latest.energy
+        if (drop >= 3) {
+          alerts.push({
+            athlete: a,
+            type: 'energy_decline',
+            severity: 'medium',
+            message: `${a.name}'s energy dropped from ${oldest.energy}/10 to ${latest.energy}/10 over the last few days`,
+          })
+        }
+      }
+
+      // Sleep deprivation: sleep < 5h for 2+ consecutive days
+      if (checkins.length >= 2) {
+        const last2 = checkins.slice(0, 2)
+        if (last2.every(c => c.sleep_hours !== null && c.sleep_hours < 5)) {
+          let count = 0
+          for (const c of checkins) {
+            if (c.sleep_hours !== null && c.sleep_hours < 5) count++
+            else break
+          }
+          alerts.push({
+            athlete: a,
+            type: 'sleep_deprivation',
+            severity: 'medium',
+            message: `${a.name} has slept under 5 hours for ${count} nights in a row`,
+          })
+        }
+      }
+
+      // Recovery overload: soreness >= 8 for 3+ consecutive days
+      if (checkins.length >= 3) {
+        const last3 = checkins.slice(0, 3)
+        if (last3.every(c => c.soreness >= 8)) {
+          let count = 0
+          for (const c of checkins) {
+            if (c.soreness >= 8) count++
+            else break
+          }
+          alerts.push({
+            athlete: a,
+            type: 'recovery_overload',
+            severity: 'medium',
+            message: `${a.name} has reported high soreness (8+) for ${count} days — possible overtraining`,
+          })
+        }
+      }
+
+      // Composite decline: wellness score below 40 for 2+ days
+      if (checkins.length >= 2) {
+        const last2 = checkins.slice(0, 2)
+        if (last2.every(c => c.wellness_score < 40)) {
+          alerts.push({
+            athlete: a,
+            type: 'composite_decline',
+            severity: 'high',
+            message: `${a.name}'s overall wellness score has been in the concern zone (below 40) for multiple days`,
+          })
+        }
+      }
+    })
+
+    // Sort by severity: high first, then medium, then low
+    const severityOrder = { high: 0, medium: 1, low: 2 }
+    return alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
+  }, [filteredAthletes])
+
   // Summary stats
   const stats = useMemo(() => {
     const total = filteredAthletes.length
@@ -316,8 +507,11 @@ export default function CoachDashboardPage() {
     const avgStreak = total > 0
       ? Math.round(filteredAthletes.reduce((sum, a) => sum + a.streak, 0) / total * 10) / 10
       : 0
-    return { total, loggedToday, avgCompliance, avgStreak, redFlagCount: redFlags.length }
-  }, [filteredAthletes, redFlags])
+    const avgWellness = total > 0
+      ? Math.round(filteredAthletes.filter(a => a.wellnessScore !== null).reduce((sum, a) => sum + (a.wellnessScore || 0), 0) / Math.max(filteredAthletes.filter(a => a.wellnessScore !== null).length, 1))
+      : null
+    return { total, loggedToday, avgCompliance, avgStreak, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgWellness }
+  }, [filteredAthletes, redFlags, wellnessAlerts])
 
   if (loading) {
     return (
@@ -400,7 +594,7 @@ export default function CoachDashboardPage() {
             {[
               { key: 'overview', label: 'Overview' },
               { key: 'leaderboard', label: 'Leaderboard' },
-              { key: 'alerts', label: `Alerts${redFlags.length > 0 ? ` (${redFlags.length})` : ''}` },
+              { key: 'alerts', label: `Alerts${(redFlags.length + wellnessAlerts.length) > 0 ? ` (${redFlags.length + wellnessAlerts.length})` : ''}` },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -418,7 +612,7 @@ export default function CoachDashboardPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
             <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Athletes</p>
             <p className="text-2xl font-bold text-white mt-1">{stats.total}</p>
@@ -443,9 +637,19 @@ export default function CoachDashboardPage() {
             <p className="text-2xl font-bold text-white mt-1">{stats.avgStreak} <span className="text-slate-500 text-sm">days</span></p>
           </div>
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Red Flags</p>
+            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Avg Wellness</p>
             <p className="text-2xl font-bold mt-1">
-              <span className={stats.redFlagCount > 0 ? 'text-red-400' : 'text-green-400'}>{stats.redFlagCount}</span>
+              {stats.avgWellness !== null ? (
+                <span className={getWellnessColor(getWellnessLabel(stats.avgWellness))}>{stats.avgWellness}</span>
+              ) : (
+                <span className="text-slate-500">—</span>
+              )}
+            </p>
+          </div>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Alerts</p>
+            <p className="text-2xl font-bold mt-1">
+              <span className={(stats.redFlagCount + stats.wellnessAlertCount) > 0 ? 'text-red-400' : 'text-green-400'}>{stats.redFlagCount + stats.wellnessAlertCount}</span>
             </p>
           </div>
         </div>
@@ -469,6 +673,7 @@ export default function CoachDashboardPage() {
                     <tr className="border-b border-slate-700 text-left">
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Athlete</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Today</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Wellness</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Calories</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Protein</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Streak</th>
@@ -504,6 +709,20 @@ export default function CoachDashboardPage() {
                                 <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
                                 Not yet
                               </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {a.wellnessScore !== null ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${getWellnessBgColor(a.wellnessLabel)} ${getWellnessColor(a.wellnessLabel)}`}>
+                                  {a.wellnessScore}
+                                </span>
+                                {a.wellnessDaysAgo !== null && a.wellnessDaysAgo > 0 && (
+                                  <span className="text-slate-500 text-[10px]">{a.wellnessDaysAgo}d ago</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-600 text-xs">No data</span>
                             )}
                           </td>
                           <td className="px-4 py-3">
@@ -627,8 +846,8 @@ export default function CoachDashboardPage() {
 
         {/* Alerts View */}
         {view === 'alerts' && (
-          <div className="space-y-4">
-            {redFlags.length === 0 ? (
+          <div className="space-y-6">
+            {(redFlags.length + wellnessAlerts.length) === 0 ? (
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center">
                 <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -638,45 +857,105 @@ export default function CoachDashboardPage() {
               </div>
             ) : (
               <>
-                <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
-                  <p className="text-red-400 text-sm font-medium">{redFlags.length} athlete{redFlags.length !== 1 ? 's' : ''} need{redFlags.length === 1 ? 's' : ''} your attention</p>
-                </div>
+                {/* Wellness Alerts Section */}
+                {wellnessAlerts.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-4 flex items-center gap-3">
+                      <svg className="w-5 h-5 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      <p className="text-orange-400 text-sm font-medium">{wellnessAlerts.length} wellness alert{wellnessAlerts.length !== 1 ? 's' : ''} — athletes may need a check-in conversation</p>
+                    </div>
 
-                {redFlags.map(a => {
-                  const reasons: string[] = []
-                  if (a.daysSinceLastLog >= 3) reasons.push(`Haven't logged in ${a.daysSinceLastLog} days`)
-                  if (a.complianceRate < 30) reasons.push(`Only ${a.complianceRate}% compliance (30 days)`)
-                  if (a.todayCalories > 0 && a.todayCalories < a.targetCalories * 0.5) reasons.push(`Under 50% of calorie target today`)
-
-                  return (
-                    <div
-                      key={a.id}
-                      className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors cursor-pointer"
-                      onClick={() => router.push(`/coach/athlete/${a.id}`)}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 font-bold flex-shrink-0">
-                          {a.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="text-white font-medium">{a.name}</p>
-                            <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
+                    {wellnessAlerts.map((alert, idx) => (
+                      <div
+                        key={`wellness-${idx}`}
+                        className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/coach/athlete/${alert.athlete.id}`)}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            alert.severity === 'high' ? 'bg-red-500/10' : alert.severity === 'medium' ? 'bg-orange-500/10' : 'bg-yellow-500/10'
+                          }`}>
+                            <svg className={`w-5 h-5 ${
+                              alert.severity === 'high' ? 'text-red-400' : alert.severity === 'medium' ? 'text-orange-400' : 'text-yellow-400'
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                           </div>
-                          <p className="text-slate-500 text-xs mb-2">{a.teamName} · {formatSport(a.sport)}</p>
-                          <div className="flex flex-col gap-1">
-                            {reasons.map((r, i) => (
-                              <div key={i} className="flex items-center gap-2">
-                                <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-                                <span className="text-slate-300 text-sm">{r}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <p className="text-white font-medium">{alert.athlete.name}</p>
+                                <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
+                                  alert.severity === 'high' ? 'bg-red-500/20 text-red-400' : alert.severity === 'medium' ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/20 text-yellow-400'
+                                }`}>{alert.severity}</span>
                               </div>
-                            ))}
+                              <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
+                            </div>
+                            <p className="text-slate-500 text-xs mb-2">{alert.athlete.teamName} · {formatSport(alert.athlete.sport)}</p>
+                            <div className="flex items-center gap-2">
+                              <svg className={`w-3.5 h-3.5 flex-shrink-0 ${
+                                alert.severity === 'high' ? 'text-red-400' : 'text-orange-400'
+                              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                              <span className="text-slate-300 text-sm">{alert.message}</span>
+                            </div>
+                            {alert.athlete.wellnessScore !== null && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${getWellnessBgColor(alert.athlete.wellnessLabel)} ${getWellnessColor(alert.athlete.wellnessLabel)}`}>
+                                  {alert.athlete.wellnessScore}
+                                </span>
+                                <span className="text-slate-500 text-xs">Wellness Score</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Nutrition Alerts Section */}
+                {redFlags.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
+                      <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                      <p className="text-red-400 text-sm font-medium">{redFlags.length} nutrition alert{redFlags.length !== 1 ? 's' : ''} — logging compliance issues</p>
                     </div>
-                  )
-                })}
+
+                    {redFlags.map(a => {
+                      const reasons: string[] = []
+                      if (a.daysSinceLastLog >= 3) reasons.push(`Haven't logged in ${a.daysSinceLastLog} days`)
+                      if (a.complianceRate < 30) reasons.push(`Only ${a.complianceRate}% compliance (30 days)`)
+                      if (a.todayCalories > 0 && a.todayCalories < a.targetCalories * 0.5) reasons.push(`Under 50% of calorie target today`)
+
+                      return (
+                        <div
+                          key={a.id}
+                          className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors cursor-pointer"
+                          onClick={() => router.push(`/coach/athlete/${a.id}`)}
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 font-bold flex-shrink-0">
+                              {a.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="text-white font-medium">{a.name}</p>
+                                <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
+                              </div>
+                              <p className="text-slate-500 text-xs mb-2">{a.teamName} · {formatSport(a.sport)}</p>
+                              <div className="flex flex-col gap-1">
+                                {reasons.map((r, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                                    <span className="text-slate-300 text-sm">{r}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </>
             )}
           </div>
