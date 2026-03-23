@@ -1,11 +1,6 @@
-import { OpenAI } from 'openai'
 import { createClient } from '@supabase/supabase-js'
 import { calculateNutritionRecommendation } from '@/lib/nutrition-calculator'
 import { NextRequest, NextResponse } from 'next/server'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,13 +26,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
     }
 
-    // Get athlete profile for name and email
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, email')
-      .eq('id', athlete.profile_id)
-      .single()
-
     // Prepare athlete profile for calculation
     const athleteProfile = {
       age: athlete.age || 16,
@@ -52,59 +40,8 @@ export async function POST(request: NextRequest) {
       season_phase: athlete.season_phase || 'offseason',
     }
 
-    // Calculate evidence-based recommendations
+    // Calculate evidence-based recommendations (pure math, no AI needed)
     const recommendation = calculateNutritionRecommendation(athleteProfile)
-
-    // Use Claude for personalized coaching context and next steps
-    const coachingPrompt = `You are a sports nutrition coach providing personalized guidance to a high school/college athlete.
-
-Athlete Profile:
-- Name: ${profile?.full_name || 'Athlete'}
-- Sport: ${athleteProfile.sport}
-- Position: ${athleteProfile.position || 'N/A'}
-- Goal: ${athleteProfile.goal_phase}
-- Age: ${athleteProfile.age}
-- Weight: ${athleteProfile.weight_lbs} lbs
-- Training: ${athleteProfile.training_days_per_week} days/week
-
-AI-Calculated Nutrition Targets (Evidence-Based):
-- Daily Calories: ${recommendation.daily_calories}
-- Protein: ${recommendation.daily_protein_g}g
-- Carbs: ${recommendation.daily_carbs_g}g
-- Fat: ${recommendation.daily_fat_g}g
-
-Based on these targets, provide:
-1. A brief personalized coaching message (2-3 sentences) about why these targets are right for them
-2. One specific, actionable next step they can take today
-
-Keep it motivating and specific to their sport/position. Format as JSON:
-{
-  "coaching_message": "...",
-  "next_step": "..."
-}`
-
-    const coachingResponse = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
-      messages: [
-        {
-          role: 'user',
-          content: coachingPrompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 300,
-    })
-
-    let coachingData = { coaching_message: '', next_step: '' }
-    try {
-      const coachingText = coachingResponse.choices[0].message.content || ''
-      const jsonMatch = coachingText.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        coachingData = JSON.parse(jsonMatch[0])
-      }
-    } catch (e) {
-      console.error('Error parsing coaching response:', e)
-    }
 
     // Save to database
     const { data: saved, error: saveError } = await supabase
@@ -115,7 +52,7 @@ Keep it motivating and specific to their sport/position. Format as JSON:
         daily_protein_g: recommendation.daily_protein_g,
         daily_carbs_g: recommendation.daily_carbs_g,
         daily_fat_g: recommendation.daily_fat_g,
-        reasoning: `${recommendation.methodology}\n\nCoaching: ${coachingData.coaching_message}`,
+        reasoning: recommendation.methodology,
       })
       .select()
       .single()
@@ -128,8 +65,6 @@ Keep it motivating and specific to their sport/position. Format as JSON:
       ...saved,
       methodology: recommendation.methodology,
       notes: recommendation.notes,
-      coaching_message: coachingData.coaching_message,
-      next_step: coachingData.next_step,
     })
   } catch (error: any) {
     console.error('Recommendation generation error:', error)
