@@ -220,19 +220,37 @@ export default function MealsPage() {
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:border-purple-600 hover:bg-slate-800/50 transition-all">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <div className="text-4xl mb-2">📸</div>
-                    <p className="text-sm text-slate-400">Click to upload meal photo</p>
-                    <p className="text-xs text-slate-500 mt-1">or drag and drop</p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
-                </label>
+                <div className="space-y-3">
+                  {/* Take Photo Button - opens camera directly on mobile */}
+                  <label className="flex items-center justify-center gap-3 w-full h-28 border-2 border-dashed border-purple-600/50 rounded-lg cursor-pointer bg-purple-600/5 hover:bg-purple-600/10 hover:border-purple-600 transition-all active:scale-[0.98]">
+                    <div className="flex flex-col items-center">
+                      <div className="text-4xl mb-1">📷</div>
+                      <p className="text-sm font-semibold text-purple-300">Take Photo</p>
+                      <p className="text-xs text-slate-500">Open camera to snap your plate</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* Upload from Gallery */}
+                  <label className="flex items-center justify-center gap-3 w-full h-20 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:border-slate-500 hover:bg-slate-800/50 transition-all active:scale-[0.98]">
+                    <div className="flex flex-col items-center">
+                      <div className="text-2xl mb-1">🖼️</div>
+                      <p className="text-sm text-slate-400">Upload from Gallery</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               )}
             </div>
           </CardContent>
