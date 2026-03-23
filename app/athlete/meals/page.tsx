@@ -127,7 +127,9 @@ export default function MealsPage() {
       }
     }
 
-    const today = new Date().toISOString().split('T')[0]
+    // Use local date to avoid timezone issues (e.g., 11pm CST = next day in UTC)
+    const { getLocalDateString } = await import('@/lib/utils/date')
+    const today = getLocalDateString()
     
     const { error: insertError } = await supabase.from('meal_logs').insert({
       athlete_id: athlete.id,

@@ -163,8 +163,9 @@ export default function AthleteDashboard() {
         }))
       }
 
-      // Get today's meals
-      const today = new Date().toISOString().split('T')[0]
+      // Get today's meals (use local date to avoid timezone issues)
+      const { getLocalDateString } = await import('@/lib/utils/date')
+      const today = getLocalDateString()
       const { data: mealsData } = await supabase
         .from('meal_logs')
         .select('*')
@@ -212,7 +213,7 @@ export default function AthleteDashboard() {
       setTodayCheckin(checkinData || null)
 
       // Get this week stats
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const weekAgo = getLocalDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
       
       const { data: weekMeals } = await supabase
         .from('meal_logs')

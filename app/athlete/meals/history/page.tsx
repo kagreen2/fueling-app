@@ -77,7 +77,8 @@ export default function MealHistoryPage() {
     if (mealsData) {
       setMeals(mealsData)
       // Auto-expand today's meals
-      const today = new Date().toISOString().split('T')[0]
+      const { getLocalDateString } = await import('@/lib/utils/date')
+      const today = getLocalDateString()
       setExpandedDays(new Set([today]))
     }
 
@@ -123,8 +124,10 @@ export default function MealHistoryPage() {
   }, [meals, search])
 
   function formatDateLabel(dateStr: string): string {
-    const today = new Date().toISOString().split('T')[0]
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const yd = new Date(Date.now() - 86400000)
+    const yesterday = `${yd.getFullYear()}-${String(yd.getMonth() + 1).padStart(2, '0')}-${String(yd.getDate()).padStart(2, '0')}`
 
     if (dateStr === today) return 'Today'
     if (dateStr === yesterday) return 'Yesterday'
