@@ -29,17 +29,20 @@ interface AthleteRow {
   }
 }
 
-interface MealLog {
+interface MealSummary {
   athlete_id: string
   date: string
-  calories: number
-  protein: number
+  total_calories: number
+  total_protein: number
+  total_carbs: number
+  total_fat: number
+  meal_count: number
 }
 
 interface Recommendation {
   athlete_id: string
   daily_calories: number
-  daily_protein: number
+  daily_protein_g: number
 }
 
 interface AthleteData {
@@ -174,10 +177,10 @@ export default function CoachDashboardPage() {
     rangeStart.setDate(rangeStart.getDate() - 30) // Always fetch 30 days for flexibility
     const rangeStartStr = getLocalDateString(rangeStart)
 
-    // Get meal logs for all athletes in the date range
-    const { data: mealLogs } = await supabase
-      .from('meal_logs')
-      .select('athlete_id, date, calories, protein')
+    // Get meal summaries for all athletes in the date range (restricted view - macros only)
+    const { data: mealSummaries } = await supabase
+      .from('coach_meal_summary')
+      .select('athlete_id, date, total_calories, total_protein, total_carbs, total_fat, meal_count')
       .in('athlete_id', athleteIds)
       .gte('date', rangeStartStr)
       .lte('date', today)
@@ -185,7 +188,7 @@ export default function CoachDashboardPage() {
     // Get nutrition recommendations for all athletes
     const { data: recs } = await supabase
       .from('nutrition_recommendations')
-      .select('athlete_id, daily_calories, daily_protein')
+      .select('athlete_id, daily_calories, daily_protein_g')
       .in('athlete_id', athleteIds)
 
     const recsMap = Object.fromEntries((recs || []).map(r => [r.athlete_id, r]))
@@ -195,16 +198,16 @@ export default function CoachDashboardPage() {
       const athlete = m.athlete
       const profileData = athlete?.profile
       const rec = recsMap[m.athlete_id]
-      const logs = (mealLogs || []).filter(l => l.athlete_id === m.athlete_id)
+      const summaries = (mealSummaries || []).filter(s => s.athlete_id === m.athlete_id)
 
-      // Today's totals
-      const todayLogs = logs.filter(l => l.date === today)
-      const todayCalories = todayLogs.reduce((sum, l) => sum + (l.calories || 0), 0)
-      const todayProtein = todayLogs.reduce((sum, l) => sum + (l.protein || 0), 0)
-      const loggedToday = todayLogs.length > 0
+      // Today's totals (view already aggregates per day)
+      const todaySummary = summaries.find(s => s.date === today)
+      const todayCalories = todaySummary?.total_calories || 0
+      const todayProtein = todaySummary?.total_protein || 0
+      const loggedToday = !!todaySummary
 
       // Get unique dates with logs
-      const logDates = [...new Set(logs.map(l => l.date))].sort()
+      const logDates = summaries.map(s => s.date).sort()
       const daysActive = logDates.length
 
       // Calculate total days in range (up to 30)
@@ -248,7 +251,7 @@ export default function CoachDashboardPage() {
         todayCalories,
         todayProtein,
         targetCalories: rec?.daily_calories || 2500,
-        targetProtein: rec?.daily_protein || 150,
+        targetProtein: rec?.daily_protein_g || 150,
         loggedToday,
         daysActive,
         totalDays,

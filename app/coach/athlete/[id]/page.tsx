@@ -114,27 +114,26 @@ export default function CoachAthleteDetailPage() {
 
     setRecs(recsData)
 
-    // Get meal logs for the time range
+    // Get meal summaries for the time range (restricted view - macros only, no meal details)
     const endDate = new Date()
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - timeRange)
 
-    const { data: mealLogs } = await supabase
-      .from('meal_logs')
-      .select('date, calories, protein')
+    const { data: mealSummaries } = await supabase
+      .from('coach_meal_summary')
+      .select('date, total_calories, total_protein, meal_count')
       .eq('athlete_id', athleteId)
       .gte('date', getLocalDateString(startDate))
       .lte('date', getLocalDateString(endDate))
 
-    // Build daily data array
+    // Build daily data array (view already aggregates per day)
     const dailyMap: Record<string, { calories: number; protein: number; mealCount: number }> = {}
-    for (const log of (mealLogs || [])) {
-      if (!dailyMap[log.date]) {
-        dailyMap[log.date] = { calories: 0, protein: 0, mealCount: 0 }
+    for (const summary of (mealSummaries || [])) {
+      dailyMap[summary.date] = {
+        calories: summary.total_calories || 0,
+        protein: summary.total_protein || 0,
+        mealCount: summary.meal_count || 0
       }
-      dailyMap[log.date].calories += log.calories || 0
-      dailyMap[log.date].protein += log.protein || 0
-      dailyMap[log.date].mealCount += 1
     }
 
     const days: DayData[] = []
@@ -184,7 +183,7 @@ export default function CoachAthleteDetailPage() {
   }
 
   const targetCal = recs?.daily_calories || 2500
-  const targetPro = recs?.daily_protein || 150
+  const targetPro = recs?.daily_protein_g || 150
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
@@ -247,15 +246,15 @@ export default function CoachAthleteDetailPage() {
               <p className="text-slate-500 text-xs">Calories</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-400">{recs?.daily_protein || 150}g</p>
+              <p className="text-2xl font-bold text-blue-400">{recs?.daily_protein_g || 150}g</p>
               <p className="text-slate-500 text-xs">Protein</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-orange-400">{recs?.daily_carbs || 300}g</p>
+              <p className="text-2xl font-bold text-orange-400">{recs?.daily_carbs_g || 300}g</p>
               <p className="text-slate-500 text-xs">Carbs</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-400">{recs?.daily_fat || 80}g</p>
+              <p className="text-2xl font-bold text-yellow-400">{recs?.daily_fat_g || 80}g</p>
               <p className="text-slate-500 text-xs">Fat</p>
             </div>
           </div>
