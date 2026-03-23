@@ -213,7 +213,11 @@ export default function ProfilePage() {
     const { error: athleteError } = await supabase
       .from('athletes')
       .update({
-        weight_lbs: parseFloat(editForm.weight_lbs) || athlete.weight_lbs,
+        weight_lbs: (() => {
+          const parsed = parseFloat(editForm.weight_lbs)
+          if (isNaN(parsed) || parsed <= 0) return athlete.weight_lbs
+          return parsed
+        })(),
         goal_phase: editForm.goal_phase || athlete.goal_phase,
         season_phase: editForm.season_phase || athlete.season_phase,
         training_schedule: editForm.training_schedule || athlete.training_schedule,
@@ -229,19 +233,25 @@ export default function ProfilePage() {
     }
 
     // Regenerate nutrition recommendations with updated data
+    let recsUpdated = false
     try {
-      await fetch('/api/recommendations/generate', {
+      const recsRes = await fetch('/api/recommendations/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ athleteId: athlete.id }),
       })
+      recsUpdated = recsRes.ok
     } catch (e) {
       console.error('Error regenerating recommendations:', e)
     }
 
     setEditing(false)
     setSaving(false)
-    setSuccess('Profile updated! Your nutrition targets have been recalculated.')
+    setSuccess(
+      recsUpdated
+        ? 'Profile updated! Your nutrition targets have been recalculated.'
+        : 'Profile updated! However, nutrition targets could not be recalculated at this time.'
+    )
     await loadProfile()
 
     setTimeout(() => setSuccess(''), 4000)
@@ -394,6 +404,8 @@ export default function ProfilePage() {
                     <div className="flex items-center gap-1">
                       <input
                         type="number"
+                        min="1"
+                        max="999"
                         value={editForm.weight_lbs}
                         onChange={e => setEditForm(prev => ({ ...prev, weight_lbs: e.target.value }))}
                         className="w-20 bg-slate-700 border border-slate-600 text-white rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-purple-600 transition-colors"
