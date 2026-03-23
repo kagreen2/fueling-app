@@ -534,13 +534,21 @@ export default function AthleteDashboard() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider">Recent Meals</h3>
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="text-xs px-3 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {refreshing ? 'Refreshing...' : 'Refresh'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => router.push('/athlete/meals/history')}
+                  className="text-xs px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                >
+                  View All
+                </button>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="text-xs px-3 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {refreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </div>
             </div>
             <div className="space-y-4">
               {recentMeals.map((meal, i) => {

@@ -181,10 +181,16 @@ export default function MealsPage() {
           >
             ←
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold">Log a Meal</h1>
             <p className="text-xs text-slate-400">AI-powered nutrition analysis</p>
           </div>
+          <button
+            onClick={() => router.push('/athlete/meals/history')}
+            className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors border border-slate-700"
+          >
+            History
+          </button>
         </div>
       </div>
 
