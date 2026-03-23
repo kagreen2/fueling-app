@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
         daily_carbs_g: recommendation.daily_carbs_g,
         daily_fat_g: recommendation.daily_fat_g,
         reasoning: recommendation.methodology,
-      })
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'athlete_id' })
       .select()
       .single()
 
