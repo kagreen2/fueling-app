@@ -12,6 +12,7 @@ interface Profile {
   id: string
   full_name: string
   email: string
+  phone: string | null
   role: string
   created_at: string
 }
@@ -103,6 +104,13 @@ export default function AdminDashboard() {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [allowCoachAdjustments, setAllowCoachAdjustments] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
+
+  // User editing state
+  const [editingUser, setEditingUser] = useState<Profile | null>(null)
+  const [editForm, setEditForm] = useState({ full_name: '', phone: '', role: '' })
+  const [savingUser, setSavingUser] = useState(false)
+  const [resetEmailSent, setResetEmailSent] = useState<string | null>(null)
+  const [sendingReset, setSendingReset] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -261,6 +269,58 @@ export default function AdminDashboard() {
       console.error('Error updating settings:', error)
     }
     setSavingSettings(false)
+  }
+
+  function openEditUser(user: Profile) {
+    setEditingUser(user)
+    setEditForm({ full_name: user.full_name, phone: user.phone || '', role: user.role })
+    setResetEmailSent(null)
+  }
+
+  async function saveUserEdits() {
+    if (!editingUser) return
+    setSavingUser(true)
+    try {
+      const updates: any = { full_name: editForm.full_name.trim() }
+      if (editForm.phone.trim()) updates.phone = editForm.phone.trim()
+      else updates.phone = null
+      if (editForm.role !== editingUser.role && editingUser.id !== profile?.id) {
+        updates.role = editForm.role
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', editingUser.id)
+
+      if (!error) {
+        setProfiles(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...updates } : u))
+        setEditingUser(null)
+      } else {
+        console.error('Error saving user:', error)
+      }
+    } catch (error) {
+      console.error('Error saving user:', error)
+    }
+    setSavingUser(false)
+  }
+
+  async function sendPasswordReset() {
+    if (!editingUser) return
+    setSendingReset(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(editingUser.email, {
+        redirectTo: `${window.location.origin}/login`,
+      })
+      if (!error) {
+        setResetEmailSent(editingUser.email)
+      } else {
+        console.error('Error sending reset:', error)
+      }
+    } catch (error) {
+      console.error('Error sending reset:', error)
+    }
+    setSendingReset(false)
   }
 
   function renderAthleteRow(athleteId: string) {
@@ -631,6 +691,7 @@ export default function AdminDashboard() {
                   <thead>
                     <tr className="border-b border-slate-700 text-left">
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">User</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Phone</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Role</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Joined</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
@@ -654,29 +715,34 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         </td>
+                        <td className="px-4 py-3 text-slate-400 text-sm">{user.phone || '\u2014'}</td>
                         <td className="px-4 py-3">
-                          <select
-                            value={user.role}
-                            onChange={e => handleRoleChange(user.id, e.target.value)}
-                            disabled={updatingId === user.id || user.id === profile?.id}
-                            className="px-2 py-1 bg-slate-700 border border-slate-600 text-white rounded text-xs focus:outline-none focus:border-purple-600 disabled:opacity-50"
-                          >
-                            <option value="athlete">Athlete</option>
-                            <option value="coach">Coach</option>
-                            <option value="admin">Admin</option>
-                            <option value="super_admin">Super Admin</option>
-                          </select>
+                          <span className={`text-xs px-2 py-1 rounded capitalize ${
+                            ['admin', 'super_admin'].includes(user.role) ? 'bg-red-500/20 text-red-400' :
+                            user.role === 'coach' ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-purple-600/20 text-purple-400'
+                          }`}>
+                            {user.role.replace('_', ' ')}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-slate-400 text-sm">{formatDate(user.created_at)}</td>
                         <td className="px-4 py-3">
-                          {user.role === 'athlete' && athleteByProfileId[user.id] && (
+                          <div className="flex items-center gap-3">
                             <button
-                              onClick={() => router.push(`/coach/athlete/${athleteByProfileId[user.id].id}`)}
-                              className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                              onClick={() => openEditUser(user)}
+                              className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
                             >
-                              View Profile
+                              Edit
                             </button>
-                          )}
+                            {user.role === 'athlete' && athleteByProfileId[user.id] && (
+                              <button
+                                onClick={() => router.push(`/coach/athlete/${athleteByProfileId[user.id].id}`)}
+                                className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                              >
+                                View
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -687,6 +753,120 @@ export default function AdminDashboard() {
                 <div className="p-8 text-center"><p className="text-slate-400">No users found matching your search.</p></div>
               )}
             </div>
+
+            {/* ═══ EDIT USER MODAL ═══ */}
+            {editingUser && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingUser(null)}>
+                <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+                    <h3 className="text-white font-semibold text-lg">Edit User</h3>
+                    <button onClick={() => setEditingUser(null)} className="text-slate-400 hover:text-white transition-colors">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-5">
+                    {/* Avatar + Email (read-only) */}
+                    <div className="flex items-center gap-4 pb-4 border-b border-slate-700">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${
+                        ['admin', 'super_admin'].includes(editingUser.role) ? 'bg-red-500/20 text-red-400' :
+                        editingUser.role === 'coach' ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-purple-600/20 text-purple-400'
+                      }`}>
+                        {editingUser.full_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">{editingUser.full_name}</p>
+                        <p className="text-slate-400 text-sm">{editingUser.email}</p>
+                      </div>
+                    </div>
+
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1.5">Full Name</label>
+                      <input
+                        type="text"
+                        value={editForm.full_name}
+                        onChange={e => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
+                        className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 text-white rounded-lg focus:outline-none focus:border-purple-500 transition-colors"
+                      />
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1.5">Phone</label>
+                      <input
+                        type="tel"
+                        value={editForm.phone}
+                        onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="(555) 123-4567"
+                        className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 text-white rounded-lg focus:outline-none focus:border-purple-500 transition-colors placeholder:text-slate-500"
+                      />
+                    </div>
+
+                    {/* Role */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1.5">Role</label>
+                      {editingUser.id === profile?.id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded capitalize">{editingUser.role.replace('_', ' ')}</span>
+                          <span className="text-xs text-slate-500">Cannot change your own role</span>
+                        </div>
+                      ) : (
+                        <select
+                          value={editForm.role}
+                          onChange={e => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+                          className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 text-white rounded-lg focus:outline-none focus:border-purple-500 transition-colors"
+                        >
+                          <option value="athlete">Athlete</option>
+                          <option value="coach">Coach</option>
+                          <option value="admin">Admin</option>
+                          <option value="super_admin">Super Admin</option>
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Password Reset */}
+                    <div className="pt-2 border-t border-slate-700">
+                      <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+                      {resetEmailSent ? (
+                        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
+                          <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          <p className="text-green-400 text-sm">Reset link sent to <strong>{resetEmailSent}</strong></p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={sendPasswordReset}
+                          disabled={sendingReset}
+                          className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 hover:text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                          {sendingReset ? 'Sending...' : 'Send Password Reset Email'}
+                        </button>
+                      )}
+                      <p className="text-xs text-slate-500 mt-1.5">Sends a reset link to the user&#39;s email address.</p>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
+                    <button
+                      onClick={() => setEditingUser(null)}
+                      className="px-4 py-2 text-slate-400 hover:text-white text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveUserEdits}
+                      disabled={savingUser || !editForm.full_name.trim()}
+                      className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      {savingUser ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

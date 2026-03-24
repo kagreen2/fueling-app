@@ -61,6 +61,7 @@ export default function CoachAthleteDetailPage() {
   const [newNote, setNewNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [notesLoading, setNotesLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     loadAthleteData()
@@ -122,29 +123,42 @@ export default function CoachAthleteDetailPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
-    // Verify coach has access to this athlete (via team membership)
-    const { data: coachTeams } = await supabase
-      .from('teams')
-      .select('id')
-      .eq('coach_id', user.id)
-
-    if (!coachTeams || coachTeams.length === 0) {
-      router.push('/coach/dashboard')
-      return
-    }
-
-    const teamIds = coachTeams.map(t => t.id)
-    const { data: membership } = await supabase
-      .from('team_members')
-      .select('team_id')
-      .eq('athlete_id', athleteId)
-      .in('team_id', teamIds)
-      .limit(1)
+    // Check if user is admin — admins can view any athlete
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
       .single()
 
-    if (!membership) {
-      router.push('/coach/dashboard')
-      return
+    const adminCheck = userProfile && ['admin', 'super_admin'].includes(userProfile.role)
+    setIsAdmin(!!adminCheck)
+    const isAdmin = adminCheck
+
+    if (!isAdmin) {
+      // Verify coach has access to this athlete (via team membership)
+      const { data: coachTeams } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('coach_id', user.id)
+
+      if (!coachTeams || coachTeams.length === 0) {
+        router.push('/coach/dashboard')
+        return
+      }
+
+      const teamIds = coachTeams.map(t => t.id)
+      const { data: membership } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('athlete_id', athleteId)
+        .in('team_id', teamIds)
+        .limit(1)
+        .single()
+
+      if (!membership) {
+        router.push('/coach/dashboard')
+        return
+      }
     }
 
     // Get athlete data
@@ -248,11 +262,11 @@ export default function CoachAthleteDetailPage() {
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <button
-            onClick={() => router.push('/coach/dashboard')}
+            onClick={() => router.push(isAdmin ? '/admin' : '/coach/dashboard')}
             className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-3 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            Back to Dashboard
+            {isAdmin ? 'Back to Admin Dashboard' : 'Back to Dashboard'}
           </button>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-lg font-bold flex-shrink-0">
