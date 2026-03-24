@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -16,12 +16,31 @@ const STEPS = [
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [teamLookup, setTeamLookup] = useState<{ name: string; sport: string | null } | null>(null)
   const [teamLookupError, setTeamLookupError] = useState('')
+
+  // Pre-fill invite code from URL params (passed from signup page)
+  useEffect(() => {
+    const invite = searchParams.get('invite')
+    if (invite) {
+      setForm(prev => ({ ...prev, inviteCode: invite.toUpperCase() }))
+      // Auto-lookup the team
+      const lookupTeam = async () => {
+        const { data: team } = await supabase
+          .from('teams')
+          .select('name, sport')
+          .eq('invite_code', invite.toUpperCase())
+          .single()
+        if (team) setTeamLookup(team)
+      }
+      lookupTeam()
+    }
+  }, [searchParams, supabase])
 
   const [form, setForm] = useState({
     // Step 1 — Personal

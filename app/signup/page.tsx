@@ -20,13 +20,14 @@ export default function SignupPage() {
     password: '',
     confirmPassword: '',
     inviteCode: '',
+    role: 'athlete' as 'athlete' | 'coach',
   })
 
   // Pre-fill invite code from URL params (e.g., from QR code scan)
   useEffect(() => {
     const invite = searchParams.get('invite')
     if (invite) {
-      setForm(prev => ({ ...prev, inviteCode: invite.toUpperCase() }))
+      setForm(prev => ({ ...prev, inviteCode: invite.toUpperCase(), role: 'athlete' }))
     }
   }, [searchParams])
 
@@ -48,47 +49,71 @@ export default function SignupPage() {
       return
     }
 
-    setLoading(true)
-
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: { full_name: form.fullName }
-      }
-    })
-
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
+    if (!form.fullName.trim()) {
+      setError('Please enter your full name')
       return
     }
 
-    if (data.user) {
-      let profileExists = false
-      let attempts = 0
+    setLoading(true)
 
-      while (!profileExists && attempts < 10) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', data.user.id)
-          .single()
-        if (profile) profileExists = true
-        attempts++
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: { full_name: form.fullName }
+        }
+      })
+
+      if (signUpError) {
+        setError(signUpError.message)
+        setLoading(false)
+        return
       }
 
-      if (!profileExists) {
-        await supabase.from('profiles').insert({
-          id: data.user.id,
-          full_name: form.fullName,
-          email: form.email,
-          role: 'athlete',
-        })
-      }
+      if (data.user) {
+        // Wait for profile to be created by trigger
+        let profileExists = false
+        let attempts = 0
 
-      router.push('/athlete/onboarding')
+        while (!profileExists && attempts < 10) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', data.user.id)
+            .single()
+          if (profile) profileExists = true
+          attempts++
+        }
+
+        if (!profileExists) {
+          // Create profile manually if trigger didn't fire
+          await supabase.from('profiles').insert({
+            id: data.user.id,
+            full_name: form.fullName,
+            email: form.email,
+            role: form.role,
+          })
+        } else {
+          // Update role if profile was created by trigger (trigger defaults to 'athlete')
+          await supabase.from('profiles').update({
+            role: form.role,
+            full_name: form.fullName,
+          }).eq('id', data.user.id)
+        }
+
+        // Route based on role
+        if (form.role === 'coach') {
+          router.push('/coach/dashboard')
+        } else {
+          // Pass invite code to onboarding via URL param
+          const inviteParam = form.inviteCode.trim() ? `?invite=${form.inviteCode.trim().toUpperCase()}` : ''
+          router.push(`/athlete/onboarding${inviteParam}`)
+        }
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
     }
 
     setLoading(false)
@@ -108,12 +133,42 @@ export default function SignupPage() {
           <div className="inline-block mb-4">
             <div className="text-4xl">⚡</div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-slate-400">Join Fuel Different and start optimizing your performance</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Join Fuel Different</h1>
+          <p className="text-slate-400">Performance fueling for serious athletes</p>
+        </div>
+
+        {/* Role Selector */}
+        <div className="flex gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => setForm(prev => ({ ...prev, role: 'athlete' }))}
+            className={`flex-1 py-4 rounded-xl border-2 transition-all duration-200 text-center ${
+              form.role === 'athlete'
+                ? 'border-purple-500 bg-purple-500/10 text-white'
+                : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
+            }`}
+          >
+            <div className="text-2xl mb-1">🏈</div>
+            <div className="font-semibold text-sm">I&apos;m an Athlete</div>
+            <div className="text-xs text-slate-500 mt-0.5">Track meals &amp; performance</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setForm(prev => ({ ...prev, role: 'coach', inviteCode: '' }))}
+            className={`flex-1 py-4 rounded-xl border-2 transition-all duration-200 text-center ${
+              form.role === 'coach'
+                ? 'border-orange-500 bg-orange-500/10 text-white'
+                : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
+            }`}
+          >
+            <div className="text-2xl mb-1">📋</div>
+            <div className="font-semibold text-sm">I&apos;m a Coach</div>
+            <div className="text-xs text-slate-500 mt-0.5">Monitor your team</div>
+          </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSignup} className="flex flex-col gap-4 bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur">
+        <form onSubmit={handleSignup} className="flex flex-col gap-4 bg-slate-800/50 border border-slate-700 rounded-2xl p-6 sm:p-8 backdrop-blur">
           
           <div>
             <label className="text-slate-300 text-sm font-medium mb-2 block">Full Name</label>
@@ -159,18 +214,33 @@ export default function SignupPage() {
             />
           </div>
 
-          <div>
-            <label className="text-slate-300 text-sm font-medium mb-2 block">
-              Invite Code <span className="text-slate-500">(optional)</span>
-            </label>
-            <Input
-              type="text"
-              value={form.inviteCode}
-              onChange={e => update('inviteCode', e.target.value)}
-              placeholder="Enter code if you have one"
-              className="uppercase tracking-widest"
-            />
-          </div>
+          {/* Invite Code - only for athletes */}
+          {form.role === 'athlete' && (
+            <div>
+              <label className="text-slate-300 text-sm font-medium mb-2 block">
+                Team Invite Code <span className="text-slate-500">(from your coach)</span>
+              </label>
+              <Input
+                type="text"
+                value={form.inviteCode}
+                onChange={e => update('inviteCode', e.target.value.toUpperCase())}
+                placeholder="e.g. RLXCZM"
+                className="uppercase tracking-widest font-mono"
+              />
+              <p className="text-xs text-slate-500 mt-1.5">
+                Don&apos;t have one? You can add it later during setup.
+              </p>
+            </div>
+          )}
+
+          {/* Coach info note */}
+          {form.role === 'coach' && (
+            <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3">
+              <p className="text-sm text-orange-300/80">
+                After signing up, you&apos;ll create your team and get an invite code to share with your athletes.
+              </p>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
@@ -181,9 +251,13 @@ export default function SignupPage() {
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-semibold py-3 rounded-xl text-lg transition-colors mt-4"
+            className={`w-full font-semibold py-3 rounded-xl text-lg transition-colors mt-2 text-white ${
+              form.role === 'coach'
+                ? 'bg-orange-600 hover:bg-orange-700 disabled:bg-orange-600/50'
+                : 'bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50'
+            }`}
           >
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Creating account...' : form.role === 'coach' ? 'Create Coach Account' : 'Create Athlete Account'}
           </Button>
 
         </form>
