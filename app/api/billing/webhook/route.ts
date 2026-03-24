@@ -3,7 +3,7 @@ import { stripe } from '@/lib/stripe/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
-function getSupabaseAdmin() {
+function getSupabaseAdmin( ) {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -33,11 +33,29 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+        const userId = session.metadata?.user_id
+        const type = session.metadata?.type
         const teamId = session.metadata?.team_id
         const coachId = session.metadata?.coach_id
 
+        // ---- INDIVIDUAL ATHLETE SUBSCRIPTION ----
+        if (type === 'athlete_individual' && userId && session.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+
+          // Activate the athlete's account
+          await supabaseAdmin
+            .from('profiles')
+            .update({
+              subscription_status: 'active',
+              stripe_customer_id: session.customer as string,
+              stripe_subscription_id: subscription.id,
+              subscription_current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+            })
+            .eq('id', userId)
+        }
+
+        // ---- TEAM SUBSCRIPTION (existing coach flow) ----
         if (teamId && session.subscription) {
-          // Get subscription details
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string) as any
           const athleteCount = parseInt(subscription.metadata?.athlete_count || '0')
 
@@ -58,8 +76,28 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as any
+        const userId = subscription.metadata?.user_id
+        const type = subscription.metadata?.type
         const teamId = subscription.metadata?.team_id
 
+        // ---- INDIVIDUAL ATHLETE SUBSCRIPTION ----
+        if (type === 'athlete_individual' && userId) {
+          const status = subscription.status === 'active' || subscription.status === 'trialing'
+            ? 'active'
+            : subscription.status === 'past_due'
+            ? 'past_due'
+            : 'canceled'
+
+          await supabaseAdmin
+            .from('profiles')
+            .update({
+              subscription_status: status,
+              subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            })
+            .eq('id', userId)
+        }
+
+        // ---- TEAM SUBSCRIPTION ----
         if (teamId) {
           const status = subscription.status === 'active' || subscription.status === 'trialing'
             ? 'active'
@@ -79,8 +117,21 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as any
+        const userId = subscription.metadata?.user_id
+        const type = subscription.metadata?.type
         const teamId = subscription.metadata?.team_id
 
+        // ---- INDIVIDUAL ATHLETE ----
+        if (type === 'athlete_individual' && userId) {
+          await supabaseAdmin
+            .from('profiles')
+            .update({
+              subscription_status: 'canceled',
+            })
+            .eq('id', userId)
+        }
+
+        // ---- TEAM ----
         if (teamId) {
           await supabaseAdmin.from('team_subscriptions').update({
             status: 'canceled',
@@ -95,6 +146,21 @@ export async function POST(req: NextRequest) {
         const subscriptionId = invoice.subscription as string
 
         if (subscriptionId) {
+          // Try to find if this is an individual athlete subscription
+          const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('stripe_subscription_id', subscriptionId)
+            .single()
+
+          if (profile) {
+            await supabaseAdmin
+              .from('profiles')
+              .update({ subscription_status: 'past_due' })
+              .eq('id', profile.id)
+          }
+
+          // Also check team subscriptions
           await supabaseAdmin.from('team_subscriptions').update({
             status: 'past_due',
             updated_at: new Date().toISOString(),
