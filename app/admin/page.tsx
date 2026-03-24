@@ -89,7 +89,7 @@ export default function AdminDashboard() {
 
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'users' | 'nutrition' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'teams' | 'users' | 'nutrition' | 'billing' | 'settings'>('overview')
 
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [teams, setTeams] = useState<Team[]>([])
@@ -465,6 +465,7 @@ export default function AdminDashboard() {
               { key: 'teams', label: `Teams (${stats.totalTeams})` },
               { key: 'users', label: `Users (${stats.totalUsers})` },
               { key: 'nutrition', label: 'Nutrition' },
+              { key: 'billing', label: 'Billing' },
               { key: 'settings', label: 'Settings' },
             ].map(tab => (
               <button
@@ -1060,6 +1061,102 @@ export default function AdminDashboard() {
                 provide guidance through the coach notes system. Use the athlete detail page to add private notes about
                 supplementation recommendations for individual athletes.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ BILLING TAB ═══ */}
+        {activeTab === 'billing' && (
+          <div>
+            <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-6">Billing Overview</h3>
+            
+            {/* Billing Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Teams</p>
+                <p className="text-2xl font-bold text-white">{teams.length}</p>
+              </div>
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Athletes</p>
+                <p className="text-2xl font-bold text-white">{profiles.filter(p => p.role === 'athlete').length}</p>
+              </div>
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Price/Athlete</p>
+                <p className="text-2xl font-bold text-green-400">$20</p>
+                <p className="text-xs text-slate-500">per month</p>
+              </div>
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Est. Monthly Revenue</p>
+                <p className="text-2xl font-bold text-green-400">${(profiles.filter(p => p.role === 'athlete').length * 20).toLocaleString()}</p>
+              </div>
+            </div>
+
+            {/* Team Billing Status */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden mb-6">
+              <div className="px-5 py-4 border-b border-slate-700">
+                <h4 className="text-white font-semibold">Team Subscription Status</h4>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-700/50">
+                      <th className="text-left px-5 py-3 text-slate-400 font-medium">Team</th>
+                      <th className="text-left px-5 py-3 text-slate-400 font-medium">Coach</th>
+                      <th className="text-center px-5 py-3 text-slate-400 font-medium">Athletes</th>
+                      <th className="text-center px-5 py-3 text-slate-400 font-medium">Status</th>
+                      <th className="text-right px-5 py-3 text-slate-400 font-medium hidden sm:table-cell">Monthly</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teams.map(team => {
+                      const coach = profiles.find(p => p.id === team.coach_id)
+                      const memberCount = teamMembers.filter(tm => tm.team_id === team.id).length
+                      return (
+                        <tr key={team.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                          <td className="px-5 py-3">
+                            <p className="text-white font-medium">{team.name}</p>
+                            <p className="text-slate-500 text-xs">{team.sport || 'No sport'}</p>
+                          </td>
+                          <td className="px-5 py-3 text-slate-300">{coach?.full_name || 'Unknown'}</td>
+                          <td className="px-5 py-3 text-center text-white font-medium">{memberCount}</td>
+                          <td className="px-5 py-3 text-center">
+                            <span className="px-2 py-1 bg-slate-700 text-slate-400 text-xs font-medium rounded-full">Check Stripe</span>
+                          </td>
+                          <td className="px-5 py-3 text-right text-white font-medium hidden sm:table-cell">${(memberCount * 20).toLocaleString()}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Stripe Dashboard Link */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-purple-600/20 rounded-xl flex items-center justify-center shrink-0">
+                  <span className="text-xl">💳</span>
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold mb-1">Stripe Dashboard</h4>
+                  <p className="text-slate-400 text-sm mb-3">View detailed payment history, manage subscriptions, issue refunds, and download invoices from your Stripe dashboard.</p>
+                  <a
+                    href="https://dashboard.stripe.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Open Stripe Dashboard
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Configuration Note */}
+            <div className="mt-6 bg-blue-500/10 border border-blue-500/20 rounded-xl p-5">
+              <p className="text-blue-300 text-sm font-medium mb-1">Payment Processing</p>
+              <p className="text-blue-400/70 text-sm">Payments are processed through Stripe under CrossFit Iron Flag, LLC. To switch to a different Stripe account (e.g., VerifydAthlete LLC), update the Stripe API keys in your Vercel environment variables.</p>
             </div>
           </div>
         )}

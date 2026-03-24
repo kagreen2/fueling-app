@@ -556,6 +556,12 @@ export default function CoachDashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             <button
+              onClick={() => router.push('/coach/billing')}
+              className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
+            >
+              <span className="hidden sm:inline">💳 </span>Billing
+            </button>
+            <button
               onClick={() => router.push('/coach/teams')}
               className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
             >
