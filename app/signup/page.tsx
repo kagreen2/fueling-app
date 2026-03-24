@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
-export default function SignupPage() {
+export default function SignupPage( ) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -94,22 +94,49 @@ export default function SignupPage() {
             full_name: form.fullName,
             email: form.email,
             role: form.role,
+            subscription_status: form.role === 'athlete' ? 'unpaid' : null,
           })
         } else {
           // Update role if profile was created by trigger (trigger defaults to 'athlete')
           await supabase.from('profiles').update({
             role: form.role,
             full_name: form.fullName,
+            subscription_status: form.role === 'athlete' ? 'unpaid' : null,
           }).eq('id', data.user.id)
         }
 
-        // Route based on role
+        // ---- ROUTE BASED ON ROLE ----
         if (form.role === 'coach') {
+          // Coaches go straight to their dashboard (free access)
           router.push('/coach/dashboard')
         } else {
-          // Pass invite code to onboarding via URL param
-          const inviteParam = form.inviteCode.trim() ? `?invite=${form.inviteCode.trim().toUpperCase()}` : ''
-          router.push(`/athlete/onboarding${inviteParam}`)
+          // Athletes must pay before accessing the app
+          // Store invite code in localStorage so we can use it after payment
+          if (form.inviteCode.trim()) {
+            localStorage.setItem('fuel_invite_code', form.inviteCode.trim().toUpperCase())
+          }
+
+          // Create Stripe Checkout session and redirect to payment
+          const res = await fetch('/api/billing/athlete-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: data.user.id,
+              email: form.email,
+              fullName: form.fullName,
+            }),
+          })
+
+          const checkout = await res.json()
+
+          if (checkout.url) {
+            // Redirect to Stripe Checkout
+            window.location.href = checkout.url
+          } else {
+            setError(checkout.error || 'Failed to create checkout session. Please try again.')
+            setLoading(false)
+          }
+          return // Don't setLoading(false) — we're redirecting
         }
       }
     } catch (err) {
@@ -242,6 +269,15 @@ export default function SignupPage() {
             </div>
           )}
 
+          {/* Athlete pricing note */}
+          {form.role === 'athlete' && (
+            <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl px-4 py-3">
+              <p className="text-sm text-purple-300/80">
+                After creating your account, you&apos;ll be directed to complete payment ($20/month). Have a promo code? You can enter it at checkout.
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
               {error}
@@ -257,7 +293,11 @@ export default function SignupPage() {
                 : 'bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50'
             }`}
           >
-            {loading ? 'Creating account...' : form.role === 'coach' ? 'Create Coach Account' : 'Create Athlete Account'}
+            {loading
+              ? (form.role === 'athlete' ? 'Creating account & preparing checkout...' : 'Creating account...')
+              : form.role === 'coach'
+              ? 'Create Coach Account'
+              : 'Create Account & Continue to Payment'}
           </Button>
 
         </form>
