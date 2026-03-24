@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
-export default function LoginPage() {
+export default function LoginPage( ) {
   const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState('')
@@ -38,19 +38,30 @@ export default function LoginPage() {
       return
     }
 
-    // Route based on role
+    // Route based on role AND subscription status
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, subscription_status')
       .eq('id', data.user.id)
       .single()
 
-    if (profile?.role === 'athlete') router.push('/athlete')
-    else if (profile?.role === 'parent') router.push('/parent')
-    else if (profile?.role === 'coach') router.push('/coach')
-    else if (profile?.role === 'admin') router.push('/admin')
-    else if (profile?.role === 'super_admin') router.push('/admin')
-    else router.push('/athlete')
+    if (profile?.role === 'athlete') {
+      // Check if athlete has paid
+      if (profile.subscription_status === 'active') {
+        router.push('/athlete')
+      } else {
+        // Unpaid athlete — send to payment page
+        router.push('/athlete/payment-required')
+      }
+    } else if (profile?.role === 'parent') {
+      router.push('/parent')
+    } else if (profile?.role === 'coach') {
+      router.push('/coach')
+    } else if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+      router.push('/admin')
+    } else {
+      router.push('/athlete')
+    }
   }
 
   async function handleForgotPassword(e: React.FormEvent) {
