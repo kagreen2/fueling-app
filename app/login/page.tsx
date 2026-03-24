@@ -15,6 +15,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetError, setResetError] = useState('')
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -46,6 +53,25 @@ export default function LoginPage() {
     else router.push('/athlete')
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault()
+    setResetLoading(true)
+    setResetError('')
+
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/login`,
+    })
+
+    if (error) {
+      setResetError(error.message)
+      setResetLoading(false)
+      return
+    }
+
+    setResetSent(true)
+    setResetLoading(false)
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col items-center justify-center p-6">
       {/* Background decoration */}
@@ -60,50 +86,141 @@ export default function LoginPage() {
           <div className="inline-block mb-4">
             <div className="text-4xl">⚡</div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-slate-400">Sign in to your Fuel Different account</p>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            {showForgotPassword ? 'Reset Password' : 'Welcome Back'}
+          </h1>
+          <p className="text-slate-400">
+            {showForgotPassword
+              ? 'Enter your email and we\'ll send you a reset link'
+              : 'Sign in to your Fuel Different account'}
+          </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleLogin} className="flex flex-col gap-4 bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur">
-          
-          <div>
-            <label className="text-slate-300 text-sm font-medium mb-2 block">Email</label>
-            <Input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              placeholder="you@example.com"
-            />
+        {/* Forgot Password Form */}
+        {showForgotPassword ? (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur">
+            {resetSent ? (
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-white font-semibold text-lg">Check Your Email</h3>
+                <p className="text-slate-400 text-sm">
+                  We sent a password reset link to <strong className="text-white">{resetEmail}</strong>.
+                  Click the link in the email to reset your password.
+                </p>
+                <p className="text-slate-500 text-xs">
+                  Didn&apos;t receive it? Check your spam folder or try again.
+                </p>
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    onClick={() => { setResetSent(false); setResetEmail('') }}
+                    className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                  >
+                    Try a different email
+                  </button>
+                  <button
+                    onClick={() => { setShowForgotPassword(false); setResetSent(false); setResetEmail(''); setResetError('') }}
+                    className="text-slate-400 hover:text-slate-300 text-sm transition-colors"
+                  >
+                    Back to sign in
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
+                <div>
+                  <label className="text-slate-300 text-sm font-medium mb-2 block">Email Address</label>
+                  <Input
+                    type="email"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    required
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                {resetError && (
+                  <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
+                    {resetError}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-semibold py-3 rounded-xl text-lg transition-colors mt-2"
+                >
+                  {resetLoading ? 'Sending...' : 'Send Reset Link'}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(false); setResetError('') }}
+                  className="text-slate-400 hover:text-slate-300 text-sm transition-colors text-center mt-1"
+                >
+                  Back to sign in
+                </button>
+              </form>
+            )}
           </div>
+        ) : (
+          <>
+            {/* Login Form */}
+            <form onSubmit={handleLogin} className="flex flex-col gap-4 bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur">
+              
+              <div>
+                <label className="text-slate-300 text-sm font-medium mb-2 block">Email</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  placeholder="you@example.com"
+                />
+              </div>
 
-          <div>
-            <label className="text-slate-300 text-sm font-medium mb-2 block">Password</label>
-            <Input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
-          </div>
+              <div>
+                <label className="text-slate-300 text-sm font-medium mb-2 block">Password</label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
-              {error}
-            </div>
-          )}
+              {/* Forgot Password Link */}
+              <div className="flex justify-end -mt-1">
+                <button
+                  type="button"
+                  onClick={() => { setShowForgotPassword(true); setResetEmail(email); setError('') }}
+                  className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
 
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-semibold py-3 rounded-xl text-lg transition-colors mt-4"
-          >
-            {loading ? 'Signing in...' : 'Sign In'}
-          </Button>
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
+                  {error}
+                </div>
+              )}
 
-        </form>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-semibold py-3 rounded-xl text-lg transition-colors mt-2"
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </Button>
+
+            </form>
+          </>
+        )}
 
         {/* Footer Links */}
         <div className="mt-8 text-center space-y-3">

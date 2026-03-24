@@ -311,21 +311,21 @@ export default function CoachAthleteDetailPage() {
         {/* Nutrition Targets */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
           <h3 className="text-white font-semibold mb-3">Daily Targets</h3>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-purple-400">{targetCal}</p>
+              <p className="text-xl sm:text-2xl font-bold text-purple-400">{targetCal}</p>
               <p className="text-slate-500 text-xs">Calories</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-blue-400">{recs?.daily_protein_g || 150}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-400">{recs?.daily_protein_g || 150}g</p>
               <p className="text-slate-500 text-xs">Protein</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-orange-400">{recs?.daily_carbs_g || 300}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-orange-400">{recs?.daily_carbs_g || 300}g</p>
               <p className="text-slate-500 text-xs">Carbs</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-400">{recs?.daily_fat_g || 80}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-400">{recs?.daily_fat_g || 80}g</p>
               <p className="text-slate-500 text-xs">Fat</p>
             </div>
           </div>

@@ -50,7 +50,7 @@ export default function Home() {
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
               Performance Fueling
               <br />
               <span className="bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent">
@@ -221,7 +221,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-slate-800 py-12 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div>
               <h3 className="font-semibold mb-4">Fuel Different</h3>
               <p className="text-slate-400 text-sm">Performance fueling for serious athletes.</p>

@@ -557,9 +557,9 @@ export default function CoachDashboardPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/coach/teams')}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg border border-slate-700 transition-colors"
+              className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
             >
-              Manage Teams
+              <span className="hidden sm:inline">Manage </span>Teams
             </button>
             <button
               onClick={loadData}
@@ -674,9 +674,9 @@ export default function CoachDashboardPage() {
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Athlete</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Today</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Wellness</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Calories</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Protein</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Streak</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Calories</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Protein</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Streak</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Compliance <span className="normal-case text-slate-500">(7d trend)</span></th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
                     </tr>
@@ -725,7 +725,7 @@ export default function CoachDashboardPage() {
                               <span className="text-slate-600 text-xs">No data</span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 hidden lg:table-cell">
                             <div className="flex items-center gap-2">
                               <div className="w-16 bg-slate-700 rounded-full h-1.5">
                                 <div
@@ -738,7 +738,7 @@ export default function CoachDashboardPage() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 hidden lg:table-cell">
                             <div className="flex items-center gap-2">
                               <div className="w-16 bg-slate-700 rounded-full h-1.5">
                                 <div
@@ -751,7 +751,7 @@ export default function CoachDashboardPage() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 hidden md:table-cell">
                             <span className="text-white text-sm font-medium">{a.streak}</span>
                             <span className="text-slate-500 text-xs ml-1">days</span>
                           </td>

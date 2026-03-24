@@ -312,11 +312,11 @@ export default function AthleteDashboard() {
         {/* Today's Progress */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Today's Progress</h3>
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
             <div className="flex justify-center">
               <ProgressRing
                 percentage={caloriePercent}
-                size={100}
+                size={90}
                 color="#9333EA"
                 label="Calories"
                 value={`${Math.round(stats.todayCalories)}`}
@@ -326,7 +326,7 @@ export default function AthleteDashboard() {
             <div className="flex justify-center">
               <ProgressRing
                 percentage={proteinPercent}
-                size={100}
+                size={90}
                 color="#9333EA"
                 label="Protein"
                 value={`${Math.round(stats.todayProtein)}`}
@@ -336,7 +336,7 @@ export default function AthleteDashboard() {
             <div className="flex justify-center">
               <ProgressRing
                 percentage={waterPercent}
-                size={100}
+                size={90}
                 color="#9333EA"
                 label="Water"
                 value={`${Math.round(stats.todayWater)}`}

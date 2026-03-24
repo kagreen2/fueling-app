@@ -111,6 +111,8 @@ export default function AdminDashboard() {
   const [savingUser, setSavingUser] = useState(false)
   const [resetEmailSent, setResetEmailSent] = useState<string | null>(null)
   const [sendingReset, setSendingReset] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<Profile | null>(null)
+  const [deletingUser, setDeletingUser] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -323,6 +325,29 @@ export default function AdminDashboard() {
     setSendingReset(false)
   }
 
+  async function handleDeleteUser() {
+    if (!confirmDelete) return
+    setDeletingUser(true)
+    try {
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: confirmDelete.id }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setProfiles(prev => prev.filter(u => u.id !== confirmDelete.id))
+        setConfirmDelete(null)
+        setEditingUser(null)
+      } else {
+        console.error('Delete failed:', data.error)
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+    }
+    setDeletingUser(false)
+  }
+
   function renderAthleteRow(athleteId: string) {
     const prof = profileByAthleteId[athleteId]
     const athlete = athletes.find(a => a.id === athleteId)
@@ -411,9 +436,9 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent">
                 Admin Dashboard
               </h1>
               <p className="text-sm text-slate-400 mt-1">{profile?.full_name} &middot; Super Admin</p>
@@ -421,13 +446,13 @@ export default function AdminDashboard() {
             <div className="flex gap-2">
               <button
                 onClick={() => router.push('/coach/dashboard')}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+                className="px-3 sm:px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
               >
                 Coach View
               </button>
               <button
                 onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors"
+                className="px-3 sm:px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
               >
                 Sign Out
               </button>
@@ -666,7 +691,7 @@ export default function AdminDashboard() {
         {activeTab === 'users' && (
           <div>
             <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">User Management</h3>
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
               <Input
                 placeholder="Search by name or email..."
                 value={searchQuery}
@@ -691,9 +716,9 @@ export default function AdminDashboard() {
                   <thead>
                     <tr className="border-b border-slate-700 text-left">
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">User</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Phone</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Phone</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Role</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Joined</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Joined</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
@@ -715,7 +740,7 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-400 text-sm">{user.phone || '\u2014'}</td>
+                        <td className="px-4 py-3 text-slate-400 text-sm hidden md:table-cell">{user.phone || '\u2014'}</td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-1 rounded capitalize ${
                             ['admin', 'super_admin'].includes(user.role) ? 'bg-red-500/20 text-red-400' :
@@ -725,7 +750,7 @@ export default function AdminDashboard() {
                             {user.role.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-400 text-sm">{formatDate(user.created_at)}</td>
+                        <td className="px-4 py-3 text-slate-400 text-sm hidden md:table-cell">{formatDate(user.created_at)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <button
@@ -848,6 +873,20 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
+                  {/* Danger Zone */}
+                  {editingUser.id !== profile?.id && (
+                    <div className="px-6 py-4 border-t border-red-500/20">
+                      <p className="text-xs font-medium text-red-400 uppercase tracking-wider mb-2">Danger Zone</p>
+                      <button
+                        onClick={() => setConfirmDelete(editingUser)}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 rounded-lg text-sm transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        Delete this user permanently
+                      </button>
+                    </div>
+                  )}
+
                   {/* Footer */}
                   <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
                     <button
@@ -863,6 +902,41 @@ export default function AdminDashboard() {
                     >
                       {savingUser ? 'Saving...' : 'Save Changes'}
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {confirmDelete && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                <div className="bg-slate-800 border border-red-500/30 rounded-2xl w-full max-w-md shadow-2xl">
+                  <div className="p-6 text-center">
+                    <div className="w-14 h-14 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Delete User</h3>
+                    <p className="text-slate-400 text-sm mb-1">Are you sure you want to permanently delete:</p>
+                    <p className="text-white font-semibold mb-1">{confirmDelete.full_name}</p>
+                    <p className="text-slate-500 text-sm mb-4">{confirmDelete.email}</p>
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-6">
+                      <p className="text-red-400 text-xs">This action cannot be undone. All of this user&apos;s data including meal logs, check-ins, and profile information will be permanently removed.</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleDeleteUser}
+                        disabled={deletingUser}
+                        className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {deletingUser ? 'Deleting...' : 'Yes, Delete User'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -915,8 +989,8 @@ export default function AdminDashboard() {
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Athlete</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Daily Calories</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Protein</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Carbs</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Fat</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Carbs</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Fat</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Today&#39;s Intake</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
                     </tr>
@@ -944,10 +1018,10 @@ export default function AdminDashboard() {
                           <td className="px-4 py-3 text-slate-300 text-sm font-mono">
                             {rec ? `${rec.daily_protein_g}g` : '\u2014'}
                           </td>
-                          <td className="px-4 py-3 text-slate-300 text-sm font-mono">
+                          <td className="px-4 py-3 text-slate-300 text-sm font-mono hidden md:table-cell">
                             {rec ? `${rec.daily_carbs_g}g` : '\u2014'}
                           </td>
-                          <td className="px-4 py-3 text-slate-300 text-sm font-mono">
+                          <td className="px-4 py-3 text-slate-300 text-sm font-mono hidden md:table-cell">
                             {rec ? `${rec.daily_fat_g}g` : '\u2014'}
                           </td>
                           <td className="px-4 py-3">

@@ -218,7 +218,7 @@ export default function ParentDashboard() {
 
                 {/* Quick stats from recent checkin */}
                 {checkins.length > 0 && (
-                  <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-zinc-800">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4 pt-4 border-t border-zinc-800">
                     <div className="text-center">
                       <div className="text-lg font-bold text-white">
                         {checkins[0].energy}/10
@@ -296,7 +296,7 @@ export default function ParentDashboard() {
                       </div>
 
                       {(m.est_calories || m.est_protein_g) && (
-                        <div className="grid grid-cols-4 gap-2 mt-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
                           {[
                             { label: 'Cal', value: m.est_calories },
                             { label: 'Protein', value: m.est_protein_g ? m.est_protein_g + 'g' : null },

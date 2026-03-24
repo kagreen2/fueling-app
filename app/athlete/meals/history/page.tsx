@@ -371,7 +371,7 @@ export default function MealHistoryPage() {
                                 )}
 
                                 {/* Detailed Macros */}
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                   <div className="bg-slate-700/50 rounded-lg p-2 text-center">
                                     <p className="text-xs text-slate-400">Calories</p>
                                     <p className="font-bold text-white">{meal.calories || 0}</p>

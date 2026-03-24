@@ -208,7 +208,7 @@ export default function CheckInPage() {
         <Card className="mb-6">
           <CardHeader title="Training Today" />
           <CardContent>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
               {['practice', 'game', 'lift', 'conditioning', 'recovery', 'rest'].map(type => (
                 <button
                   key={type}
