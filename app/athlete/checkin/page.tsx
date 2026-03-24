@@ -204,7 +204,7 @@ export default function CheckInPage() {
           </CardContent>
         </Card>
 
-        {/* Training Today */
+        {/* Training Today */}
         <Card className="mb-6">
           <CardHeader title="Training Today" />
           <CardContent>
