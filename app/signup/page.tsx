@@ -1,11 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+
+declare global {
+  interface Window {
+    turnstile: any
+  }
+}
 
 export default function SignupPage( ) {
   const router = useRouter()
@@ -13,6 +19,9 @@ export default function SignupPage( ) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const turnstileRef = useRef<HTMLDivElement>(null)
+  const widgetIdRef = useRef<string | null>(null)
 
   const [form, setForm] = useState({
     fullName: '',
@@ -31,6 +40,38 @@ export default function SignupPage( ) {
     }
   }, [searchParams])
 
+  // Load Turnstile script and render widget
+  useEffect(() => {
+    const scriptId = 'cf-turnstile-script'
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script')
+      script.id = scriptId
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async = true
+      script.onload = ( ) => renderWidget()
+      document.head.appendChild(script)
+    } else if (window.turnstile) {
+      renderWidget()
+    }
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current)
+        widgetIdRef.current = null
+      }
+    }
+  }, [])
+
+  function renderWidget() {
+    if (turnstileRef.current && window.turnstile && !widgetIdRef.current) {
+      widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+        sitekey: '0x4AAAAAACv1P_wt965vngGf',
+        callback: (token: string) => setCaptchaToken(token),
+        'expired-callback': () => setCaptchaToken(''),
+        theme: 'dark',
+      })
+    }
+  }
+
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
@@ -38,6 +79,11 @@ export default function SignupPage( ) {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    if (!captchaToken) {
+      setError('Please complete the CAPTCHA verification')
+      return
+    }
 
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match')
@@ -61,13 +107,19 @@ export default function SignupPage( ) {
         email: form.email,
         password: form.password,
         options: {
-          data: { full_name: form.fullName }
+          data: { full_name: form.fullName },
+          captchaToken,
         }
       })
 
       if (signUpError) {
         setError(signUpError.message)
         setLoading(false)
+        // Reset turnstile
+        if (window.turnstile && widgetIdRef.current) {
+          window.turnstile.reset(widgetIdRef.current)
+          setCaptchaToken('')
+        }
         return
       }
 
@@ -88,7 +140,6 @@ export default function SignupPage( ) {
         }
 
         if (!profileExists) {
-          // Create profile manually if trigger didn't fire
           await supabase.from('profiles').insert({
             id: data.user.id,
             full_name: form.fullName,
@@ -97,7 +148,6 @@ export default function SignupPage( ) {
             subscription_status: form.role === 'athlete' ? 'unpaid' : null,
           })
         } else {
-          // Update role if profile was created by trigger (trigger defaults to 'athlete')
           await supabase.from('profiles').update({
             role: form.role,
             full_name: form.fullName,
@@ -105,18 +155,13 @@ export default function SignupPage( ) {
           }).eq('id', data.user.id)
         }
 
-        // ---- ROUTE BASED ON ROLE ----
         if (form.role === 'coach') {
-          // Coaches go straight to their dashboard (free access)
           router.push('/coach/dashboard')
         } else {
-          // Athletes must pay before accessing the app
-          // Store invite code in localStorage so we can use it after payment
           if (form.inviteCode.trim()) {
             localStorage.setItem('fuel_invite_code', form.inviteCode.trim().toUpperCase())
           }
 
-          // Create Stripe Checkout session and redirect to payment
           const res = await fetch('/api/billing/athlete-checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -130,13 +175,12 @@ export default function SignupPage( ) {
           const checkout = await res.json()
 
           if (checkout.url) {
-            // Redirect to Stripe Checkout
             window.location.href = checkout.url
           } else {
             setError(checkout.error || 'Failed to create checkout session. Please try again.')
             setLoading(false)
           }
-          return // Don't setLoading(false) — we're redirecting
+          return
         }
       }
     } catch (err) {
@@ -148,14 +192,12 @@ export default function SignupPage( ) {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col items-center justify-center p-6">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        {/* Header */}
         <div className="mb-8 text-center">
           <div className="inline-block mb-4">
             <div className="text-4xl">⚡</div>
@@ -164,7 +206,6 @@ export default function SignupPage( ) {
           <p className="text-slate-400">Performance fueling for serious athletes</p>
         </div>
 
-        {/* Role Selector */}
         <div className="flex gap-3 mb-6">
           <button
             type="button"
@@ -194,7 +235,6 @@ export default function SignupPage( ) {
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSignup} className="flex flex-col gap-4 bg-slate-800/50 border border-slate-700 rounded-2xl p-6 sm:p-8 backdrop-blur">
           
           <div>
@@ -241,7 +281,6 @@ export default function SignupPage( ) {
             />
           </div>
 
-          {/* Invite Code - only for athletes */}
           {form.role === 'athlete' && (
             <div>
               <label className="text-slate-300 text-sm font-medium mb-2 block">
@@ -260,7 +299,6 @@ export default function SignupPage( ) {
             </div>
           )}
 
-          {/* Coach info note */}
           {form.role === 'coach' && (
             <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3">
               <p className="text-sm text-orange-300/80">
@@ -269,7 +307,6 @@ export default function SignupPage( ) {
             </div>
           )}
 
-          {/* Athlete pricing note */}
           {form.role === 'athlete' && (
             <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl px-4 py-3">
               <p className="text-sm text-purple-300/80">
@@ -277,6 +314,9 @@ export default function SignupPage( ) {
               </p>
             </div>
           )}
+
+          {/* Turnstile CAPTCHA widget */}
+          <div ref={turnstileRef} className="flex justify-center" />
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
@@ -302,7 +342,6 @@ export default function SignupPage( ) {
 
         </form>
 
-        {/* Footer Links */}
         <div className="mt-8 text-center space-y-3">
           <p className="text-slate-400 text-sm">
             Already have an account?{' '}
