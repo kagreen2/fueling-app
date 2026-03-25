@@ -1,17 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-
-declare global {
-  interface Window {
-    turnstile: any
-  }
-}
 
 export default function SignupPage( ) {
   const router = useRouter()
@@ -19,9 +13,6 @@ export default function SignupPage( ) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [captchaToken, setCaptchaToken] = useState('')
-  const turnstileRef = useRef<HTMLDivElement>(null)
-  const widgetIdRef = useRef<string | null>(null)
 
   const [form, setForm] = useState({
     fullName: '',
@@ -40,38 +31,6 @@ export default function SignupPage( ) {
     }
   }, [searchParams])
 
-  // Load Turnstile script and render widget
-  useEffect(() => {
-    const scriptId = 'cf-turnstile-script'
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script')
-      script.id = scriptId
-      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-      script.async = true
-      script.onload = ( ) => renderWidget()
-      document.head.appendChild(script)
-    } else if (window.turnstile) {
-      renderWidget()
-    }
-    return () => {
-      if (widgetIdRef.current && window.turnstile) {
-        window.turnstile.remove(widgetIdRef.current)
-        widgetIdRef.current = null
-      }
-    }
-  }, [])
-
-  function renderWidget() {
-    if (turnstileRef.current && window.turnstile && !widgetIdRef.current) {
-      widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-        sitekey: '0x4AAAAAACv1P_wt965vngGf',
-        callback: (token: string) => setCaptchaToken(token),
-        'expired-callback': () => setCaptchaToken(''),
-        theme: 'dark',
-      })
-    }
-  }
-
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
@@ -79,11 +38,6 @@ export default function SignupPage( ) {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-
-    if (!captchaToken) {
-      setError('Please complete the CAPTCHA verification')
-      return
-    }
 
     if (form.password !== form.confirmPassword) {
       setError('Passwords do not match')
@@ -108,18 +62,12 @@ export default function SignupPage( ) {
         password: form.password,
         options: {
           data: { full_name: form.fullName },
-          captchaToken,
         }
       })
 
       if (signUpError) {
         setError(signUpError.message)
         setLoading(false)
-        // Reset turnstile
-        if (window.turnstile && widgetIdRef.current) {
-          window.turnstile.reset(widgetIdRef.current)
-          setCaptchaToken('')
-        }
         return
       }
 
@@ -314,9 +262,6 @@ export default function SignupPage( ) {
               </p>
             </div>
           )}
-
-          {/* Turnstile CAPTCHA widget */}
-          <div ref={turnstileRef} className="flex justify-center" />
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
