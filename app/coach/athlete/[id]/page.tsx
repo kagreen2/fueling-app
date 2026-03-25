@@ -135,27 +135,42 @@ export default function CoachAthleteDetailPage() {
     const isAdmin = adminCheck
 
     if (!isAdmin) {
-      // Verify coach has access to this athlete (via team membership)
+      // Verify coach has access to this athlete (via team membership OR direct assignment)
+      let hasAccess = false
+
+      // Check team-based access
       const { data: coachTeams } = await supabase
         .from('teams')
         .select('id')
         .eq('coach_id', user.id)
 
-      if (!coachTeams || coachTeams.length === 0) {
-        router.push('/coach/dashboard')
-        return
+      if (coachTeams && coachTeams.length > 0) {
+        const teamIds = coachTeams.map(t => t.id)
+        const { data: membership } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('athlete_id', athleteId)
+          .in('team_id', teamIds)
+          .limit(1)
+          .single()
+
+        if (membership) hasAccess = true
       }
 
-      const teamIds = coachTeams.map(t => t.id)
-      const { data: membership } = await supabase
-        .from('team_members')
-        .select('team_id')
-        .eq('athlete_id', athleteId)
-        .in('team_id', teamIds)
-        .limit(1)
-        .single()
+      // Check direct coach assignment
+      if (!hasAccess) {
+        const { data: directAssignment } = await supabase
+          .from('athlete_coach_assignments')
+          .select('id')
+          .eq('athlete_id', athleteId)
+          .eq('coach_id', user.id)
+          .limit(1)
+          .single()
 
-      if (!membership) {
+        if (directAssignment) hasAccess = true
+      }
+
+      if (!hasAccess) {
         router.push('/coach/dashboard')
         return
       }

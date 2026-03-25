@@ -67,6 +67,12 @@ interface Checkin {
   hydration_status: number
 }
 
+interface CoachAssignment {
+  id: string
+  athlete_id: string
+  coach_id: string
+}
+
 function formatSport(sport: string | null): string {
   if (!sport) return 'N/A'
   return sport.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -98,6 +104,8 @@ export default function AdminDashboard() {
   const [nutritionRecs, setNutritionRecs] = useState<NutritionRec[]>([])
   const [mealLogs, setMealLogs] = useState<MealLog[]>([])
   const [checkins, setCheckins] = useState<Checkin[]>([])
+  const [coachAssignments, setCoachAssignments] = useState<CoachAssignment[]>([])
+  const [assigningAthleteId, setAssigningAthleteId] = useState<string | null>(null)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
@@ -137,7 +145,7 @@ export default function AdminDashboard() {
 
       const [
         profilesRes, teamsRes, teamMembersRes, athletesRes,
-        recsRes, mealsRes, checkinsRes, settingsRes,
+        recsRes, mealsRes, checkinsRes, settingsRes, assignmentsRes,
       ] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('teams').select('*').order('name'),
@@ -147,6 +155,7 @@ export default function AdminDashboard() {
         supabase.from('meal_logs').select('id, athlete_id, date, calories, protein').order('date', { ascending: false }).limit(200),
         supabase.from('daily_checkins').select('athlete_id, date, energy, stress, soreness, sleep_hours, hydration_status').order('date', { ascending: false }).limit(200),
         supabase.from('admin_settings').select('*'),
+        supabase.from('athlete_coach_assignments').select('*'),
       ])
 
       if (profilesRes.data) setProfiles(profilesRes.data)
@@ -156,6 +165,7 @@ export default function AdminDashboard() {
       if (recsRes.data) setNutritionRecs(recsRes.data)
       if (mealsRes.data) setMealLogs(mealsRes.data)
       if (checkinsRes.data) setCheckins(checkinsRes.data)
+      if (assignmentsRes.data) setCoachAssignments(assignmentsRes.data)
 
       if (settingsRes.data) {
         const coachAdj = settingsRes.data.find((s: any) => s.setting_key === 'allow_coach_recommendation_adjustments')
@@ -348,6 +358,46 @@ export default function AdminDashboard() {
     setDeletingUser(false)
   }
 
+  // Coach assignment helpers
+  const assignmentByAthleteId = useMemo(() => {
+    const map: Record<string, CoachAssignment> = {}
+    coachAssignments.forEach(a => { map[a.athlete_id] = a })
+    return map
+  }, [coachAssignments])
+
+  async function assignCoach(athleteId: string, coachId: string) {
+    setAssigningAthleteId(athleteId)
+    try {
+      // Remove existing assignment for this athlete if any
+      const existing = coachAssignments.find(a => a.athlete_id === athleteId)
+      if (existing) {
+        await supabase.from('athlete_coach_assignments').delete().eq('id', existing.id)
+      }
+
+      if (coachId === '') {
+        // Unassign
+        setCoachAssignments(prev => prev.filter(a => a.athlete_id !== athleteId))
+      } else {
+        // Create new assignment
+        const { data, error } = await supabase
+          .from('athlete_coach_assignments')
+          .insert({ athlete_id: athleteId, coach_id: coachId })
+          .select()
+          .single()
+
+        if (!error && data) {
+          setCoachAssignments(prev => [
+            ...prev.filter(a => a.athlete_id !== athleteId),
+            data,
+          ])
+        }
+      }
+    } catch (error) {
+      console.error('Error assigning coach:', error)
+    }
+    setAssigningAthleteId(null)
+  }
+
   function renderAthleteRow(athleteId: string) {
     const prof = profileByAthleteId[athleteId]
     const athlete = athletes.find(a => a.id === athleteId)
@@ -407,6 +457,21 @@ export default function AdminDashboard() {
           ) : (
             <span className="text-slate-500 text-xs">No check-in</span>
           )}
+        </td>
+        <td className="px-4 py-3">
+          <select
+            value={assignmentByAthleteId[athleteId]?.coach_id || ''}
+            onChange={e => assignCoach(athleteId, e.target.value)}
+            disabled={assigningAthleteId === athleteId}
+            className={`text-xs bg-slate-700 border border-slate-600 text-white rounded-lg px-2 py-1.5 focus:outline-none focus:border-purple-600 transition-colors ${
+              assigningAthleteId === athleteId ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <option value="">No Coach</option>
+            {coachProfiles.map(c => (
+              <option key={c.id} value={c.id}>{c.full_name}</option>
+            ))}
+          </select>
         </td>
         <td className="px-4 py-3">
           <button
@@ -637,6 +702,7 @@ export default function AdminDashboard() {
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Today&#39;s Log</th>
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Target</th>
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Wellness</th>
+                            <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Coach</th>
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
                           </tr>
                         </thead>
@@ -669,6 +735,7 @@ export default function AdminDashboard() {
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Today&#39;s Log</th>
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Target</th>
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Wellness</th>
+                        <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Coach</th>
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
                       </tr>
                     </thead>

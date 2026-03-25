@@ -178,23 +178,39 @@ export default function CoachDashboardPage() {
       .select('id, name, sport, invite_code')
       .eq('coach_id', user.id)
 
-    if (!teamsData || teamsData.length === 0) {
-      setTeams([])
-      setAthletes([])
-      setLoading(false)
-      return
-    }
-    setTeams(teamsData)
+    setTeams(teamsData || [])
 
-    const teamIds = teamsData.map(t => t.id)
-    const teamMap = Object.fromEntries(teamsData.map(t => [t.id, t.name]))
+    const teamIds = (teamsData || []).map(t => t.id)
+    const teamMap = Object.fromEntries((teamsData || []).map(t => [t.id, t.name]))
 
     // Get team members with athlete + profile data
-    const { data: members } = await supabase
-      .from('team_members')
+    let members: any[] = []
+    if (teamIds.length > 0) {
+      const { data: teamMembers } = await supabase
+        .from('team_members')
+        .select(`
+          athlete_id,
+          team_id,
+          athlete:athletes(
+            id,
+            profile_id,
+            sport,
+            position,
+            weight_lbs,
+            goal_phase,
+            season_phase,
+            profile:profiles(full_name, email)
+          )
+        `)
+        .in('team_id', teamIds)
+      members = teamMembers || []
+    }
+
+    // Also get directly assigned athletes via athlete_coach_assignments
+    const { data: directAssignments } = await supabase
+      .from('athlete_coach_assignments')
       .select(`
         athlete_id,
-        team_id,
         athlete:athletes(
           id,
           profile_id,
@@ -206,9 +222,27 @@ export default function CoachDashboardPage() {
           profile:profiles(full_name, email)
         )
       `)
-      .in('team_id', teamIds)
+      .eq('coach_id', user.id)
 
-    if (!members || members.length === 0) {
+    // Merge direct assignments into members list (avoid duplicates)
+    const existingAthleteIds = new Set(members.map(m => m.athlete_id))
+    if (directAssignments) {
+      for (const da of directAssignments) {
+        if (!existingAthleteIds.has(da.athlete_id)) {
+          members.push({
+            athlete_id: da.athlete_id,
+            team_id: 'direct_assignment',
+            athlete: da.athlete,
+          })
+          existingAthleteIds.add(da.athlete_id)
+        }
+      }
+    }
+
+    // Add 'Direct' to team map for directly assigned athletes
+    teamMap['direct_assignment'] = 'Direct Assignment'
+
+    if (members.length === 0) {
       setAthletes([])
       setLoading(false)
       return
