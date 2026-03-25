@@ -89,6 +89,60 @@ export default function AthleteDashboard() {
   const [refreshing, setRefreshing] = useState(false)
   const [recommendations, setRecommendations] = useState<any>(null)
   const [athlete, setAthlete] = useState<any>(null)
+  const [showTutorial, setShowTutorial] = useState(false)
+  const [tutorialStep, setTutorialStep] = useState(0)
+
+  const TUTORIAL_SLIDES = [
+    {
+      icon: '👋',
+      title: 'Welcome to Fuel Different!',
+      description: 'Your personalized nutrition dashboard is ready. Let\'s walk through the basics so you can get the most out of the app.',
+    },
+    {
+      icon: '✅',
+      title: 'Daily Check-in',
+      description: 'Start each day with a quick check-in. Rate your energy, soreness, hunger, and stress levels so your coach can monitor how you\'re feeling.',
+    },
+    {
+      icon: '🍽️',
+      title: 'Log Your Meals',
+      description: 'Snap a photo or describe your meals to track your daily nutrition. The app will calculate your calories, protein, carbs, and fat automatically.',
+    },
+    {
+      icon: '💧',
+      title: 'Track Hydration',
+      description: 'Log your water intake throughout the day. Staying hydrated is key to performance and recovery.',
+    },
+    {
+      icon: '🎯',
+      title: 'Hit Your Targets',
+      description: 'Your personalized macro targets are based on your body, sport, and goals. Check the progress rings on your dashboard to see how you\'re tracking each day.',
+    },
+    {
+      icon: '💊',
+      title: 'Supplements',
+      description: 'Before taking any supplement, submit it for review. Your coach will approve or flag supplements to keep you safe and compliant.',
+    },
+    {
+      icon: '🚀',
+      title: 'You\'re All Set!',
+      description: 'That\'s it! Start by doing your daily check-in and logging your first meal. Your coach will be able to see your progress and provide guidance.',
+    },
+  ]
+
+  useEffect(() => {
+    // Check if this is the athlete's first time viewing the dashboard
+    const tutorialSeen = localStorage.getItem('fuel_tutorial_seen')
+    if (!tutorialSeen) {
+      setShowTutorial(true)
+    }
+  }, [])
+
+  function dismissTutorial() {
+    localStorage.setItem('fuel_tutorial_seen', 'true')
+    setShowTutorial(false)
+    setTutorialStep(0)
+  }
 
   useEffect(() => {
     loadData()
@@ -646,6 +700,65 @@ export default function AthleteDashboard() {
           </div>
         )}
       </div>
+      {/* Tutorial Slideshow Modal */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
+            {/* Progress dots */}
+            <div className="flex justify-center gap-1.5 pt-5 pb-2">
+              {TUTORIAL_SLIDES.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === tutorialStep ? 'w-6 bg-purple-500' : i < tutorialStep ? 'w-1.5 bg-purple-500/50' : 'w-1.5 bg-slate-600'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Slide content */}
+            <div className="px-8 py-6 text-center">
+              <div className="text-5xl mb-4">{TUTORIAL_SLIDES[tutorialStep].icon}</div>
+              <h2 className="text-xl font-bold text-white mb-3">{TUTORIAL_SLIDES[tutorialStep].title}</h2>
+              <p className="text-slate-400 text-sm leading-relaxed">{TUTORIAL_SLIDES[tutorialStep].description}</p>
+            </div>
+
+            {/* Navigation */}
+            <div className="px-8 pb-6 flex items-center justify-between">
+              {tutorialStep > 0 ? (
+                <button
+                  onClick={() => setTutorialStep(s => s - 1)}
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                >
+                  Back
+                </button>
+              ) : (
+                <button
+                  onClick={dismissTutorial}
+                  className="px-4 py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  Skip
+                </button>
+              )}
+              {tutorialStep < TUTORIAL_SLIDES.length - 1 ? (
+                <button
+                  onClick={() => setTutorialStep(s => s + 1)}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  onClick={dismissTutorial}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Get Started
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

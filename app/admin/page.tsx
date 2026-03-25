@@ -112,6 +112,34 @@ export default function AdminDashboard() {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [allowCoachAdjustments, setAllowCoachAdjustments] = useState(false)
   const [savingSettings, setSavingSettings] = useState(false)
+  const [recalculating, setRecalculating] = useState(false)
+  const [recalcProgress, setRecalcProgress] = useState({ done: 0, total: 0, errors: 0 })
+
+  async function recalculateAllMacros() {
+    if (!confirm('This will recalculate nutrition recommendations for ALL athletes using the latest formula. Manually overridden values will be replaced. Continue?')) return
+    setRecalculating(true)
+    const total = athletes.length
+    setRecalcProgress({ done: 0, total, errors: 0 })
+    let done = 0
+    let errors = 0
+    for (const athlete of athletes) {
+      try {
+        const res = await fetch('/api/recommendations/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ athleteId: athlete.id }),
+        })
+        if (!res.ok) errors++
+      } catch {
+        errors++
+      }
+      done++
+      setRecalcProgress({ done, total, errors })
+    }
+    setRecalculating(false)
+    alert(`Recalculation complete! ${done - errors} succeeded, ${errors} failed.`)
+    loadData()
+  }
 
   // User editing state
   const [editingUser, setEditingUser] = useState<Profile | null>(null)
@@ -1018,6 +1046,28 @@ export default function AdminDashboard() {
             <div>
               <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Nutrition Overview</h3>
               <p className="text-slate-400 text-sm mb-6">View all athlete nutrition plans and daily intake at a glance.</p>
+              <button
+                onClick={recalculateAllMacros}
+                disabled={recalculating || athletes.length === 0}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:text-slate-500 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {recalculating
+                  ? `Recalculating... ${recalcProgress.done}/${recalcProgress.total}`
+                  : `Recalculate All Macros (${athletes.length} athletes)`}
+              </button>
+              {recalculating && (
+                <div className="mt-3">
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${recalcProgress.total > 0 ? (recalcProgress.done / recalcProgress.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                  {recalcProgress.errors > 0 && (
+                    <p className="text-red-400 text-xs mt-1">{recalcProgress.errors} errors so far</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="grid md:grid-cols-3 gap-4 mb-6">

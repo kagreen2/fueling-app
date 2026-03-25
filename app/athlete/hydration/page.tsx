@@ -28,8 +28,6 @@ export default function HydrationPage() {
   const [form, setForm] = useState({
     waterOz: 0,
     electrolyteOz: 0,
-    prePracticeOz: 0,
-    postPracticeOz: 0,
     urineColor: 0,
     notes: '',
   })
@@ -59,8 +57,6 @@ export default function HydrationPage() {
         setForm({
           waterOz: data.water_oz || 0,
           electrolyteOz: data.electrolyte_oz || 0,
-          prePracticeOz: data.pre_practice_oz || 0,
-          postPracticeOz: data.post_practice_oz || 0,
           urineColor: data.urine_color_self_check || 0,
           notes: data.notes || '',
         })
@@ -114,8 +110,6 @@ export default function HydrationPage() {
       date: today,
       water_oz: form.waterOz,
       electrolyte_oz: form.electrolyteOz,
-      pre_practice_oz: form.prePracticeOz,
-      post_practice_oz: form.postPracticeOz,
       urine_color_self_check: form.urineColor || null,
       notes: form.notes || null,
     }, { onConflict: 'athlete_id,date' })
@@ -230,29 +224,6 @@ export default function HydrationPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-400">Total:</span>
               <span className="text-lg font-bold text-white">{form.electrolyteOz} oz</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Practice Hydration */}
-        <Card className="mb-6">
-          <CardHeader title="Practice Hydration" />
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                type="number"
-                value={form.prePracticeOz || ''}
-                onChange={e => update('prePracticeOz', parseInt(e.target.value) || 0)}
-                placeholder="0"
-                label="Pre-practice (oz)"
-              />
-              <Input
-                type="number"
-                value={form.postPracticeOz || ''}
-                onChange={e => update('postPracticeOz', parseInt(e.target.value) || 0)}
-                placeholder="0"
-                label="Post-practice (oz)"
-              />
             </div>
           </CardContent>
         </Card>

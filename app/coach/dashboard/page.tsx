@@ -149,6 +149,7 @@ export default function CoachDashboardPage() {
   const [timeRange, setTimeRange] = useState<number>(7)
   const [view, setView] = useState<'overview' | 'leaderboard' | 'alerts'>('overview')
   const [coachName, setCoachName] = useState('')
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -166,17 +167,20 @@ export default function CoachDashboardPage() {
       .eq('id', user.id)
       .single()
 
-    if (!profile || (profile.role !== 'coach' && profile.role !== 'super_admin')) {
+    if (!profile || (profile.role !== 'coach' && profile.role !== 'super_admin' && profile.role !== 'admin')) {
       router.push('/login')
       return
     }
+    const adminAccess = profile.role === 'super_admin' || profile.role === 'admin'
+    setIsAdmin(adminAccess)
     setCoachName(profile.full_name || 'Coach')
 
-    // Get coach's teams
-    const { data: teamsData } = await supabase
-      .from('teams')
-      .select('id, name, sport, invite_code')
-      .eq('coach_id', user.id)
+    // Get teams — admins see ALL teams, coaches see only their own
+    let teamsQuery = supabase.from('teams').select('id, name, sport, invite_code')
+    if (!adminAccess) {
+      teamsQuery = teamsQuery.eq('coach_id', user.id)
+    }
+    const { data: teamsData } = await teamsQuery
 
     setTeams(teamsData || [])
 
@@ -207,7 +211,7 @@ export default function CoachDashboardPage() {
     }
 
     // Also get directly assigned athletes via athlete_coach_assignments
-    const { data: directAssignments } = await supabase
+    let assignmentsQuery = supabase
       .from('athlete_coach_assignments')
       .select(`
         athlete_id,
@@ -222,7 +226,10 @@ export default function CoachDashboardPage() {
           profile:profiles(full_name, email)
         )
       `)
-      .eq('coach_id', user.id)
+    if (!adminAccess) {
+      assignmentsQuery = assignmentsQuery.eq('coach_id', user.id)
+    }
+    const { data: directAssignments } = await assignmentsQuery
 
     // Merge direct assignments into members list (avoid duplicates)
     const existingAthleteIds = new Set(members.map(m => m.athlete_id))
@@ -567,12 +574,12 @@ export default function CoachDashboardPage() {
             <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
           </div>
           <h2 className="text-2xl font-bold text-white mb-3">Welcome, {coachName}!</h2>
-          <p className="text-slate-400 mb-6">Create your first team to start tracking athlete compliance. Share the invite code with your athletes so they can join.</p>
+          <p className="text-slate-400 mb-6">{isAdmin ? 'No teams or athletes found. Create teams and assign athletes from the Admin Dashboard.' : 'Create your first team to start tracking athlete compliance. Share the invite code with your athletes so they can join.'}</p>
           <button
-            onClick={() => router.push('/coach/teams')}
+            onClick={() => router.push(isAdmin ? '/admin' : '/coach/teams')}
             className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors"
           >
-            Create Your First Team
+            {isAdmin ? 'Back to Admin Dashboard' : 'Create Your First Team'}
           </button>
         </div>
       </main>
@@ -589,12 +596,22 @@ export default function CoachDashboardPage() {
             <p className="text-slate-400 text-sm">Welcome back, {coachName}</p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push('/coach/billing')}
-              className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
-            >
-              <span className="hidden sm:inline">💳 </span>Billing
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => router.push('/admin')}
+                className="px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
+              >
+                ← Admin
+              </button>
+            )}
+            {!isAdmin && (
+              <button
+                onClick={() => router.push('/coach/billing')}
+                className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
+              >
+                <span className="hidden sm:inline">💳 </span>Billing
+              </button>
+            )}
             <button
               onClick={() => router.push('/coach/teams')}
               className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"

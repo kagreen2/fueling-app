@@ -63,6 +63,55 @@ export default function CoachAthleteDetailPage() {
   const [notesLoading, setNotesLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Macro override state
+  const [editingMacros, setEditingMacros] = useState(false)
+  const [savingMacros, setSavingMacros] = useState(false)
+  const [macroForm, setMacroForm] = useState({
+    daily_calories: 0,
+    daily_protein_g: 0,
+    daily_carbs_g: 0,
+    daily_fat_g: 0,
+  })
+
+  async function saveMacroOverride() {
+    setSavingMacros(true)
+    const { error } = await supabase
+      .from('nutrition_recommendations')
+      .upsert({
+        athlete_id: athleteId,
+        daily_calories: macroForm.daily_calories,
+        daily_protein_g: macroForm.daily_protein_g,
+        daily_carbs_g: macroForm.daily_carbs_g,
+        daily_fat_g: macroForm.daily_fat_g,
+        reasoning: 'Manually overridden by ' + (isAdmin ? 'admin' : 'coach'),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'athlete_id' })
+
+    if (!error) {
+      setRecs({
+        ...recs,
+        daily_calories: macroForm.daily_calories,
+        daily_protein_g: macroForm.daily_protein_g,
+        daily_carbs_g: macroForm.daily_carbs_g,
+        daily_fat_g: macroForm.daily_fat_g,
+      })
+      setEditingMacros(false)
+    } else {
+      alert('Failed to save: ' + error.message)
+    }
+    setSavingMacros(false)
+  }
+
+  function startEditMacros() {
+    setMacroForm({
+      daily_calories: recs?.daily_calories || 2500,
+      daily_protein_g: recs?.daily_protein_g || 150,
+      daily_carbs_g: recs?.daily_carbs_g || 300,
+      daily_fat_g: recs?.daily_fat_g || 80,
+    })
+    setEditingMacros(true)
+  }
+
   useEffect(() => {
     loadAthleteData()
     loadNotes()
@@ -325,25 +374,95 @@ export default function CoachAthleteDetailPage() {
 
         {/* Nutrition Targets */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-          <h3 className="text-white font-semibold mb-3">Daily Targets</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-xl sm:text-2xl font-bold text-purple-400">{targetCal}</p>
-              <p className="text-slate-500 text-xs">Calories</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xl sm:text-2xl font-bold text-blue-400">{recs?.daily_protein_g || 150}g</p>
-              <p className="text-slate-500 text-xs">Protein</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xl sm:text-2xl font-bold text-orange-400">{recs?.daily_carbs_g || 300}g</p>
-              <p className="text-slate-500 text-xs">Carbs</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xl sm:text-2xl font-bold text-yellow-400">{recs?.daily_fat_g || 80}g</p>
-              <p className="text-slate-500 text-xs">Fat</p>
-            </div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white font-semibold">Daily Targets</h3>
+            {!editingMacros ? (
+              <button
+                onClick={startEditMacros}
+                className="px-3 py-1 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+              >
+                Edit Macros
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditingMacros(false)}
+                  className="px-3 py-1 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveMacroOverride}
+                  disabled={savingMacros}
+                  className="px-3 py-1 text-xs font-medium bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 text-white rounded-lg transition-colors"
+                >
+                  {savingMacros ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            )}
           </div>
+          {!editingMacros ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-xl sm:text-2xl font-bold text-purple-400">{targetCal}</p>
+                <p className="text-slate-500 text-xs">Calories</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl sm:text-2xl font-bold text-blue-400">{recs?.daily_protein_g || 150}g</p>
+                <p className="text-slate-500 text-xs">Protein</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl sm:text-2xl font-bold text-orange-400">{recs?.daily_carbs_g || 300}g</p>
+                <p className="text-slate-500 text-xs">Carbs</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl sm:text-2xl font-bold text-yellow-400">{recs?.daily_fat_g || 80}g</p>
+                <p className="text-slate-500 text-xs">Fat</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <label className="text-slate-500 text-xs block mb-1">Calories</label>
+                <input
+                  type="number"
+                  value={macroForm.daily_calories}
+                  onChange={e => setMacroForm(prev => ({ ...prev, daily_calories: parseInt(e.target.value) || 0 }))}
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:border-purple-500"
+                />
+              </div>
+              <div>
+                <label className="text-slate-500 text-xs block mb-1">Protein (g)</label>
+                <input
+                  type="number"
+                  value={macroForm.daily_protein_g}
+                  onChange={e => setMacroForm(prev => ({ ...prev, daily_protein_g: parseInt(e.target.value) || 0 }))}
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-slate-500 text-xs block mb-1">Carbs (g)</label>
+                <input
+                  type="number"
+                  value={macroForm.daily_carbs_g}
+                  onChange={e => setMacroForm(prev => ({ ...prev, daily_carbs_g: parseInt(e.target.value) || 0 }))}
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label className="text-slate-500 text-xs block mb-1">Fat (g)</label>
+                <input
+                  type="number"
+                  value={macroForm.daily_fat_g}
+                  onChange={e => setMacroForm(prev => ({ ...prev, daily_fat_g: parseInt(e.target.value) || 0 }))}
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:border-yellow-500"
+                />
+              </div>
+            </div>
+          )}
+          {recs?.reasoning && recs.reasoning.startsWith('Manually') && (
+            <p className="text-xs text-yellow-400/70 mt-3 text-center">⚡ {recs.reasoning}</p>
+          )}
         </div>
 
         {/* Stats Summary */}
