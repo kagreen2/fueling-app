@@ -39,19 +39,13 @@ export default function LoginPage( ) {
     }
 
     // Route based on role AND subscription status
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
       .select('role, subscription_status')
       .eq('id', data.user.id)
       .single()
 
-    console.log('LOGIN DEBUG - user id:', data.user.id)
-    console.log('LOGIN DEBUG - profile:', JSON.stringify(profile))
-    console.log('LOGIN DEBUG - profileError:', JSON.stringify(profileError))
-
     if (!profile) {
-      // Profile query failed (likely RLS) — try to route based on user metadata or show error
-      console.log('LOGIN DEBUG - profile is null, cannot determine role')
       setError('Unable to load your profile. Please try again or contact support.')
       setLoading(false)
       return
