@@ -10,7 +10,7 @@ export default function AthleteLayout({
   children,
 }: {
   children: React.ReactNode
-} ) {
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -18,22 +18,15 @@ export default function AthleteLayout({
   const [authorized, setAuthorized] = useState(false)
   const [checking, setChecking] = useState(true)
 
-  // Allow these pages to render without a subscription check
   const isPaymentPage = pathname === '/athlete/payment-required'
   const isOnboardingWithPayment = pathname === '/athlete/onboarding' && searchParams.get('payment') === 'success'
 
   useEffect(() => {
-    if (isPaymentPage) {
-      setAuthorized(true)
-      setChecking(false)
-      return
-    }
-
     async function checkAccess() {
       const { data: { user } } = await supabase.auth.getUser()
+
       if (!user) {
-        // If coming back from Stripe payment, they might still be logged in
-        // Wait a moment and retry once
+        // If coming back from Stripe payment, retry after a short delay
         if (isOnboardingWithPayment) {
           await new Promise(resolve => setTimeout(resolve, 1500))
           const { data: { user: retryUser } } = await supabase.auth.getUser()
@@ -41,18 +34,17 @@ export default function AthleteLayout({
             router.push('/login')
             return
           }
-          // Continue with retryUser
-          await checkSubscription(retryUser.id)
+          await handleUser(retryUser.id)
           return
         }
         router.push('/login')
         return
       }
 
-      await checkSubscription(user.id)
+      await handleUser(user.id)
     }
 
-    async function checkSubscription(userId: string) {
+    async function handleUser(userId: string) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('role, subscription_status')
@@ -64,7 +56,7 @@ export default function AthleteLayout({
         return
       }
 
-      // Redirect non-athletes to their proper dashboards
+      // ALWAYS redirect non-athletes to their proper dashboards — even on payment page
       if (profile.role === 'admin' || profile.role === 'super_admin') {
         router.push('/admin/dashboard')
         return
@@ -75,6 +67,15 @@ export default function AthleteLayout({
       }
       if (profile.role !== 'athlete') {
         router.push('/login')
+        return
+      }
+
+      // --- From here, user is confirmed as an athlete ---
+
+      // Payment page: allow through (athlete needs to see it)
+      if (isPaymentPage) {
+        setAuthorized(true)
+        setChecking(false)
         return
       }
 
@@ -114,10 +115,6 @@ export default function AthleteLayout({
 
     checkAccess()
   }, [supabase, router, pathname, isPaymentPage, isOnboardingWithPayment])
-
-  if (isPaymentPage) {
-    return <>{children}</>
-  }
 
   if (checking) {
     return (
