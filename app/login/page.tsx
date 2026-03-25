@@ -39,19 +39,31 @@ export default function LoginPage( ) {
     }
 
     // Route based on role AND subscription status
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, subscription_status')
       .eq('id', data.user.id)
       .single()
 
-    if (profile?.role === 'coach') {
+    console.log('LOGIN DEBUG - user id:', data.user.id)
+    console.log('LOGIN DEBUG - profile:', JSON.stringify(profile))
+    console.log('LOGIN DEBUG - profileError:', JSON.stringify(profileError))
+
+    if (!profile) {
+      // Profile query failed (likely RLS) — try to route based on user metadata or show error
+      console.log('LOGIN DEBUG - profile is null, cannot determine role')
+      setError('Unable to load your profile. Please try again or contact support.')
+      setLoading(false)
+      return
+    }
+
+    if (profile.role === 'coach') {
       router.push('/coach/dashboard')
-    } else if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+    } else if (profile.role === 'admin' || profile.role === 'super_admin') {
       router.push('/admin')
     } else {
       // Athlete — check subscription status
-      if (profile?.subscription_status !== 'active') {
+      if (profile.subscription_status !== 'active') {
         router.push('/athlete/payment-required')
       } else {
         router.push('/athlete/dashboard')
