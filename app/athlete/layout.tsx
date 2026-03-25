@@ -58,7 +58,7 @@ export default function AthleteLayout({
 
       // ALWAYS redirect non-athletes to their proper dashboards — even on payment page
       if (profile.role === 'admin' || profile.role === 'super_admin') {
-        router.push('/admin/dashboard')
+        router.push('/admin')
         return
       }
       if (profile.role === 'coach') {

@@ -48,7 +48,7 @@ export default function LoginPage( ) {
     if (profile?.role === 'coach') {
       router.push('/coach/dashboard')
     } else if (profile?.role === 'admin' || profile?.role === 'super_admin') {
-      router.push('/admin/dashboard')
+      router.push('/admin')
     } else {
       // Athlete — check subscription status
       if (profile?.subscription_status !== 'active') {
