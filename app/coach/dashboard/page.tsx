@@ -151,7 +151,15 @@ export default function CoachDashboardPage() {
   const [coachName, setCoachName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [pendingSupplements, setPendingSupplements] = useState<any[]>([])
-  const [dismissedCoachAlerts, setDismissedCoachAlerts] = useState<Set<string>>(new Set())
+  const [dismissedCoachAlerts, setDismissedCoachAlerts] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('coach_dismissed_alerts')
+        if (saved) return new Set(JSON.parse(saved))
+      } catch {}
+    }
+    return new Set()
+  })
 
   useEffect(() => {
     loadData()
@@ -611,7 +619,11 @@ export default function CoachDashboardPage() {
   }, [pendingSupplements, athletes, dismissedCoachAlerts])
 
   function dismissCoachAlert(id: string) {
-    setDismissedCoachAlerts(prev => new Set([...prev, id]))
+    setDismissedCoachAlerts(prev => {
+      const next = new Set([...prev, id])
+      try { localStorage.setItem('coach_dismissed_alerts', JSON.stringify([...next])) } catch {}
+      return next
+    })
   }
 
   // Summary stats

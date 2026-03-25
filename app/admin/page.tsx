@@ -108,7 +108,15 @@ export default function AdminDashboard() {
   const [assigningAthleteId, setAssigningAthleteId] = useState<string | null>(null)
   const [pendingSupplements, setPendingSupplements] = useState<any[]>([])
   const [pastDueSubscriptions, setPastDueSubscriptions] = useState<any[]>([])
-  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set())
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('admin_dismissed_alerts')
+        if (saved) return new Set(JSON.parse(saved))
+      } catch {}
+    }
+    return new Set()
+  })
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
@@ -362,7 +370,11 @@ export default function AdminDashboard() {
   }, [pastDueSubscriptions, pendingSupplements, athletes, coachAssignments, profiles, latestCheckinByAthlete, profileByAthleteId, today, dismissedAlerts])
 
   function dismissAlert(id: string) {
-    setDismissedAlerts(prev => new Set([...prev, id]))
+    setDismissedAlerts(prev => {
+      const next = new Set([...prev, id])
+      try { localStorage.setItem('admin_dismissed_alerts', JSON.stringify([...next])) } catch {}
+      return next
+    })
   }
 
   const stats = useMemo(() => ({
