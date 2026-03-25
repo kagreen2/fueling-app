@@ -63,6 +63,13 @@ export default function CoachAthleteDetailPage() {
   const [notesLoading, setNotesLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Supplements state
+  const [supplements, setSupplements] = useState<any[]>([])
+  const [supplementsLoading, setSupplementsLoading] = useState(true)
+  const [reviewingSupp, setReviewingSupp] = useState<string | null>(null)
+  const [reviewNotes, setReviewNotes] = useState('')
+  const [savingReview, setSavingReview] = useState(false)
+
   // Macro override state
   const [editingMacros, setEditingMacros] = useState(false)
   const [savingMacros, setSavingMacros] = useState(false)
@@ -115,7 +122,42 @@ export default function CoachAthleteDetailPage() {
   useEffect(() => {
     loadAthleteData()
     loadNotes()
+    loadSupplements()
   }, [athleteId, timeRange])
+
+  async function loadSupplements() {
+    setSupplementsLoading(true)
+    const { data } = await supabase
+      .from('supplements')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .order('created_at', { ascending: false })
+    if (data) setSupplements(data)
+    setSupplementsLoading(false)
+  }
+
+  async function reviewSupplement(suppId: string, status: 'approved' | 'denied' | 'needs_info') {
+    setSavingReview(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase
+      .from('supplements')
+      .update({
+        status,
+        reviewed_by: user?.id,
+        reviewer_notes: reviewNotes || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', suppId)
+
+    if (!error) {
+      setReviewingSupp(null)
+      setReviewNotes('')
+      loadSupplements()
+    } else {
+      alert('Failed to update: ' + error.message)
+    }
+    setSavingReview(false)
+  }
 
   async function loadNotes() {
     setNotesLoading(true)
@@ -644,9 +686,124 @@ export default function CoachAthleteDetailPage() {
             })}
           </div>
         </div>
+
+        {/* Supplements Review */}
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">💊</span>
+              <h3 className="font-semibold text-white">Supplements</h3>
+              {supplements.filter(s => s.status === 'pending').length > 0 && (
+                <span className="bg-yellow-500/20 text-yellow-400 text-xs font-medium px-2 py-0.5 rounded-full">
+                  {supplements.filter(s => s.status === 'pending').length} pending
+                </span>
+              )}
+            </div>
+          </div>
+          {supplementsLoading ? (
+            <div className="px-5 py-8 text-center">
+              <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : supplements.length === 0 ? (
+            <div className="px-5 py-8 text-center">
+              <p className="text-slate-500 text-sm">No supplement requests from this athlete.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-700/50">
+              {supplements.map(s => {
+                const statusStyles: Record<string, string> = {
+                  pending: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+                  approved: 'bg-green-500/10 text-green-400 border-green-500/30',
+                  denied: 'bg-red-500/10 text-red-400 border-red-500/30',
+                  needs_info: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+                }
+                const riskStyles: Record<string, string> = {
+                  low: 'text-green-400',
+                  moderate: 'text-yellow-400',
+                  high: 'text-red-400',
+                  banned: 'text-red-500 font-bold',
+                }
+                return (
+                  <div key={s.id} className="px-5 py-4">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div>
+                        <h4 className="font-medium text-white">{s.name}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          {s.brand && <span className="text-slate-400 text-xs">{s.brand}</span>}
+                          {s.category && <span className="text-slate-500 text-xs capitalize">· {s.category.replace('_', ' ')}</span>}
+                          {s.risk_level && <span className={`text-xs capitalize ${riskStyles[s.risk_level] || 'text-slate-400'}`}>· {s.risk_level} risk</span>}
+                        </div>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full border capitalize whitespace-nowrap ${statusStyles[s.status] || ''}`}>
+                        {s.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    {s.ai_explanation && (
+                      <p className="text-slate-400 text-xs leading-relaxed mb-2 bg-slate-700/30 rounded-lg p-3">
+                        <span className="text-slate-500 font-medium">AI Review:</span> {s.ai_explanation}
+                      </p>
+                    )}
+                    {s.reviewer_notes && (
+                      <p className="text-slate-300 text-xs leading-relaxed mb-2 bg-purple-500/10 border border-purple-500/20 rounded-lg p-3">
+                        <span className="text-purple-400 font-medium">Coach Notes:</span> {s.reviewer_notes}
+                      </p>
+                    )}
+                    {reviewingSupp === s.id ? (
+                      <div className="mt-3 space-y-3">
+                        <textarea
+                          value={reviewNotes}
+                          onChange={e => setReviewNotes(e.target.value)}
+                          placeholder="Add notes (optional)..."
+                          className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none"
+                          rows={2}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => reviewSupplement(s.id, 'approved')}
+                            disabled={savingReview}
+                            className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
+                          >
+                            ✓ Approve
+                          </button>
+                          <button
+                            onClick={() => reviewSupplement(s.id, 'denied')}
+                            disabled={savingReview}
+                            className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
+                          >
+                            ✕ Deny
+                          </button>
+                          <button
+                            onClick={() => reviewSupplement(s.id, 'needs_info')}
+                            disabled={savingReview}
+                            className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-medium rounded-lg transition-colors"
+                          >
+                            ? Need Info
+                          </button>
+                          <button
+                            onClick={() => { setReviewingSupp(null); setReviewNotes('') }}
+                            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded-lg transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setReviewingSupp(s.id); setReviewNotes(s.reviewer_notes || '') }}
+                        className="mt-2 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+                      >
+                        {s.status === 'pending' ? 'Review this supplement' : 'Update review'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Coach Notes */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">          <div className="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
               <h3 className="text-white font-semibold">Coach Notes</h3>
