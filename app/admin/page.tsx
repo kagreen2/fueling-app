@@ -195,7 +195,14 @@ export default function AdminDashboard() {
       if (profilesRes.data) setProfiles(profilesRes.data)
       if (teamsRes.data) setTeams(teamsRes.data)
       if (teamMembersRes.data) setTeamMembers(teamMembersRes.data)
-      if (athletesRes.data) setAthletes(athletesRes.data)
+      if (athletesRes.data) {
+        // Filter out admin/coach accounts that have athlete records
+        const athleteProfileIds = new Set(
+          (profilesRes.data || []).filter((p: any) => p.role === 'athlete').map((p: any) => p.id)
+        )
+        const realAthletes = athletesRes.data.filter((a: any) => athleteProfileIds.has(a.profile_id))
+        setAthletes(realAthletes)
+      }
       if (recsRes.data) setNutritionRecs(recsRes.data)
       if (mealsRes.data) setMealLogs(mealsRes.data)
       if (checkinsRes.data) setCheckins(checkinsRes.data)
