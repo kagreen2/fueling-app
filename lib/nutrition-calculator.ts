@@ -1,6 +1,9 @@
 /**
  * Evidence-Based Nutrition Calculator
  * Based on ISSN Position Stands, IOC Consensus, and NCAA Guidelines
+ * 
+ * KEY PRINCIPLE: Protein is calculated per POUND of body weight (1.0-1.4 g/lb)
+ * Macros are distributed as: Protein ~30-35%, Carbs ~40-45%, Fat ~20-25%
  */
 
 interface AthleteProfile {
@@ -27,7 +30,6 @@ interface NutritionRecommendation {
 
 /**
  * Calculate Resting Metabolic Rate using Mifflin-St Jeor equation
- * This is the most accurate formula for athletes
  */
 function calculateRMR(
   weight_lbs: number,
@@ -47,99 +49,68 @@ function calculateRMR(
 
 /**
  * Get activity multiplier based on training frequency and intensity
- * ISSN guidelines for athletes
  */
 function getActivityMultiplier(
   training_days_per_week: number,
   sport: string,
   season_phase: string
 ): number {
-  // Base multipliers for different training frequencies
-  let baseMultiplier = 1.375 // Sedentary baseline
+  let baseMultiplier = 1.375
 
-  if (training_days_per_week >= 5) {
-    baseMultiplier = 1.725 // Very active (5-6 days/week)
+  if (training_days_per_week >= 6) {
+    baseMultiplier = 1.725
+  } else if (training_days_per_week >= 5) {
+    baseMultiplier = 1.65
   } else if (training_days_per_week >= 3) {
-    baseMultiplier = 1.55 // Moderately active (3-4 days/week)
+    baseMultiplier = 1.55
   } else if (training_days_per_week >= 1) {
-    baseMultiplier = 1.375 // Lightly active (1-2 days/week)
+    baseMultiplier = 1.375
   }
 
-  // Sport-specific adjustments
-  const highIntensitySports = ['football', 'rugby', 'hockey', 'basketball', 'soccer', 'lacrosse']
-  const enduranceSports = ['cross country', 'track', 'swimming', 'rowing', 'cycling']
+  // Sport-specific adjustments (modest)
+  const highIntensitySports = ['football', 'rugby', 'hockey', 'basketball', 'soccer', 'lacrosse', 'wrestling']
+  const enduranceSports = ['cross_country', 'track', 'swimming', 'rowing', 'cycling']
 
-  if (highIntensitySports.includes(sport.toLowerCase())) {
-    baseMultiplier *= 1.1 // 10% increase for high intensity
-  } else if (enduranceSports.includes(sport.toLowerCase())) {
-    baseMultiplier *= 1.15 // 15% increase for endurance
+  const sportLower = sport.toLowerCase().replace(/\s+/g, '_')
+
+  if (highIntensitySports.some(s => sportLower.includes(s))) {
+    baseMultiplier *= 1.05
+  } else if (enduranceSports.some(s => sportLower.includes(s))) {
+    baseMultiplier *= 1.1
   }
 
   // Season phase adjustments
   if (season_phase === 'offseason') {
-    baseMultiplier *= 0.95 // Slightly lower in offseason
+    baseMultiplier *= 0.95
   } else if (season_phase === 'preseason') {
-    baseMultiplier *= 1.05 // Slightly higher in preseason
+    baseMultiplier *= 1.03
   } else if (season_phase === 'in_season') {
-    baseMultiplier *= 1.1 // Higher during competition
+    baseMultiplier *= 1.05
   }
 
   return baseMultiplier
 }
 
 /**
- * Get protein recommendation based on goal and ISSN guidelines
- * Returns grams per kg body weight
+ * Get protein recommendation in grams per POUND of body weight
+ * Target range: 1.0-1.4 g/lb depending on goal
  */
-function getProteinMultiplier(goal_phase: string): number {
-  switch (goal_phase.toLowerCase()) {
-    case 'gain_muscle':
-    case 'muscle_gain':
-      return 1.6 // 1.6-2.0 g/kg for muscle gain (ISSN)
-    case 'lose_fat':
-    case 'fat_loss':
-      return 1.6 // 1.6-2.2 g/kg for fat loss to preserve muscle (ISSN)
-    case 'maintain_performance':
-    case 'maintain':
-    default:
-      return 1.2 // 1.2-1.4 g/kg for maintenance (ISSN)
-  }
-}
-
-/**
- * Get carbohydrate recommendation based on training intensity and volume
- * IOC Consensus guidelines
- */
-function getCarbohydrateMultiplier(
-  training_days_per_week: number,
-  sport: string
-): number {
-  const enduranceSports = ['cross country', 'track', 'swimming', 'rowing', 'cycling', 'soccer']
-  const isEndurance = enduranceSports.some(s => sport.toLowerCase().includes(s))
-
-  if (training_days_per_week >= 5) {
-    // High training volume
-    if (isEndurance) {
-      return 8 // 8-10 g/kg for high-volume endurance (IOC)
-    } else {
-      return 6 // 6-7 g/kg for high-volume strength/power
-    }
-  } else if (training_days_per_week >= 3) {
-    // Moderate training volume
-    if (isEndurance) {
-      return 6 // 6-7 g/kg for moderate endurance
-    } else {
-      return 5 // 5-6 g/kg for moderate strength/power
-    }
+function getProteinPerLb(goal_phase: string): number {
+  const goal = goal_phase.toLowerCase()
+  if (goal.includes('gain') || goal.includes('muscle') || goal.includes('lean_mass')) {
+    return 1.3 // Higher end for muscle gain
+  } else if (goal.includes('lose') || goal.includes('fat') || goal.includes('cut')) {
+    return 1.4 // Highest for fat loss to preserve muscle
+  } else if (goal.includes('recover') || goal.includes('rebuild')) {
+    return 1.2 // Recovery phase
   } else {
-    // Low training volume
-    return 3 // 3-5 g/kg for light training
+    // maintain, in_season_maintenance, default
+    return 1.1
   }
 }
 
 /**
  * Get position-specific caloric adjustment
- * Some positions require more energy due to body size and demands
  */
 function getPositionAdjustment(sport: string, position?: string): number {
   if (!position) return 1.0
@@ -147,7 +118,6 @@ function getPositionAdjustment(sport: string, position?: string): number {
   const sport_lower = sport.toLowerCase()
   const position_lower = position.toLowerCase()
 
-  // Football position adjustments
   if (sport_lower.includes('football')) {
     if (
       position_lower.includes('lineman') ||
@@ -155,20 +125,19 @@ function getPositionAdjustment(sport: string, position?: string): number {
       position_lower.includes('guard') ||
       position_lower.includes('center')
     ) {
-      return 1.1 // +10% for linemen (larger body mass)
+      return 1.1
     }
     if (
       position_lower.includes('linebacker') ||
       position_lower.includes('defensive end')
     ) {
-      return 1.05 // +5% for defensive positions
+      return 1.05
     }
   }
 
-  // Rugby position adjustments
   if (sport_lower.includes('rugby')) {
     if (position_lower.includes('prop') || position_lower.includes('hooker')) {
-      return 1.1 // +10% for front row
+      return 1.1
     }
   }
 
@@ -177,11 +146,15 @@ function getPositionAdjustment(sport: string, position?: string): number {
 
 /**
  * Main recommendation function
+ * 
+ * Macro distribution strategy:
+ * 1. Protein: 1.0-1.4 g per lb of body weight (set first, non-negotiable)
+ * 2. Fat: 25% of total calories (floor of 0.35 g/lb for hormonal health)
+ * 3. Carbs: remaining calories after protein and fat
  */
 export function calculateNutritionRecommendation(
   athlete: AthleteProfile
 ): NutritionRecommendation {
-  // Convert units
   const weight_kg = athlete.weight_lbs * 0.453592
 
   // Step 1: Calculate RMR
@@ -204,36 +177,33 @@ export function calculateNutritionRecommendation(
 
   // Step 4: Adjust for goal
   const goalPhase = athlete.goal_phase.toLowerCase()
-  if (goalPhase.includes('gain') || goalPhase.includes('muscle')) {
-    tdee += 300 // +300 cal surplus for muscle gain
-  } else if (goalPhase.includes('lose') || goalPhase.includes('fat')) {
-    tdee -= 300 // -300 cal deficit for fat loss
+  if (goalPhase.includes('gain') || goalPhase.includes('muscle') || goalPhase.includes('lean_mass')) {
+    tdee += 300 // Modest surplus for lean gains
+  } else if (goalPhase.includes('lose') || goalPhase.includes('fat') || goalPhase.includes('cut')) {
+    tdee -= 300 // Modest deficit for fat loss
   }
-  // else: maintain (no adjustment)
 
   // Step 5: Apply position adjustment
   const positionAdjustment = getPositionAdjustment(athlete.sport, athlete.position)
   tdee *= positionAdjustment
 
-  // Step 6: Calculate macros
-  const proteinMultiplier = getProteinMultiplier(athlete.goal_phase)
-  const carbMultiplier = getCarbohydrateMultiplier(
-    athlete.training_days_per_week,
-    athlete.sport
-  )
-
-  const protein_g = Math.round(weight_kg * proteinMultiplier)
-  const carbs_g = Math.round(weight_kg * carbMultiplier)
-
-  // Fat: remaining calories (aim for 20-30% of total)
+  // Step 6: Calculate macros — PROTEIN FIRST approach
+  const proteinPerLb = getProteinPerLb(athlete.goal_phase)
+  const protein_g = Math.round(athlete.weight_lbs * proteinPerLb)
   const protein_cals = protein_g * 4
-  const carbs_cals = carbs_g * 4
-  const remaining_cals = tdee - protein_cals - carbs_cals
-  const fat_g = Math.round(remaining_cals / 9)
 
-  // Validate and adjust if needed
-  const totalCals = protein_g * 4 + carbs_g * 4 + fat_g * 9
-  const adjustedTdee = Math.round(totalCals)
+  // Fat: 25% of TDEE, with a minimum of 0.35g/lb for hormonal health
+  const fat_from_pct = Math.round((tdee * 0.25) / 9)
+  const fat_min = Math.round(athlete.weight_lbs * 0.35)
+  const fat_g = Math.max(fat_from_pct, fat_min)
+  const fat_cals = fat_g * 9
+
+  // Carbs: remaining calories
+  const remaining_cals = tdee - protein_cals - fat_cals
+  const carbs_g = Math.max(Math.round(remaining_cals / 4), 100) // Floor of 100g carbs
+
+  // Recalculate actual total calories from macros
+  const totalCals = Math.round(protein_g * 4 + carbs_g * 4 + fat_g * 9)
 
   // Build methodology string
   const methodology = `
@@ -241,20 +211,22 @@ ISSN/IOC Evidence-Based Calculation:
 - RMR (Mifflin-St Jeor): ${Math.round(rmr)} cal
 - Activity Factor: ${activityMultiplier.toFixed(2)}x (${athlete.training_days_per_week} days/week)
 - TDEE: ${Math.round(tdee)} cal
-- Goal Adjustment: ${goalPhase.includes('gain') ? '+300' : goalPhase.includes('lose') ? '-300' : '0'} cal
+- Goal Adjustment: ${goalPhase.includes('gain') || goalPhase.includes('muscle') ? '+300' : goalPhase.includes('lose') || goalPhase.includes('fat') ? '-300' : '0'} cal
 - Position Adjustment: ${(positionAdjustment * 100 - 100).toFixed(0)}%
-- Protein: ${proteinMultiplier.toFixed(1)}g/kg (${athlete.goal_phase})
-- Carbs: ${carbMultiplier.toFixed(1)}g/kg (${athlete.sport})
+- Protein: ${proteinPerLb.toFixed(1)}g/lb body weight (${athlete.goal_phase})
+- Fat: 25% of TDEE (min 0.35g/lb)
+- Carbs: Remaining calories
   `.trim()
 
   const notes = `
 Based on ISSN Position Stands and IOC Consensus guidelines.
+Protein target: ${proteinPerLb.toFixed(1)}g per pound of body weight.
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy'}
 ${athlete.season_phase === 'in_season' ? 'In-season: Higher energy demands' : ''}
   `.trim()
 
   return {
-    daily_calories: adjustedTdee,
+    daily_calories: totalCals,
     daily_protein_g: protein_g,
     daily_carbs_g: carbs_g,
     daily_fat_g: fat_g,
