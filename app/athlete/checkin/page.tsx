@@ -67,7 +67,7 @@ export default function CheckInPage() {
     hunger: 5,
     stress: 5,
     hydration: 5,
-    trainingType: '',
+    trainingTypes: [] as string[],
     notes: '',
   })
 
@@ -106,7 +106,7 @@ export default function CheckInPage() {
       hunger: form.hunger,
       stress: form.stress,
       hydration_status: form.hydration,
-      training_type: form.trainingType || null,
+      training_type: form.trainingTypes.length > 0 ? form.trainingTypes.join(', ') : null,
       notes: form.notes || null,
     }, { onConflict: 'athlete_id,date' })
 
@@ -222,20 +222,31 @@ export default function CheckInPage() {
         <Card className="mb-6">
           <CardHeader title="Training Today" />
           <CardContent>
+            <p className="text-slate-400 text-xs mb-3">Select all that apply</p>
             <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
-              {['practice', 'game', 'lift', 'conditioning', 'recovery', 'rest'].map(type => (
-                <button
-                  key={type}
-                  onClick={() => update('trainingType', form.trainingType === type ? '' : type)}
-                  className={`py-3 px-2 rounded-lg text-xs font-semibold capitalize transition-all active:scale-95 ${
-                    form.trainingType === type
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
+              {['practice', 'game', 'lift', 'conditioning', 'recovery', 'rest'].map(type => {
+                const isSelected = form.trainingTypes.includes(type)
+                return (
+                  <button
+                    key={type}
+                    onClick={() => {
+                      setForm(prev => ({
+                        ...prev,
+                        trainingTypes: isSelected
+                          ? prev.trainingTypes.filter(t => t !== type)
+                          : [...prev.trainingTypes, type],
+                      }))
+                    }}
+                    className={`py-3 px-2 rounded-lg text-xs font-semibold capitalize transition-all active:scale-95 ${
+                      isSelected
+                        ? 'bg-purple-600 text-white ring-2 ring-purple-400/50'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                )
+              })}
             </div>
           </CardContent>
         </Card>
