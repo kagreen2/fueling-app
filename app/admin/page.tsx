@@ -106,6 +106,9 @@ export default function AdminDashboard() {
   const [checkins, setCheckins] = useState<Checkin[]>([])
   const [coachAssignments, setCoachAssignments] = useState<CoachAssignment[]>([])
   const [assigningAthleteId, setAssigningAthleteId] = useState<string | null>(null)
+  const [pendingSupplements, setPendingSupplements] = useState<any[]>([])
+  const [pastDueSubscriptions, setPastDueSubscriptions] = useState<any[]>([])
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set())
 
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState<string>('all')
@@ -174,6 +177,7 @@ export default function AdminDashboard() {
       const [
         profilesRes, teamsRes, teamMembersRes, athletesRes,
         recsRes, mealsRes, checkinsRes, settingsRes, assignmentsRes,
+        supplementsRes, subscriptionsRes,
       ] = await Promise.all([
         supabase.from('profiles').select('*').order('created_at', { ascending: false }),
         supabase.from('teams').select('*').order('name'),
@@ -184,6 +188,8 @@ export default function AdminDashboard() {
         supabase.from('daily_checkins').select('athlete_id, date, energy, stress, soreness, sleep_hours, hydration_status').order('date', { ascending: false }).limit(200),
         supabase.from('admin_settings').select('*'),
         supabase.from('athlete_coach_assignments').select('*'),
+        supabase.from('supplements').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('subscriptions').select('*').eq('status', 'past_due'),
       ])
 
       if (profilesRes.data) setProfiles(profilesRes.data)
@@ -194,6 +200,8 @@ export default function AdminDashboard() {
       if (mealsRes.data) setMealLogs(mealsRes.data)
       if (checkinsRes.data) setCheckins(checkinsRes.data)
       if (assignmentsRes.data) setCoachAssignments(assignmentsRes.data)
+      if (supplementsRes.data) setPendingSupplements(supplementsRes.data)
+      if (subscriptionsRes.data) setPastDueSubscriptions(subscriptionsRes.data)
 
       if (settingsRes.data) {
         const coachAdj = settingsRes.data.find((s: any) => s.setting_key === 'allow_coach_recommendation_adjustments')
@@ -257,6 +265,98 @@ export default function AdminDashboard() {
     })
     return map
   }, [checkins])
+
+  // Compute alerts
+  const alerts = useMemo(() => {
+    const items: Array<{ id: string; type: 'danger' | 'warning' | 'info'; icon: string; message: string; action?: string; tab?: string }> = []
+
+    // Payment declines
+    pastDueSubscriptions.forEach(sub => {
+      const athleteProfile = profileByAthleteId[sub.athlete_id]
+      items.push({
+        id: `payment_${sub.id}`,
+        type: 'danger',
+        icon: '💳',
+        message: `Payment declined for ${athleteProfile?.full_name || 'Unknown athlete'} — subscription is past due`,
+        tab: 'billing',
+      })
+    })
+
+    // Pending supplements
+    if (pendingSupplements.length > 0) {
+      const athleteNames = [...new Set(pendingSupplements.map(s => profileByAthleteId[s.athlete_id]?.full_name || 'Unknown'))]
+      items.push({
+        id: 'pending_supplements',
+        type: 'warning',
+        icon: '💊',
+        message: `${pendingSupplements.length} supplement${pendingSupplements.length > 1 ? 's' : ''} pending review from ${athleteNames.slice(0, 3).join(', ')}${athleteNames.length > 3 ? ` +${athleteNames.length - 3} more` : ''}`,
+      })
+    }
+
+    // Unassigned athletes (no coach)
+    const uncoached = athletes.filter(a => !coachAssignments.find(ca => ca.athlete_id === a.id))
+    if (uncoached.length > 0) {
+      items.push({
+        id: 'uncoached_athletes',
+        type: 'info',
+        icon: '👤',
+        message: `${uncoached.length} athlete${uncoached.length > 1 ? 's' : ''} without a coach assigned`,
+        tab: 'teams',
+      })
+    }
+
+    // New athletes (joined in last 7 days)
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const newAthletes = profiles.filter(p => p.role === 'athlete' && new Date(p.created_at) > sevenDaysAgo)
+    if (newAthletes.length > 0) {
+      items.push({
+        id: 'new_athletes',
+        type: 'info',
+        icon: '✨',
+        message: `${newAthletes.length} new athlete${newAthletes.length > 1 ? 's' : ''} joined this week: ${newAthletes.slice(0, 3).map(a => a.full_name).join(', ')}${newAthletes.length > 3 ? ` +${newAthletes.length - 3} more` : ''}`,
+        tab: 'users',
+      })
+    }
+
+    // High stress/soreness alerts (latest check-in with 8+ stress or soreness)
+    const highStressAthletes = Object.entries(latestCheckinByAthlete).filter(([_, c]) => c.date === today && (c.stress >= 8 || c.soreness >= 8))
+    if (highStressAthletes.length > 0) {
+      const names = highStressAthletes.map(([aid]) => profileByAthleteId[aid]?.full_name || 'Unknown').filter(Boolean)
+      items.push({
+        id: 'high_stress',
+        type: 'warning',
+        icon: '⚠️',
+        message: `${highStressAthletes.length} athlete${highStressAthletes.length > 1 ? 's' : ''} reporting high stress/soreness today: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3} more` : ''}`,
+      })
+    }
+
+    // Missed check-ins (athletes who haven't checked in for 2+ days)
+    const twoDaysAgo = new Date()
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+    const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0]
+    const missedCheckinAthletes = athletes.filter(a => {
+      const latest = latestCheckinByAthlete[a.id]
+      return !latest || latest.date < twoDaysAgoStr
+    })
+    if (missedCheckinAthletes.length > 0) {
+      const names = missedCheckinAthletes.map(a => profileByAthleteId[a.id]?.full_name || 'Unknown').filter(n => n !== 'Unknown')
+      if (names.length > 0) {
+        items.push({
+          id: 'missed_checkins',
+          type: 'warning',
+          icon: '📋',
+          message: `${names.length} athlete${names.length > 1 ? 's' : ''} missed check-in (2+ days): ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3} more` : ''}`,
+        })
+      }
+    }
+
+    return items.filter(a => !dismissedAlerts.has(a.id))
+  }, [pastDueSubscriptions, pendingSupplements, athletes, coachAssignments, profiles, latestCheckinByAthlete, profileByAthleteId, today, dismissedAlerts])
+
+  function dismissAlert(id: string) {
+    setDismissedAlerts(prev => new Set([...prev, id]))
+  }
 
   const stats = useMemo(() => ({
     totalUsers: profiles.length,
@@ -578,6 +678,41 @@ export default function AdminDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
+
+        {/* Alert Banner */}
+        {alerts.length > 0 && (
+          <div className="mb-6 space-y-2">
+            {alerts.map(alert => {
+              const bgColor = alert.type === 'danger' ? 'bg-red-500/10 border-red-500/30' : alert.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-blue-500/10 border-blue-500/30'
+              const textColor = alert.type === 'danger' ? 'text-red-300' : alert.type === 'warning' ? 'text-yellow-300' : 'text-blue-300'
+              return (
+                <div key={alert.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${bgColor}`}>
+                  <span className="text-lg flex-shrink-0">{alert.icon}</span>
+                  <p className={`text-sm flex-1 ${textColor}`}>{alert.message}</p>
+                  {alert.tab && (
+                    <button
+                      onClick={() => setActiveTab(alert.tab as any)}
+                      className={`text-xs font-medium px-3 py-1 rounded-lg transition-colors flex-shrink-0 ${
+                        alert.type === 'danger' ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' :
+                        alert.type === 'warning' ? 'bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30' :
+                        'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                      }`}
+                    >
+                      View
+                    </button>
+                  )}
+                  <button
+                    onClick={() => dismissAlert(alert.id)}
+                    className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
+                    title="Dismiss"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* ═══ OVERVIEW TAB ═══ */}
         {activeTab === 'overview' && (
@@ -1247,6 +1382,38 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
+
+            {/* Past Due Subscriptions */}
+            {pastDueSubscriptions.length > 0 && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl overflow-hidden mb-6">
+                <div className="px-5 py-4 border-b border-red-500/20">
+                  <h4 className="text-red-300 font-semibold flex items-center gap-2">
+                    <span>🚨</span> Payment Declines ({pastDueSubscriptions.length})
+                  </h4>
+                </div>
+                <div className="divide-y divide-red-500/10">
+                  {pastDueSubscriptions.map(sub => {
+                    const athleteProfile = profileByAthleteId[sub.athlete_id]
+                    return (
+                      <div key={sub.id} className="px-5 py-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-white font-medium">{athleteProfile?.full_name || 'Unknown athlete'}</p>
+                          <p className="text-red-400/70 text-xs">Status: past_due since {new Date(sub.updated_at || sub.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <a
+                          href="https://dashboard.stripe.com/payments?status=failed"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs px-3 py-1.5 bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded-lg transition-colors"
+                        >
+                          View in Stripe
+                        </a>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Stripe Dashboard Link */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">

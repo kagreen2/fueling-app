@@ -150,6 +150,8 @@ export default function CoachDashboardPage() {
   const [view, setView] = useState<'overview' | 'leaderboard' | 'alerts'>('overview')
   const [coachName, setCoachName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [pendingSupplements, setPendingSupplements] = useState<any[]>([])
+  const [dismissedCoachAlerts, setDismissedCoachAlerts] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     loadData()
@@ -400,6 +402,18 @@ export default function CoachDashboardPage() {
     })
 
     setAthletes(athleteDataList)
+
+    // Load pending supplements for this coach's athletes
+    if (athleteIds.length > 0) {
+      const { data: pendingSupps } = await supabase
+        .from('supplements')
+        .select('*')
+        .in('athlete_id', athleteIds)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+      setPendingSupplements(pendingSupps || [])
+    }
+
     setLoading(false)
   }
 
@@ -538,6 +552,68 @@ export default function CoachDashboardPage() {
     return alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
   }, [filteredAthletes])
 
+  // Top-level coach notification alerts
+  const coachNotifications = useMemo(() => {
+    const items: Array<{ id: string; type: 'danger' | 'warning' | 'info'; icon: string; message: string; action?: () => void }> = []
+
+    // Pending supplement requests
+    if (pendingSupplements.length > 0) {
+      const names = [...new Set(pendingSupplements.map(s => {
+        const a = athletes.find(at => at.id === s.athlete_id)
+        return a?.name || 'Unknown'
+      }))]
+      items.push({
+        id: 'pending_supplements',
+        type: 'warning',
+        icon: '💊',
+        message: `${pendingSupplements.length} supplement${pendingSupplements.length > 1 ? 's' : ''} pending your review from ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3} more` : ''}`,
+      })
+    }
+
+    // Athletes with missed check-ins (2+ days)
+    const missedCheckin = athletes.filter(a => {
+      const checkins = a.recentCheckins
+      if (checkins.length === 0) return true // never checked in
+      const latest = checkins[0]
+      const twoDaysAgo = new Date()
+      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
+      const twoDaysAgoStr = getLocalDateString(twoDaysAgo)
+      return latest.date < twoDaysAgoStr
+    })
+    if (missedCheckin.length > 0) {
+      items.push({
+        id: 'missed_checkins',
+        type: 'warning',
+        icon: '📋',
+        message: `${missedCheckin.length} athlete${missedCheckin.length > 1 ? 's' : ''} missed check-in (2+ days): ${missedCheckin.slice(0, 3).map(a => a.name).join(', ')}${missedCheckin.length > 3 ? ` +${missedCheckin.length - 3} more` : ''}`,
+        action: () => setView('alerts'),
+      })
+    }
+
+    // High stress/soreness today (7+ on scale)
+    const highStress = athletes.filter(a => {
+      if (a.recentCheckins.length === 0) return false
+      const latest = a.recentCheckins[0]
+      const today = getLocalDateString()
+      return latest.date === today && (latest.stress >= 7 || latest.soreness >= 7)
+    })
+    if (highStress.length > 0) {
+      items.push({
+        id: 'high_stress',
+        type: 'danger',
+        icon: '⚠️',
+        message: `${highStress.length} athlete${highStress.length > 1 ? 's' : ''} reporting high stress/soreness (7+) today: ${highStress.slice(0, 3).map(a => a.name).join(', ')}${highStress.length > 3 ? ` +${highStress.length - 3} more` : ''}`,
+        action: () => setView('alerts'),
+      })
+    }
+
+    return items.filter(a => !dismissedCoachAlerts.has(a.id))
+  }, [pendingSupplements, athletes, dismissedCoachAlerts])
+
+  function dismissCoachAlert(id: string) {
+    setDismissedCoachAlerts(prev => new Set([...prev, id]))
+  }
+
   // Summary stats
   const stats = useMemo(() => {
     const total = filteredAthletes.length
@@ -640,6 +716,41 @@ export default function CoachDashboardPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {/* Coach Notification Banner */}
+        {coachNotifications.length > 0 && (
+          <div className="mb-6 space-y-2">
+            {coachNotifications.map(alert => {
+              const bgColor = alert.type === 'danger' ? 'bg-red-500/10 border-red-500/30' : alert.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-blue-500/10 border-blue-500/30'
+              const textColor = alert.type === 'danger' ? 'text-red-300' : alert.type === 'warning' ? 'text-yellow-300' : 'text-blue-300'
+              return (
+                <div key={alert.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${bgColor}`}>
+                  <span className="text-lg flex-shrink-0">{alert.icon}</span>
+                  <p className={`text-sm flex-1 ${textColor}`}>{alert.message}</p>
+                  {alert.action && (
+                    <button
+                      onClick={alert.action}
+                      className={`text-xs font-medium px-3 py-1 rounded-lg transition-colors flex-shrink-0 ${
+                        alert.type === 'danger' ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' :
+                        alert.type === 'warning' ? 'bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30' :
+                        'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                      }`}
+                    >
+                      View
+                    </button>
+                  )}
+                  <button
+                    onClick={() => dismissCoachAlert(alert.id)}
+                    className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
+                    title="Dismiss"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
         {/* Team Filter + View Tabs */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
