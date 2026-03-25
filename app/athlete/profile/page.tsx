@@ -13,6 +13,7 @@ interface ProfileData {
   phone: string | null
   avatar_url: string | null
   role: string
+  subscription_status: string | null
   created_at: string
 }
 
@@ -69,7 +70,7 @@ const SPORT_LABELS: Record<string, string> = {
   softball: 'Softball',
 }
 
-function formatHeight(inches: number | null): string {
+function formatHeight(inches: number | null ): string {
   if (!inches) return '—'
   const ft = Math.floor(inches / 12)
   const remaining = Math.round(inches % 12)
@@ -112,6 +113,7 @@ export default function ProfilePage() {
   const [recs, setRecs] = useState<NutritionRecs | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [portalLoading, setPortalLoading] = useState(false)
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -257,6 +259,32 @@ export default function ProfilePage() {
     setTimeout(() => setSuccess(''), 4000)
   }
 
+  async function handleManageSubscription() {
+    if (!profile) return
+    setPortalLoading(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/billing/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: profile.id }),
+      })
+
+      const data = await res.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setError(data.error || 'Unable to open billing portal. Please try again.')
+        setPortalLoading(false)
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
+      setPortalLoading(false)
+    }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut()
     router.push('/login')
@@ -330,27 +358,67 @@ export default function ProfilePage() {
                     className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-lg font-bold focus:outline-none focus:border-purple-600 transition-colors"
                   />
                 ) : (
-                  <h2 className="text-xl font-bold text-white truncate">{profile?.full_name}</h2>
+                  <h2 className="text-xl font-bold truncate">{profile?.full_name}</h2>
                 )}
                 <p className="text-sm text-slate-400 truncate">{profile?.email}</p>
-                <p className="text-xs text-purple-400 mt-1 capitalize">{profile?.role?.replace('_', ' ')}</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—'}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Contact Info */}
-        <Card className="mb-6">
-          <CardHeader title="Contact Info" />
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-slate-400 font-medium mb-1">Email</p>
-                <p className="text-sm text-white">{profile?.email}</p>
+        {/* Subscription Management Card */}
+        {!editing && (
+          <Card className="mb-6 border-slate-700/50">
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Subscription</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {profile?.subscription_status === 'active'
+                      ? 'Active — $20/month'
+                      : profile?.subscription_status === 'past_due'
+                      ? 'Past due — please update payment'
+                      : 'Inactive'}
+                  </p>
+                </div>
+                <button
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="text-xs px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-700/50 text-slate-300 rounded-lg transition-colors font-medium"
+                >
+                  {portalLoading ? 'Opening...' : 'Manage Billing'}
+                </button>
               </div>
-              <div>
-                <p className="text-xs text-slate-400 font-medium mb-1">Phone</p>
-                {editing ? (
+              <p className="text-xs text-slate-500 mt-2">
+                Update payment method, view invoices, or cancel subscription
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Contact Info */}
+        {!editing && (
+          <Card className="mb-6 border-slate-700/50">
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-slate-400 font-medium mb-1">Phone</p>
+                  <p className="text-sm text-white">{profile?.phone || '—'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {editing && (
+          <Card className="mb-6 border-slate-700/50">
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-slate-400 font-medium mb-1">Phone</p>
                   <input
                     type="tel"
                     value={editForm.phone}
@@ -358,75 +426,59 @@ export default function ProfilePage() {
                     placeholder="(555) 123-4567"
                     className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500"
                   />
-                ) : (
-                  <p className="text-sm text-white">{profile?.phone || '—'}</p>
-                )}
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 font-medium mb-1">Member Since</p>
-                <p className="text-sm text-white">
-                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '—'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Athlete Info */}
-        {athlete && (
-          <Card className="mb-6">
-            <CardHeader title="Athlete Info" />
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-slate-400 font-medium mb-1">Date of Birth</p>
-                  <p className="text-sm text-white">{formatDate(athlete.dob)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium mb-1">Age</p>
-                  <p className="text-sm text-white">{calculateAge(athlete.dob)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium mb-1">Sex</p>
-                  <p className="text-sm text-white capitalize">{athlete.sex || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium mb-1">Grade</p>
-                  <p className="text-sm text-white">{athlete.grade || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium mb-1">Height</p>
-                  <p className="text-sm text-white">{formatHeight(athlete.height_inches)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 font-medium mb-1">Weight</p>
-                  {editing ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        min="1"
-                        max="999"
-                        value={editForm.weight_lbs}
-                        onChange={e => setEditForm(prev => ({ ...prev, weight_lbs: e.target.value }))}
-                        className="w-20 bg-slate-700 border border-slate-600 text-white rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-purple-600 transition-colors"
-                      />
-                      <span className="text-xs text-slate-400">lbs</span>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-white">{athlete.weight_lbs ? `${athlete.weight_lbs} lbs` : '—'}</p>
-                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Sport & Training */}
+        {/* Athlete Details */}
         {athlete && (
-          <Card className="mb-6">
-            <CardHeader title="Sport & Training" />
+          <Card className="mb-6 border-slate-700/50">
             <CardContent>
               <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium mb-1">Date of Birth</p>
+                    <p className="text-sm text-white">{formatDate(athlete.dob)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium mb-1">Age</p>
+                    <p className="text-sm text-white">{calculateAge(athlete.dob)}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium mb-1">Sex</p>
+                    <p className="text-sm text-white capitalize">{athlete.sex || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium mb-1">Grade</p>
+                    <p className="text-sm text-white">{athlete.grade || '—'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium mb-1">Height</p>
+                    <p className="text-sm text-white">{formatHeight(athlete.height_inches)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium mb-1">Weight</p>
+                    {editing ? (
+                      <input
+                        type="number"
+                        value={editForm.weight_lbs}
+                        onChange={e => setEditForm(prev => ({ ...prev, weight_lbs: e.target.value }))}
+                        className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors"
+                      />
+                    ) : (
+                      <p className="text-sm text-white">{athlete.weight_lbs ? `${athlete.weight_lbs} lbs` : '—'}</p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-slate-400 font-medium mb-1">Sport</p>
@@ -434,29 +486,36 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 font-medium mb-1">Position</p>
-                    <p className="text-sm text-white">{athlete.position || '—'}</p>
+                    <p className="text-sm text-white capitalize">{athlete.position || '—'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium mb-1">School</p>
+                    <p className="text-sm text-white">{athlete.school || '—'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 font-medium mb-1">Team Level</p>
-                    <p className="text-sm text-white capitalize">{athlete.team_level?.replace('_', ' ') || '—'}</p>
+                    <p className="text-sm text-white capitalize">{athlete.team_level || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-400 font-medium mb-1">Season Phase</p>
-                    {editing ? (
-                      <select
-                        value={editForm.season_phase}
-                        onChange={e => setEditForm(prev => ({ ...prev, season_phase: e.target.value }))}
-                        className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-purple-600 transition-colors appearance-none"
-                      >
-                        <option value="offseason">Offseason</option>
-                        <option value="preseason">Preseason</option>
-                        <option value="in_season">In-Season</option>
-                        <option value="postseason">Postseason</option>
-                      </select>
-                    ) : (
-                      <p className="text-sm text-white">{SEASON_LABELS[athlete.season_phase || ''] || athlete.season_phase || '—'}</p>
-                    )}
-                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-slate-400 font-medium mb-1">Season Phase</p>
+                  {editing ? (
+                    <select
+                      value={editForm.season_phase}
+                      onChange={e => setEditForm(prev => ({ ...prev, season_phase: e.target.value }))}
+                      className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors"
+                    >
+                      {Object.entries(SEASON_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-white">{SEASON_LABELS[athlete.season_phase || ''] || athlete.season_phase || '—'}</p>
+                  )}
                 </div>
 
                 <div>
@@ -466,37 +525,25 @@ export default function ProfilePage() {
                       type="text"
                       value={editForm.training_schedule}
                       onChange={e => setEditForm(prev => ({ ...prev, training_schedule: e.target.value }))}
-                      placeholder="e.g., Weight training 4x/week, practice 5x/week"
+                      placeholder="e.g., 5 days/week"
                       className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500"
                     />
                   ) : (
                     <p className="text-sm text-white">{athlete.training_schedule || '—'}</p>
                   )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Goals & Nutrition */}
-        {athlete && (
-          <Card className="mb-6">
-            <CardHeader title="Goals & Nutrition" />
-            <CardContent>
-              <div className="space-y-4">
                 <div>
-                  <p className="text-xs text-slate-400 font-medium mb-1">Current Goal</p>
+                  <p className="text-xs text-slate-400 font-medium mb-1">Goal</p>
                   {editing ? (
                     <select
                       value={editForm.goal_phase}
                       onChange={e => setEditForm(prev => ({ ...prev, goal_phase: e.target.value }))}
-                      className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors appearance-none"
+                      className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors"
                     >
-                      <option value="maintain_performance">Maintain Performance</option>
-                      <option value="build_muscle">Build Muscle</option>
-                      <option value="lose_body_fat">Lose Body Fat</option>
-                      <option value="recover_rebuild">Recover & Rebuild</option>
-                      <option value="increase_energy">Increase Energy</option>
+                      {Object.entries(GOAL_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
                     </select>
                   ) : (
                     <p className="text-sm text-white">{GOAL_LABELS[athlete.goal_phase || ''] || athlete.goal_phase || '—'}</p>
