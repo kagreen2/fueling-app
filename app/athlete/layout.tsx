@@ -59,7 +59,21 @@ export default function AthleteLayout({
         .eq('id', userId)
         .single()
 
-      if (!profile || profile.role !== 'athlete') {
+      if (!profile) {
+        router.push('/login')
+        return
+      }
+
+      // Redirect non-athletes to their proper dashboards
+      if (profile.role === 'admin' || profile.role === 'super_admin') {
+        router.push('/admin/dashboard')
+        return
+      }
+      if (profile.role === 'coach') {
+        router.push('/coach/dashboard')
+        return
+      }
+      if (profile.role !== 'athlete') {
         router.push('/login')
         return
       }
