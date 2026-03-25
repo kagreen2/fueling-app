@@ -291,15 +291,20 @@ export default function OnboardingPage() {
                 <label className="text-slate-300 text-sm font-medium mb-2 block">Sport</label>
                 <select value={form.sport} onChange={e => update('sport', e.target.value)} className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors appearance-none">
                   <option value="">Select sport...</option>
-                  <option value="football">Football</option>
-                  <option value="boys_lacrosse">Boys Lacrosse</option>
-                  <option value="girls_lacrosse">Girls Lacrosse</option>
-                  <option value="boys_soccer">Boys Soccer</option>
-                  <option value="girls_soccer">Girls Soccer</option>
-                  <option value="boys_basketball">Boys Basketball</option>
-                  <option value="girls_basketball">Girls Basketball</option>
                   <option value="baseball">Baseball</option>
+                  <option value="basketball">Basketball</option>
+                  <option value="cheerleading_dance">Cheerleading / Dance</option>
+                  <option value="cross_country">Cross Country</option>
+                  <option value="football">Football</option>
+                  <option value="hockey">Hockey</option>
+                  <option value="lacrosse">Lacrosse</option>
+                  <option value="soccer">Soccer</option>
                   <option value="softball">Softball</option>
+                  <option value="swimming">Swimming</option>
+                  <option value="tennis">Tennis</option>
+                  <option value="track_and_field">Track & Field</option>
+                  <option value="volleyball">Volleyball</option>
+                  <option value="wrestling">Wrestling</option>
                 </select>
               </div>
 

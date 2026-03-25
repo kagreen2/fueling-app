@@ -93,7 +93,7 @@ function getActivityMultiplier(
   ]
   // Endurance sports: sustained aerobic output, highest caloric burn per session
   const enduranceSports = [
-    'cross_country', 'track', 'swimming', 'rowing', 'cycling',
+    'cross_country', 'track', 'track_and_field', 'swimming', 'rowing', 'cycling',
     'triathlon', 'distance_running'
   ]
 
