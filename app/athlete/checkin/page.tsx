@@ -12,11 +12,22 @@ interface SliderFieldProps {
   field: string
   value: number
   onChange: (field: string, value: number) => void
+  invertColors?: boolean // true = low is good (green), high is bad (red)
 }
 
-function SliderField({ label, field, value, onChange }: SliderFieldProps) {
-  const emoji = value <= 3 ? '🔴' : value <= 6 ? '🟡' : '🟢'
-  const color = value <= 3 ? 'text-red-400' : value <= 6 ? 'text-yellow-400' : 'text-green-400'
+function SliderField({ label, field, value, onChange, invertColors = false }: SliderFieldProps) {
+  let emoji: string
+  let color: string
+
+  if (invertColors) {
+    // Inverted: low = green (good), high = red (bad) — for soreness, hunger, stress
+    emoji = value <= 3 ? '🟢' : value <= 6 ? '🟡' : '🔴'
+    color = value <= 3 ? 'text-green-400' : value <= 6 ? 'text-yellow-400' : 'text-red-400'
+  } else {
+    // Normal: low = red (bad), high = green (good) — for energy, hydration
+    emoji = value <= 3 ? '🔴' : value <= 6 ? '🟡' : '🟢'
+    color = value <= 3 ? 'text-red-400' : value <= 6 ? 'text-yellow-400' : 'text-green-400'
+  }
 
   return (
     <div>
@@ -178,18 +189,21 @@ export default function CheckInPage() {
                 field="soreness"
                 value={form.soreness}
                 onChange={update}
+                invertColors
               />
               <SliderField
                 label="Hunger"
                 field="hunger"
                 value={form.hunger}
                 onChange={update}
+                invertColors
               />
               <SliderField
                 label="Stress"
                 field="stress"
                 value={form.stress}
                 onChange={update}
+                invertColors
               />
               <SliderField
                 label="Hydration"
