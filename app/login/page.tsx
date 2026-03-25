@@ -1,11 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+
+declare global {
+  interface Window {
+    turnstile: any
+  }
+}
 
 export default function LoginPage( ) {
   const router = useRouter()
@@ -14,6 +20,9 @@ export default function LoginPage( ) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const turnstileRef = useRef<HTMLDivElement>(null)
+  const widgetIdRef = useRef<string | null>(null)
 
   // Forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false)
@@ -22,19 +31,65 @@ export default function LoginPage( ) {
   const [resetSent, setResetSent] = useState(false)
   const [resetError, setResetError] = useState('')
 
+  // Load Turnstile script and render widget
+  useEffect(() => {
+    const scriptId = 'cf-turnstile-script'
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script')
+      script.id = scriptId
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async = true
+      script.onload = ( ) => renderWidget()
+      document.head.appendChild(script)
+    } else if (window.turnstile) {
+      renderWidget()
+    }
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current)
+        widgetIdRef.current = null
+      }
+    }
+  }, [])
+
+  function renderWidget() {
+    if (turnstileRef.current && window.turnstile && !widgetIdRef.current) {
+      widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+        sitekey: '0x4AAAAAACv1P_wt965vngGf',
+        callback: (token: string) => setCaptchaToken(token),
+        'expired-callback': () => setCaptchaToken(''),
+        theme: 'dark',
+      })
+    }
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
 
+    if (!captchaToken) {
+      setError('Please complete the CAPTCHA verification')
+      setLoading(false)
+      return
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        captchaToken,
+      },
     })
 
     if (error) {
       setError(error.message)
       setLoading(false)
+      // Reset turnstile
+      if (window.turnstile && widgetIdRef.current) {
+        window.turnstile.reset(widgetIdRef.current)
+        setCaptchaToken('')
+      }
       return
     }
 
@@ -46,11 +101,9 @@ export default function LoginPage( ) {
       .single()
 
     if (profile?.role === 'athlete') {
-      // Check if athlete has paid
       if (profile.subscription_status === 'active') {
         router.push('/athlete')
       } else {
-        // Unpaid athlete — send to payment page
         router.push('/athlete/payment-required')
       }
     } else if (profile?.role === 'parent') {
@@ -85,14 +138,12 @@ export default function LoginPage( ) {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col items-center justify-center p-6">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-md relative z-10">
-        {/* Header */}
         <div className="mb-8 text-center">
           <div className="inline-block mb-4">
             <div className="text-4xl">⚡</div>
@@ -107,7 +158,6 @@ export default function LoginPage( ) {
           </p>
         </div>
 
-        {/* Forgot Password Form */}
         {showForgotPassword ? (
           <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur">
             {resetSent ? (
@@ -179,7 +229,6 @@ export default function LoginPage( ) {
           </div>
         ) : (
           <>
-            {/* Login Form */}
             <form onSubmit={handleLogin} className="flex flex-col gap-4 bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur">
               
               <div>
@@ -204,7 +253,6 @@ export default function LoginPage( ) {
                 />
               </div>
 
-              {/* Forgot Password Link */}
               <div className="flex justify-end -mt-1">
                 <button
                   type="button"
@@ -214,6 +262,9 @@ export default function LoginPage( ) {
                   Forgot password?
                 </button>
               </div>
+
+              {/* Turnstile CAPTCHA widget */}
+              <div ref={turnstileRef} className="flex justify-center" />
 
               {error && (
                 <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
@@ -233,7 +284,6 @@ export default function LoginPage( ) {
           </>
         )}
 
-        {/* Footer Links */}
         <div className="mt-8 text-center space-y-3">
           <p className="text-slate-400 text-sm">
             New athlete?{' '}
