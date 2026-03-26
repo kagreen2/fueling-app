@@ -64,31 +64,12 @@ export async function POST(request: NextRequest) {
   "seg_lean_right_leg_lbs": number or null,
   "seg_lean_left_leg_lbs": number or null,
 
-  "phase_angle_right_arm": number or null,
-  "phase_angle_left_arm": number or null,
-  "phase_angle_trunk": number or null,
-  "phase_angle_right_leg": number or null,
-  "phase_angle_left_leg": number or null,
-
   "ecw_tbw_ratio": number or null,
-  "phase_angle_whole_body": number or null,
-
-  "seg_ecw_right_arm_lbs": number or null,
-  "seg_ecw_left_arm_lbs": number or null,
-  "seg_ecw_trunk_lbs": number or null,
-  "seg_ecw_right_leg_lbs": number or null,
-  "seg_ecw_left_leg_lbs": number or null,
-
-  "seg_icw_right_arm_lbs": number or null,
-  "seg_icw_left_arm_lbs": number or null,
-  "seg_icw_trunk_lbs": number or null,
-  "seg_icw_right_leg_lbs": number or null,
-  "seg_icw_left_leg_lbs": number or null,
 
   "visceral_fat_area_cm2": number or null
 }
 
-IMPORTANT: Read the numbers carefully. The "Segmental Lean Analysis" section has lean mass values per limb/trunk. The "Phase Angle" values appear next to each segment. The "ECW/TBW" ratio and whole-body phase angle are in their own section. Visceral Fat Area is in cm².
+IMPORTANT: Read the numbers carefully. The "Segmental Lean Analysis" section has lean mass values per limb/trunk. The "ECW/TBW" ratio is in its own section. Visceral Fat Area is in cm².
 
 Return ONLY the JSON object, no markdown, no explanation, no code fences.`,
             },

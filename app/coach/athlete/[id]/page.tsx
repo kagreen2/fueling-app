@@ -86,10 +86,7 @@ export default function CoachAthleteDetailPage() {
     skeletal_muscle_mass_lbs: '',
     bmi: '', percent_body_fat: '',
     seg_lean_right_arm_lbs: '', seg_lean_left_arm_lbs: '', seg_lean_trunk_lbs: '', seg_lean_right_leg_lbs: '', seg_lean_left_leg_lbs: '',
-    phase_angle_right_arm: '', phase_angle_left_arm: '', phase_angle_trunk: '', phase_angle_right_leg: '', phase_angle_left_leg: '',
-    ecw_tbw_ratio: '', phase_angle_whole_body: '',
-    seg_ecw_right_arm_lbs: '', seg_ecw_left_arm_lbs: '', seg_ecw_trunk_lbs: '', seg_ecw_right_leg_lbs: '', seg_ecw_left_leg_lbs: '',
-    seg_icw_right_arm_lbs: '', seg_icw_left_arm_lbs: '', seg_icw_trunk_lbs: '', seg_icw_right_leg_lbs: '', seg_icw_left_leg_lbs: '',
+    ecw_tbw_ratio: '',
     visceral_fat_area_cm2: '',
     notes: '',
   }
@@ -211,13 +208,7 @@ export default function CoachAthleteDetailPage() {
       bmi: pn(biometricForm.bmi), percent_body_fat: pn(biometricForm.percent_body_fat),
       seg_lean_right_arm_lbs: pn(biometricForm.seg_lean_right_arm_lbs), seg_lean_left_arm_lbs: pn(biometricForm.seg_lean_left_arm_lbs),
       seg_lean_trunk_lbs: pn(biometricForm.seg_lean_trunk_lbs), seg_lean_right_leg_lbs: pn(biometricForm.seg_lean_right_leg_lbs), seg_lean_left_leg_lbs: pn(biometricForm.seg_lean_left_leg_lbs),
-      phase_angle_right_arm: pn(biometricForm.phase_angle_right_arm), phase_angle_left_arm: pn(biometricForm.phase_angle_left_arm),
-      phase_angle_trunk: pn(biometricForm.phase_angle_trunk), phase_angle_right_leg: pn(biometricForm.phase_angle_right_leg), phase_angle_left_leg: pn(biometricForm.phase_angle_left_leg),
-      ecw_tbw_ratio: pn(biometricForm.ecw_tbw_ratio), phase_angle_whole_body: pn(biometricForm.phase_angle_whole_body),
-      seg_ecw_right_arm_lbs: pn(biometricForm.seg_ecw_right_arm_lbs), seg_ecw_left_arm_lbs: pn(biometricForm.seg_ecw_left_arm_lbs),
-      seg_ecw_trunk_lbs: pn(biometricForm.seg_ecw_trunk_lbs), seg_ecw_right_leg_lbs: pn(biometricForm.seg_ecw_right_leg_lbs), seg_ecw_left_leg_lbs: pn(biometricForm.seg_ecw_left_leg_lbs),
-      seg_icw_right_arm_lbs: pn(biometricForm.seg_icw_right_arm_lbs), seg_icw_left_arm_lbs: pn(biometricForm.seg_icw_left_arm_lbs),
-      seg_icw_trunk_lbs: pn(biometricForm.seg_icw_trunk_lbs), seg_icw_right_leg_lbs: pn(biometricForm.seg_icw_right_leg_lbs), seg_icw_left_leg_lbs: pn(biometricForm.seg_icw_left_leg_lbs),
+      ecw_tbw_ratio: pn(biometricForm.ecw_tbw_ratio),
       visceral_fat_area_cm2: pn(biometricForm.visceral_fat_area_cm2),
       source: 'coach', entered_by: user.id, notes: biometricForm.notes || null, photo_url: photoUrl,
     })
@@ -992,50 +983,14 @@ export default function CoachAthleteDetailPage() {
                   ))}
                 </div>
               </div>
-              {/* Phase Angles */}
-              <div>
-                <p className="text-xs text-slate-400 mb-2 font-medium">Phase Angles (°)</p>
-                <div className="grid grid-cols-5 gap-2">
-                  {[{k:'phase_angle_right_arm',l:'R. Arm'},{k:'phase_angle_left_arm',l:'L. Arm'},{k:'phase_angle_trunk',l:'Trunk'},{k:'phase_angle_right_leg',l:'R. Leg'},{k:'phase_angle_left_leg',l:'L. Leg'}].map(f => (
-                    <div key={f.k}>
-                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
-                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
-                    </div>
-                  ))}
-                </div>
-              </div>
               {/* ECW/TBW & Visceral Fat */}
               <div>
                 <p className="text-xs text-slate-400 mb-2 font-medium">ECW/TBW & Visceral Fat</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[{k:'ecw_tbw_ratio',l:'ECW/TBW',p:'0.398'},{k:'phase_angle_whole_body',l:'Phase Angle (°)',p:'4.0'},{k:'visceral_fat_area_cm2',l:'VFA (cm²)',p:'128.0'}].map(f => (
+                <div className="grid grid-cols-2 gap-2">
+                  {[{k:'ecw_tbw_ratio',l:'ECW/TBW',p:'0.398'},{k:'visceral_fat_area_cm2',l:'VFA (cm²)',p:'128.0'}].map(f => (
                     <div key={f.k}>
                       <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
                       <input type="number" step="0.001" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} placeholder={f.p} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Segmental ECW */}
-              <div>
-                <p className="text-xs text-slate-400 mb-2 font-medium">Segmental ECW (lbs)</p>
-                <div className="grid grid-cols-5 gap-2">
-                  {[{k:'seg_ecw_right_arm_lbs',l:'R. Arm'},{k:'seg_ecw_left_arm_lbs',l:'L. Arm'},{k:'seg_ecw_trunk_lbs',l:'Trunk'},{k:'seg_ecw_right_leg_lbs',l:'R. Leg'},{k:'seg_ecw_left_leg_lbs',l:'L. Leg'}].map(f => (
-                    <div key={f.k}>
-                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
-                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Segmental ICW */}
-              <div>
-                <p className="text-xs text-slate-400 mb-2 font-medium">Segmental ICW (lbs)</p>
-                <div className="grid grid-cols-5 gap-2">
-                  {[{k:'seg_icw_right_arm_lbs',l:'R. Arm'},{k:'seg_icw_left_arm_lbs',l:'L. Arm'},{k:'seg_icw_trunk_lbs',l:'Trunk'},{k:'seg_icw_right_leg_lbs',l:'R. Leg'},{k:'seg_icw_left_leg_lbs',l:'L. Leg'}].map(f => (
-                    <div key={f.k}>
-                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
-                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
                     </div>
                   ))}
                 </div>
@@ -1090,19 +1045,18 @@ export default function CoachAthleteDetailPage() {
                       {scan.bmi != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">BMI</p><p className="text-yellow-400 font-medium">{scan.bmi}</p></div>}
                       {scan.total_body_water_lbs != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">TBW</p><p className="text-cyan-400 font-medium">{scan.total_body_water_lbs}</p></div>}
                       {scan.ecw_tbw_ratio != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">ECW/TBW</p><p className={`font-medium ${scan.ecw_tbw_ratio <= 0.39 ? 'text-green-400' : 'text-yellow-400'}`}>{scan.ecw_tbw_ratio}</p></div>}
-                      {scan.phase_angle_whole_body != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">Phase∠</p><p className="text-blue-400 font-medium">{scan.phase_angle_whole_body}°</p></div>}
                       {scan.visceral_fat_area_cm2 != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">VFA</p><p className={`font-medium ${scan.visceral_fat_area_cm2 <= 100 ? 'text-green-400' : scan.visceral_fat_area_cm2 <= 150 ? 'text-yellow-400' : 'text-red-400'}`}>{scan.visceral_fat_area_cm2} cm²</p></div>}
                     </div>
                     {/* Segmental Lean */}
                     {(scan.seg_lean_right_arm_lbs || scan.seg_lean_trunk_lbs || scan.seg_lean_right_leg_lbs) && (
                       <div className="mt-2">
-                        <p className="text-xs text-slate-600 mb-1">Segmental Lean (lbs) / Phase Angle (°)</p>
+                        <p className="text-xs text-slate-600 mb-1">Segmental Lean (lbs)</p>
                         <div className="grid grid-cols-5 gap-1 text-center text-xs">
-                          <div><p className="text-slate-600">R.Arm</p><p className="text-slate-300">{scan.seg_lean_right_arm_lbs ?? '—'}</p>{scan.phase_angle_right_arm != null && <p className="text-slate-500">{scan.phase_angle_right_arm}°</p>}</div>
-                          <div><p className="text-slate-600">L.Arm</p><p className="text-slate-300">{scan.seg_lean_left_arm_lbs ?? '—'}</p>{scan.phase_angle_left_arm != null && <p className="text-slate-500">{scan.phase_angle_left_arm}°</p>}</div>
-                          <div><p className="text-slate-600">Trunk</p><p className="text-slate-300">{scan.seg_lean_trunk_lbs ?? '—'}</p>{scan.phase_angle_trunk != null && <p className="text-slate-500">{scan.phase_angle_trunk}°</p>}</div>
-                          <div><p className="text-slate-600">R.Leg</p><p className="text-slate-300">{scan.seg_lean_right_leg_lbs ?? '—'}</p>{scan.phase_angle_right_leg != null && <p className="text-slate-500">{scan.phase_angle_right_leg}°</p>}</div>
-                          <div><p className="text-slate-600">L.Leg</p><p className="text-slate-300">{scan.seg_lean_left_leg_lbs ?? '—'}</p>{scan.phase_angle_left_leg != null && <p className="text-slate-500">{scan.phase_angle_left_leg}°</p>}</div>
+                          <div><p className="text-slate-600">R.Arm</p><p className="text-slate-300">{scan.seg_lean_right_arm_lbs ?? '—'}</p></div>
+                          <div><p className="text-slate-600">L.Arm</p><p className="text-slate-300">{scan.seg_lean_left_arm_lbs ?? '—'}</p></div>
+                          <div><p className="text-slate-600">Trunk</p><p className="text-slate-300">{scan.seg_lean_trunk_lbs ?? '—'}</p></div>
+                          <div><p className="text-slate-600">R.Leg</p><p className="text-slate-300">{scan.seg_lean_right_leg_lbs ?? '—'}</p></div>
+                          <div><p className="text-slate-600">L.Leg</p><p className="text-slate-300">{scan.seg_lean_left_leg_lbs ?? '—'}</p></div>
                         </div>
                       </div>
                     )}

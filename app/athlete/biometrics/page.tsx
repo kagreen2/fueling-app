@@ -31,27 +31,8 @@ interface BiometricScan {
   seg_lean_trunk_lbs: number | null
   seg_lean_right_leg_lbs: number | null
   seg_lean_left_leg_lbs: number | null
-  // Phase Angles
-  phase_angle_right_arm: number | null
-  phase_angle_left_arm: number | null
-  phase_angle_trunk: number | null
-  phase_angle_right_leg: number | null
-  phase_angle_left_leg: number | null
   // ECW/TBW
   ecw_tbw_ratio: number | null
-  phase_angle_whole_body: number | null
-  // Segmental ECW
-  seg_ecw_right_arm_lbs: number | null
-  seg_ecw_left_arm_lbs: number | null
-  seg_ecw_trunk_lbs: number | null
-  seg_ecw_right_leg_lbs: number | null
-  seg_ecw_left_leg_lbs: number | null
-  // Segmental ICW
-  seg_icw_right_arm_lbs: number | null
-  seg_icw_left_arm_lbs: number | null
-  seg_icw_trunk_lbs: number | null
-  seg_icw_right_leg_lbs: number | null
-  seg_icw_left_leg_lbs: number | null
   // Visceral Fat
   visceral_fat_area_cm2: number | null
   // Metadata
@@ -73,14 +54,8 @@ const emptyForm = {
   bmi: '', percent_body_fat: '',
   // Segmental Lean Analysis
   seg_lean_right_arm_lbs: '', seg_lean_left_arm_lbs: '', seg_lean_trunk_lbs: '', seg_lean_right_leg_lbs: '', seg_lean_left_leg_lbs: '',
-  // Phase Angles
-  phase_angle_right_arm: '', phase_angle_left_arm: '', phase_angle_trunk: '', phase_angle_right_leg: '', phase_angle_left_leg: '',
   // ECW/TBW
-  ecw_tbw_ratio: '', phase_angle_whole_body: '',
-  // Segmental ECW
-  seg_ecw_right_arm_lbs: '', seg_ecw_left_arm_lbs: '', seg_ecw_trunk_lbs: '', seg_ecw_right_leg_lbs: '', seg_ecw_left_leg_lbs: '',
-  // Segmental ICW
-  seg_icw_right_arm_lbs: '', seg_icw_left_arm_lbs: '', seg_icw_trunk_lbs: '', seg_icw_right_leg_lbs: '', seg_icw_left_leg_lbs: '',
+  ecw_tbw_ratio: '',
   // Visceral Fat
   visceral_fat_area_cm2: '',
   notes: '',
@@ -181,13 +156,7 @@ export default function BiometricsPage() {
         bmi: pn(form.bmi), percent_body_fat: pn(form.percent_body_fat),
         seg_lean_right_arm_lbs: pn(form.seg_lean_right_arm_lbs), seg_lean_left_arm_lbs: pn(form.seg_lean_left_arm_lbs),
         seg_lean_trunk_lbs: pn(form.seg_lean_trunk_lbs), seg_lean_right_leg_lbs: pn(form.seg_lean_right_leg_lbs), seg_lean_left_leg_lbs: pn(form.seg_lean_left_leg_lbs),
-        phase_angle_right_arm: pn(form.phase_angle_right_arm), phase_angle_left_arm: pn(form.phase_angle_left_arm),
-        phase_angle_trunk: pn(form.phase_angle_trunk), phase_angle_right_leg: pn(form.phase_angle_right_leg), phase_angle_left_leg: pn(form.phase_angle_left_leg),
-        ecw_tbw_ratio: pn(form.ecw_tbw_ratio), phase_angle_whole_body: pn(form.phase_angle_whole_body),
-        seg_ecw_right_arm_lbs: pn(form.seg_ecw_right_arm_lbs), seg_ecw_left_arm_lbs: pn(form.seg_ecw_left_arm_lbs),
-        seg_ecw_trunk_lbs: pn(form.seg_ecw_trunk_lbs), seg_ecw_right_leg_lbs: pn(form.seg_ecw_right_leg_lbs), seg_ecw_left_leg_lbs: pn(form.seg_ecw_left_leg_lbs),
-        seg_icw_right_arm_lbs: pn(form.seg_icw_right_arm_lbs), seg_icw_left_arm_lbs: pn(form.seg_icw_left_arm_lbs),
-        seg_icw_trunk_lbs: pn(form.seg_icw_trunk_lbs), seg_icw_right_leg_lbs: pn(form.seg_icw_right_leg_lbs), seg_icw_left_leg_lbs: pn(form.seg_icw_left_leg_lbs),
+        ecw_tbw_ratio: pn(form.ecw_tbw_ratio),
         visceral_fat_area_cm2: pn(form.visceral_fat_area_cm2),
         source: 'athlete', entered_by: userId, notes: form.notes || null, photo_url: photoUrl,
       })
@@ -298,22 +267,21 @@ export default function BiometricsPage() {
                 <div>
                   <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">Segmental Lean Analysis (lbs)</p>
                   <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R. Arm</p><p className="text-white font-medium">{latestScan.seg_lean_right_arm_lbs ?? '—'}</p>{latestScan.phase_angle_right_arm != null && <p className="text-slate-400">{latestScan.phase_angle_right_arm}°</p>}</div>
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L. Arm</p><p className="text-white font-medium">{latestScan.seg_lean_left_arm_lbs ?? '—'}</p>{latestScan.phase_angle_left_arm != null && <p className="text-slate-400">{latestScan.phase_angle_left_arm}°</p>}</div>
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">Trunk</p><p className="text-white font-medium">{latestScan.seg_lean_trunk_lbs ?? '—'}</p>{latestScan.phase_angle_trunk != null && <p className="text-slate-400">{latestScan.phase_angle_trunk}°</p>}</div>
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R. Leg</p><p className="text-white font-medium">{latestScan.seg_lean_right_leg_lbs ?? '—'}</p>{latestScan.phase_angle_right_leg != null && <p className="text-slate-400">{latestScan.phase_angle_right_leg}°</p>}</div>
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L. Leg</p><p className="text-white font-medium">{latestScan.seg_lean_left_leg_lbs ?? '—'}</p>{latestScan.phase_angle_left_leg != null && <p className="text-slate-400">{latestScan.phase_angle_left_leg}°</p>}</div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R. Arm</p><p className="text-white font-medium">{latestScan.seg_lean_right_arm_lbs ?? '—'}</p></div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L. Arm</p><p className="text-white font-medium">{latestScan.seg_lean_left_arm_lbs ?? '—'}</p></div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">Trunk</p><p className="text-white font-medium">{latestScan.seg_lean_trunk_lbs ?? '—'}</p></div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R. Leg</p><p className="text-white font-medium">{latestScan.seg_lean_right_leg_lbs ?? '—'}</p></div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L. Leg</p><p className="text-white font-medium">{latestScan.seg_lean_left_leg_lbs ?? '—'}</p></div>
                   </div>
                 </div>
               )}
 
               {/* ECW/TBW & Visceral Fat */}
-              {(latestScan.ecw_tbw_ratio != null || latestScan.visceral_fat_area_cm2 != null || latestScan.phase_angle_whole_body != null) && (
+              {(latestScan.ecw_tbw_ratio != null || latestScan.visceral_fat_area_cm2 != null) && (
                 <div>
                   <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">ECW/TBW & Visceral Fat</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <MetricCard label="ECW/TBW Ratio" value={latestScan.ecw_tbw_ratio} color={latestScan.ecw_tbw_ratio != null && latestScan.ecw_tbw_ratio <= 0.39 ? 'text-green-400' : 'text-yellow-400'} />
-                    <MetricCard label="Phase Angle" value={latestScan.phase_angle_whole_body} unit="°" color="text-blue-400" />
                     {latestScan.visceral_fat_area_cm2 != null && (
                       <div className="bg-slate-700/50 rounded-lg p-3 text-center">
                         <p className="text-xs text-slate-400 mb-1">Visceral Fat Area</p>
@@ -424,75 +392,17 @@ export default function BiometricsPage() {
                 </div>
               </div>
 
-              {/* Phase Angles */}
-              <div>
-                <h3 className="text-sm font-medium text-slate-300 mb-3">Phase Angles (°)</h3>
-                <div className="grid grid-cols-5 gap-2">
-                  {[
-                    { key: 'phase_angle_right_arm', label: 'R. Arm' },
-                    { key: 'phase_angle_left_arm', label: 'L. Arm' },
-                    { key: 'phase_angle_trunk', label: 'Trunk' },
-                    { key: 'phase_angle_right_leg', label: 'R. Leg' },
-                    { key: 'phase_angle_left_leg', label: 'L. Leg' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="block text-xs text-slate-400 mb-1">{f.label}</label>
-                      <input type="number" step="0.1" value={(form as any)[f.key]} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-2 text-white text-sm placeholder-slate-500" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* ECW/TBW & Visceral Fat */}
               <div>
                 <h3 className="text-sm font-medium text-slate-300 mb-3">ECW/TBW & Visceral Fat</h3>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   {[
                     { key: 'ecw_tbw_ratio', label: 'ECW/TBW Ratio', p: '0.398' },
-                    { key: 'phase_angle_whole_body', label: 'Whole Body Phase Angle (°)', p: '4.0' },
                     { key: 'visceral_fat_area_cm2', label: 'Visceral Fat Area (cm²)', p: '128.0' },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-xs text-slate-400 mb-1">{f.label}</label>
                       <input type="number" step="0.001" value={(form as any)[f.key]} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} placeholder={f.p} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Segmental ECW */}
-              <div>
-                <h3 className="text-sm font-medium text-slate-300 mb-3">Segmental ECW Analysis (lbs)</h3>
-                <div className="grid grid-cols-5 gap-2">
-                  {[
-                    { key: 'seg_ecw_right_arm_lbs', label: 'R. Arm' },
-                    { key: 'seg_ecw_left_arm_lbs', label: 'L. Arm' },
-                    { key: 'seg_ecw_trunk_lbs', label: 'Trunk' },
-                    { key: 'seg_ecw_right_leg_lbs', label: 'R. Leg' },
-                    { key: 'seg_ecw_left_leg_lbs', label: 'L. Leg' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="block text-xs text-slate-400 mb-1">{f.label}</label>
-                      <input type="number" step="0.1" value={(form as any)[f.key]} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-2 text-white text-sm placeholder-slate-500" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Segmental ICW */}
-              <div>
-                <h3 className="text-sm font-medium text-slate-300 mb-3">Segmental ICW Analysis (lbs)</h3>
-                <div className="grid grid-cols-5 gap-2">
-                  {[
-                    { key: 'seg_icw_right_arm_lbs', label: 'R. Arm' },
-                    { key: 'seg_icw_left_arm_lbs', label: 'L. Arm' },
-                    { key: 'seg_icw_trunk_lbs', label: 'Trunk' },
-                    { key: 'seg_icw_right_leg_lbs', label: 'R. Leg' },
-                    { key: 'seg_icw_left_leg_lbs', label: 'L. Leg' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="block text-xs text-slate-400 mb-1">{f.label}</label>
-                      <input type="number" step="0.1" value={(form as any)[f.key]} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-2 text-white text-sm placeholder-slate-500" />
                     </div>
                   ))}
                 </div>
@@ -575,13 +485,13 @@ export default function BiometricsPage() {
                         {/* Segmental Lean */}
                         {(scan.seg_lean_right_arm_lbs || scan.seg_lean_trunk_lbs) && (
                           <div>
-                            <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">Segmental Lean (lbs) / Phase Angle (°)</p>
+                            <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">Segmental Lean (lbs)</p>
                             <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R.Arm</p><p className="text-white font-medium">{scan.seg_lean_right_arm_lbs ?? '—'}</p>{scan.phase_angle_right_arm != null && <p className="text-slate-400">{scan.phase_angle_right_arm}°</p>}</div>
-                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L.Arm</p><p className="text-white font-medium">{scan.seg_lean_left_arm_lbs ?? '—'}</p>{scan.phase_angle_left_arm != null && <p className="text-slate-400">{scan.phase_angle_left_arm}°</p>}</div>
-                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">Trunk</p><p className="text-white font-medium">{scan.seg_lean_trunk_lbs ?? '—'}</p>{scan.phase_angle_trunk != null && <p className="text-slate-400">{scan.phase_angle_trunk}°</p>}</div>
-                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R.Leg</p><p className="text-white font-medium">{scan.seg_lean_right_leg_lbs ?? '—'}</p>{scan.phase_angle_right_leg != null && <p className="text-slate-400">{scan.phase_angle_right_leg}°</p>}</div>
-                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L.Leg</p><p className="text-white font-medium">{scan.seg_lean_left_leg_lbs ?? '—'}</p>{scan.phase_angle_left_leg != null && <p className="text-slate-400">{scan.phase_angle_left_leg}°</p>}</div>
+                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R.Arm</p><p className="text-white font-medium">{scan.seg_lean_right_arm_lbs ?? '—'}</p></div>
+                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L.Arm</p><p className="text-white font-medium">{scan.seg_lean_left_arm_lbs ?? '—'}</p></div>
+                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">Trunk</p><p className="text-white font-medium">{scan.seg_lean_trunk_lbs ?? '—'}</p></div>
+                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R.Leg</p><p className="text-white font-medium">{scan.seg_lean_right_leg_lbs ?? '—'}</p></div>
+                              <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L.Leg</p><p className="text-white font-medium">{scan.seg_lean_left_leg_lbs ?? '—'}</p></div>
                             </div>
                           </div>
                         )}
@@ -591,7 +501,6 @@ export default function BiometricsPage() {
                             <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">ECW/TBW & Visceral Fat</p>
                             <div className="grid grid-cols-3 gap-3">
                               <MetricCard label="ECW/TBW" value={scan.ecw_tbw_ratio} color={scan.ecw_tbw_ratio != null && scan.ecw_tbw_ratio <= 0.39 ? 'text-green-400' : 'text-yellow-400'} />
-                              <MetricCard label="Phase Angle" value={scan.phase_angle_whole_body} unit="°" color="text-blue-400" />
                               <MetricCard label="VFA" value={scan.visceral_fat_area_cm2} unit="cm²" color={scan.visceral_fat_area_cm2 != null && scan.visceral_fat_area_cm2 <= 100 ? 'text-green-400' : 'text-yellow-400'} />
                             </div>
                           </div>
