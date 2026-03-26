@@ -227,9 +227,9 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="text-2xl font-semibold text-white mb-4">14. Governing Law</h2>
             <p>
-              These Terms shall be governed by and construed in accordance with the laws of the State of Texas, 
-              without regard to its conflict of law provisions. Any disputes arising from these Terms or the Service 
-              shall be resolved in the courts located in Texas.
+              These Terms shall be governed by and construed in accordance with the laws of the State of Illinois,
+              without regard to its conflict of law provisions. Any disputes arising from these Terms or the Service
+              shall be resolved in the courts located in Illinois.
             </p>
           </section>
 
@@ -241,7 +241,7 @@ export default function TermsOfServicePage() {
             </p>
             <div className="mt-4 p-4 bg-slate-800 border border-slate-700 rounded-lg">
               <p className="font-semibold text-white">Fuel Different</p>
-              <p>Email: legal@fueldifferent.com</p>
+              <p>Email: crossfitironflag@gmail.com</p>
             </div>
           </section>
         </div>

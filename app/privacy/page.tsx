@@ -219,7 +219,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="mt-4 p-4 bg-slate-800 border border-slate-700 rounded-lg">
               <p className="font-semibold text-white">Fuel Different</p>
-              <p>Email: privacy@fueldifferent.com</p>
+              <p>Email: crossfitironflag@gmail.com</p>
             </div>
           </section>
         </div>
