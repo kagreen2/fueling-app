@@ -1,9 +1,25 @@
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import { calculateNutritionRecommendation } from '@/lib/nutrition-calculator'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check - verify user is logged in and is admin or coach
+    const authSupabase = await createServerClient()
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { data: profile } = await authSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (!profile || !['admin', 'super_admin', 'coach'].includes(profile.role)) {
+      return NextResponse.json({ error: 'Forbidden - admin or coach access required' }, { status: 403 })
+    }
+
     const { athleteId } = await request.json()
     
     if (!athleteId) {

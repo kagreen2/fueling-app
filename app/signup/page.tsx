@@ -285,6 +285,13 @@ export default function SignupPage( ) {
               : 'Create Account & Continue to Payment'}
           </Button>
 
+          <p className="text-xs text-slate-500 text-center mt-3">
+            By creating an account, you agree to our{' '}
+            <a href="/terms" className="text-purple-400 hover:text-purple-300 underline">Terms of Service</a>{' '}
+            and{' '}
+            <a href="/privacy" className="text-purple-400 hover:text-purple-300 underline">Privacy Policy</a>.
+          </p>
+
         </form>
 
         <div className="mt-8 text-center space-y-3">
