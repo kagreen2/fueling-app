@@ -26,18 +26,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
     }
 
+    // Check for latest InBody biometric scan (for measured BMR)
+    const { data: latestScan } = await supabase
+      .from('biometric_scans')
+      .select('weight_lbs, percent_body_fat, fat_free_mass_lbs')
+      .eq('athlete_id', athleteId)
+      .order('scan_date', { ascending: false })
+      .limit(1)
+      .single()
+
+    // Calculate BMR from InBody data using Katch-McArdle if we have fat-free mass
+    // Katch-McArdle: BMR = 370 + (21.6 × FFM in kg)
+    // This is the gold standard when lean mass data is available from InBody
+    let inbodyBmr: number | undefined
+    if (latestScan?.fat_free_mass_lbs) {
+      const ffm_kg = latestScan.fat_free_mass_lbs * 0.453592
+      inbodyBmr = Math.round(370 + 21.6 * ffm_kg)
+    }
+
+    // Use InBody weight if available (more recent than profile weight)
+    const weight = latestScan?.weight_lbs || athlete.weight_lbs || 150
+    const bodyFat = latestScan?.percent_body_fat || athlete.body_fat_percentage
+
     // Prepare athlete profile for calculation
     const athleteProfile = {
       age: athlete.age || 16,
       sex: (athlete.sex || 'male') as 'male' | 'female',
-      weight_lbs: athlete.weight_lbs || 150,
+      weight_lbs: weight,
       height_inches: athlete.height_inches || 70,
-      body_fat_percentage: athlete.body_fat_percentage,
+      body_fat_percentage: bodyFat,
       sport: athlete.sport || 'Unknown',
       position: athlete.position,
       goal_phase: athlete.goal_phase || 'maintain_performance',
       training_days_per_week: parseInt(athlete.training_schedule || '5'),
       season_phase: athlete.season_phase || 'offseason',
+      inbody_bmr: inbodyBmr,
     }
 
     // Calculate evidence-based recommendations (pure math, no AI needed)

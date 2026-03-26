@@ -70,6 +70,31 @@ export default function CoachAthleteDetailPage() {
   const [reviewNotes, setReviewNotes] = useState('')
   const [savingReview, setSavingReview] = useState(false)
 
+  // Biometric scans state
+  const [biometricScans, setBiometricScans] = useState<any[]>([])
+  const [biometricsLoading, setBiometricsLoading] = useState(true)
+  const [showBiometricForm, setShowBiometricForm] = useState(false)
+  const [biometricScanning, setBiometricScanning] = useState(false)
+  const [biometricScanPreview, setBiometricScanPreview] = useState<string | null>(null)
+  const [biometricScanFile, setBiometricScanFile] = useState<File | null>(null)
+  const [biometricScanError, setBiometricScanError] = useState<string | null>(null)
+  const [savingBiometric, setSavingBiometric] = useState(false)
+  const emptyBiometricForm = {
+    scan_date: new Date().toISOString().split('T')[0],
+    intracellular_water_lbs: '', extracellular_water_lbs: '', dry_lean_mass_lbs: '', body_fat_mass_lbs: '',
+    total_body_water_lbs: '', fat_free_mass_lbs: '', weight_lbs: '',
+    skeletal_muscle_mass_lbs: '',
+    bmi: '', percent_body_fat: '',
+    seg_lean_right_arm_lbs: '', seg_lean_left_arm_lbs: '', seg_lean_trunk_lbs: '', seg_lean_right_leg_lbs: '', seg_lean_left_leg_lbs: '',
+    phase_angle_right_arm: '', phase_angle_left_arm: '', phase_angle_trunk: '', phase_angle_right_leg: '', phase_angle_left_leg: '',
+    ecw_tbw_ratio: '', phase_angle_whole_body: '',
+    seg_ecw_right_arm_lbs: '', seg_ecw_left_arm_lbs: '', seg_ecw_trunk_lbs: '', seg_ecw_right_leg_lbs: '', seg_ecw_left_leg_lbs: '',
+    seg_icw_right_arm_lbs: '', seg_icw_left_arm_lbs: '', seg_icw_trunk_lbs: '', seg_icw_right_leg_lbs: '', seg_icw_left_leg_lbs: '',
+    visceral_fat_area_cm2: '',
+    notes: '',
+  }
+  const [biometricForm, setBiometricForm] = useState(emptyBiometricForm)
+
   // Macro override state
   const [editingMacros, setEditingMacros] = useState(false)
   const [savingMacros, setSavingMacros] = useState(false)
@@ -123,7 +148,93 @@ export default function CoachAthleteDetailPage() {
     loadAthleteData()
     loadNotes()
     loadSupplements()
+    loadBiometrics()
   }, [athleteId, timeRange])
+
+  async function loadBiometrics() {
+    setBiometricsLoading(true)
+    const { data } = await supabase
+      .from('biometric_scans')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .order('scan_date', { ascending: false })
+    if (data) setBiometricScans(data)
+    setBiometricsLoading(false)
+  }
+
+  async function handleBiometricPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBiometricScanFile(file)
+    setBiometricScanPreview(URL.createObjectURL(file))
+    setBiometricScanError(null)
+    setBiometricScanning(true)
+    try {
+      const formData = new FormData()
+      formData.append('photo', file)
+      const res = await fetch('/api/biometrics/scan-photo', { method: 'POST', body: formData })
+      const result = await res.json()
+      if (!res.ok) { setBiometricScanError(result.error || 'Failed to read scan.'); setBiometricScanning(false); return }
+      const d = result.data
+      setBiometricForm(prev => {
+        const updated = { ...prev }
+        for (const key of Object.keys(emptyBiometricForm)) {
+          if (key === 'scan_date' || key === 'notes') continue
+          if (d[key] != null) (updated as any)[key] = d[key].toString()
+        }
+        return updated
+      })
+      setBiometricScanning(false)
+    } catch { setBiometricScanError('Failed to process photo.'); setBiometricScanning(false) }
+  }
+
+  async function saveBiometricScan() {
+    setSavingBiometric(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    let photoUrl: string | null = null
+    if (biometricScanFile) {
+      const fileName = `${athleteId}/${Date.now()}-${biometricScanFile.name}`
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('biometric-scans').upload(fileName, biometricScanFile)
+      if (!uploadError && uploadData) {
+        const { data: urlData } = supabase.storage.from('biometric-scans').getPublicUrl(uploadData.path)
+        photoUrl = urlData.publicUrl
+      }
+    }
+    const pn = (v: string) => v ? parseFloat(v) || null : null
+    const { error } = await supabase.from('biometric_scans').insert({
+      athlete_id: athleteId, scan_date: biometricForm.scan_date,
+      intracellular_water_lbs: pn(biometricForm.intracellular_water_lbs), extracellular_water_lbs: pn(biometricForm.extracellular_water_lbs),
+      dry_lean_mass_lbs: pn(biometricForm.dry_lean_mass_lbs), body_fat_mass_lbs: pn(biometricForm.body_fat_mass_lbs),
+      total_body_water_lbs: pn(biometricForm.total_body_water_lbs), fat_free_mass_lbs: pn(biometricForm.fat_free_mass_lbs), weight_lbs: pn(biometricForm.weight_lbs),
+      skeletal_muscle_mass_lbs: pn(biometricForm.skeletal_muscle_mass_lbs),
+      bmi: pn(biometricForm.bmi), percent_body_fat: pn(biometricForm.percent_body_fat),
+      seg_lean_right_arm_lbs: pn(biometricForm.seg_lean_right_arm_lbs), seg_lean_left_arm_lbs: pn(biometricForm.seg_lean_left_arm_lbs),
+      seg_lean_trunk_lbs: pn(biometricForm.seg_lean_trunk_lbs), seg_lean_right_leg_lbs: pn(biometricForm.seg_lean_right_leg_lbs), seg_lean_left_leg_lbs: pn(biometricForm.seg_lean_left_leg_lbs),
+      phase_angle_right_arm: pn(biometricForm.phase_angle_right_arm), phase_angle_left_arm: pn(biometricForm.phase_angle_left_arm),
+      phase_angle_trunk: pn(biometricForm.phase_angle_trunk), phase_angle_right_leg: pn(biometricForm.phase_angle_right_leg), phase_angle_left_leg: pn(biometricForm.phase_angle_left_leg),
+      ecw_tbw_ratio: pn(biometricForm.ecw_tbw_ratio), phase_angle_whole_body: pn(biometricForm.phase_angle_whole_body),
+      seg_ecw_right_arm_lbs: pn(biometricForm.seg_ecw_right_arm_lbs), seg_ecw_left_arm_lbs: pn(biometricForm.seg_ecw_left_arm_lbs),
+      seg_ecw_trunk_lbs: pn(biometricForm.seg_ecw_trunk_lbs), seg_ecw_right_leg_lbs: pn(biometricForm.seg_ecw_right_leg_lbs), seg_ecw_left_leg_lbs: pn(biometricForm.seg_ecw_left_leg_lbs),
+      seg_icw_right_arm_lbs: pn(biometricForm.seg_icw_right_arm_lbs), seg_icw_left_arm_lbs: pn(biometricForm.seg_icw_left_arm_lbs),
+      seg_icw_trunk_lbs: pn(biometricForm.seg_icw_trunk_lbs), seg_icw_right_leg_lbs: pn(biometricForm.seg_icw_right_leg_lbs), seg_icw_left_leg_lbs: pn(biometricForm.seg_icw_left_leg_lbs),
+      visceral_fat_area_cm2: pn(biometricForm.visceral_fat_area_cm2),
+      source: 'coach', entered_by: user.id, notes: biometricForm.notes || null, photo_url: photoUrl,
+    })
+    if (error) { alert('Error saving: ' + error.message) } else {
+      // Update athlete record too
+      const updates: any = {}
+      if (biometricForm.percent_body_fat) updates.body_fat_percentage = parseFloat(biometricForm.percent_body_fat)
+      if (biometricForm.weight_lbs) updates.weight_lbs = parseFloat(biometricForm.weight_lbs)
+      if (Object.keys(updates).length > 0) await supabase.from('athletes').update(updates).eq('id', athleteId)
+      setShowBiometricForm(false)
+      setBiometricScanPreview(null); setBiometricScanFile(null); setBiometricScanError(null)
+      setBiometricForm({ ...emptyBiometricForm })
+      loadBiometrics()
+      loadAthleteData()
+    }
+    setSavingBiometric(false)
+  }
 
   async function loadSupplements() {
     setSupplementsLoading(true)
@@ -794,6 +905,206 @@ export default function CoachAthleteDetailPage() {
                       >
                         {s.status === 'pending' ? 'Review this supplement' : 'Update review'}
                       </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Body Composition / Biometric Scans */}
+        <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-700 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📊</span>
+              <h3 className="text-white font-semibold">Body Composition</h3>
+              <span className="text-slate-500 text-xs">{biometricScans.length} scan{biometricScans.length !== 1 ? 's' : ''}</span>
+            </div>
+            <button
+              onClick={() => { setShowBiometricForm(!showBiometricForm); setBiometricForm({ ...emptyBiometricForm }); setBiometricScanPreview(null); setBiometricScanFile(null); setBiometricScanError(null) }}
+              className="text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            >
+              {showBiometricForm ? 'Cancel' : '+ Add Scan'}
+            </button>
+          </div>
+
+          {/* Add Scan Form */}
+          {showBiometricForm && (
+            <div className="px-5 py-4 border-b border-slate-700/50 space-y-4">
+              {/* Photo Upload */}
+              <div className="bg-slate-700/30 rounded-lg p-4 border border-dashed border-slate-600 text-center">
+                <p className="text-white text-sm font-medium mb-1">📸 Scan InBody 580 Printout</p>
+                <p className="text-slate-400 text-xs mb-3">Upload a photo and we'll extract all the numbers automatically</p>
+                {!biometricScanPreview ? (
+                  <label className="inline-block cursor-pointer px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors">
+                    📷 Upload Photo
+                    <input type="file" accept="image/*" onChange={handleBiometricPhoto} className="hidden" />
+                  </label>
+                ) : (
+                  <div className="space-y-2">
+                    <img src={biometricScanPreview} alt="Scan" className="max-h-32 mx-auto rounded-lg border border-slate-600" />
+                    {biometricScanning && <div className="flex items-center justify-center gap-2 text-purple-400"><div className="animate-spin h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full"></div><span className="text-xs">Reading InBody 580 scan...</span></div>}
+                    {biometricScanError && <p className="text-yellow-400 text-xs">⚠️ {biometricScanError}</p>}
+                    {!biometricScanning && !biometricScanError && <p className="text-green-400 text-xs">✅ Numbers extracted! Review below.</p>}
+                    <button onClick={() => { setBiometricScanPreview(null); setBiometricScanFile(null); setBiometricScanError(null) }} className="text-slate-400 hover:text-white text-xs underline">Remove photo</button>
+                  </div>
+                )}
+              </div>
+              {/* Date */}
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Scan Date</label>
+                <input type="date" value={biometricForm.scan_date} onChange={e => setBiometricForm(prev => ({ ...prev, scan_date: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm" />
+              </div>
+              {/* Body Composition Analysis */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2 font-medium">Body Composition Analysis</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[{k:'weight_lbs',l:'Weight (lbs)',p:'130.3'},{k:'intracellular_water_lbs',l:'ICW (lbs)',p:'36.6'},{k:'extracellular_water_lbs',l:'ECW (lbs)',p:'24.3'},{k:'dry_lean_mass_lbs',l:'Dry Lean (lbs)',p:'21.6'},{k:'body_fat_mass_lbs',l:'Body Fat Mass (lbs)',p:'47.8'},{k:'total_body_water_lbs',l:'TBW (lbs)',p:'60.8'},{k:'fat_free_mass_lbs',l:'FFM (lbs)',p:'82.5'}].map(f => (
+                    <div key={f.k}>
+                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
+                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} placeholder={f.p} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Muscle-Fat & Obesity */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2 font-medium">Muscle-Fat & Obesity Analysis</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{k:'skeletal_muscle_mass_lbs',l:'SMM (lbs)',p:'43.4'},{k:'bmi',l:'BMI',p:'24.0'},{k:'percent_body_fat',l:'PBF (%)',p:'36.7'}].map(f => (
+                    <div key={f.k}>
+                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
+                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} placeholder={f.p} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Segmental Lean */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2 font-medium">Segmental Lean Analysis (lbs)</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {[{k:'seg_lean_right_arm_lbs',l:'R. Arm'},{k:'seg_lean_left_arm_lbs',l:'L. Arm'},{k:'seg_lean_trunk_lbs',l:'Trunk'},{k:'seg_lean_right_leg_lbs',l:'R. Leg'},{k:'seg_lean_left_leg_lbs',l:'L. Leg'}].map(f => (
+                    <div key={f.k}>
+                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
+                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Phase Angles */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2 font-medium">Phase Angles (°)</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {[{k:'phase_angle_right_arm',l:'R. Arm'},{k:'phase_angle_left_arm',l:'L. Arm'},{k:'phase_angle_trunk',l:'Trunk'},{k:'phase_angle_right_leg',l:'R. Leg'},{k:'phase_angle_left_leg',l:'L. Leg'}].map(f => (
+                    <div key={f.k}>
+                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
+                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* ECW/TBW & Visceral Fat */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2 font-medium">ECW/TBW & Visceral Fat</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{k:'ecw_tbw_ratio',l:'ECW/TBW',p:'0.398'},{k:'phase_angle_whole_body',l:'Phase Angle (°)',p:'4.0'},{k:'visceral_fat_area_cm2',l:'VFA (cm²)',p:'128.0'}].map(f => (
+                    <div key={f.k}>
+                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
+                      <input type="number" step="0.001" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} placeholder={f.p} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Segmental ECW */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2 font-medium">Segmental ECW (lbs)</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {[{k:'seg_ecw_right_arm_lbs',l:'R. Arm'},{k:'seg_ecw_left_arm_lbs',l:'L. Arm'},{k:'seg_ecw_trunk_lbs',l:'Trunk'},{k:'seg_ecw_right_leg_lbs',l:'R. Leg'},{k:'seg_ecw_left_leg_lbs',l:'L. Leg'}].map(f => (
+                    <div key={f.k}>
+                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
+                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Segmental ICW */}
+              <div>
+                <p className="text-xs text-slate-400 mb-2 font-medium">Segmental ICW (lbs)</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {[{k:'seg_icw_right_arm_lbs',l:'R. Arm'},{k:'seg_icw_left_arm_lbs',l:'L. Arm'},{k:'seg_icw_trunk_lbs',l:'Trunk'},{k:'seg_icw_right_leg_lbs',l:'R. Leg'},{k:'seg_icw_left_leg_lbs',l:'L. Leg'}].map(f => (
+                    <div key={f.k}>
+                      <label className="block text-xs text-slate-500 mb-0.5">{f.l}</label>
+                      <input type="number" step="0.1" value={(biometricForm as any)[f.k]} onChange={e => setBiometricForm(prev => ({ ...prev, [f.k]: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm placeholder-slate-500" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Notes */}
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Notes</label>
+                <input type="text" value={biometricForm.notes} onChange={e => setBiometricForm(prev => ({ ...prev, notes: e.target.value }))} placeholder="e.g. Fasted morning scan" className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500" />
+              </div>
+              <button onClick={saveBiometricScan} disabled={savingBiometric || biometricScanning} className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
+                {savingBiometric ? 'Saving...' : '💾 Save Scan'}
+              </button>
+            </div>
+          )}
+
+          {/* Scan History */}
+          {biometricsLoading ? (
+            <div className="p-6 text-center"><div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+          ) : biometricScans.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-slate-500 text-sm">No body composition scans yet.</p>
+              <p className="text-slate-600 text-xs mt-1">Add a scan above or the athlete can self-report from their dashboard.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-700/50">
+              {biometricScans.map((scan: any, idx: number) => {
+                const prev = biometricScans[idx + 1] || null
+                const fmtChg = (cur: number|null, prv: number|null, unit: string = '', invert = false) => {
+                  if (cur == null || prv == null) return null
+                  const diff = cur - prv
+                  if (diff === 0) return { text: '—', color: 'text-slate-500' }
+                  const arrow = diff > 0 ? '↑' : '↓'
+                  const isGood = invert ? diff < 0 : diff > 0
+                  return { text: `${arrow}${Math.abs(diff).toFixed(1)}${unit}`, color: isGood ? 'text-green-400' : 'text-red-400' }
+                }
+                return (
+                  <div key={scan.id} className="px-5 py-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <span className="text-white text-sm font-medium">{new Date(scan.scan_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        <span className="text-slate-500 text-xs ml-2">{scan.source === 'coach' ? '👨‍🏫 Coach' : '🏃 Athlete'}{scan.notes ? ` · ${scan.notes}` : ''}</span>
+                      </div>
+                      <button onClick={async () => { if (confirm('Delete this scan?')) { await supabase.from('biometric_scans').delete().eq('id', scan.id); loadBiometrics() } }} className="text-slate-600 hover:text-red-400 text-xs transition-colors">🗑</button>
+                    </div>
+                    {/* Body Composition */}
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-center text-xs">
+                      {scan.weight_lbs != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">Weight</p><p className="text-white font-medium">{scan.weight_lbs} lbs</p>{(() => { const c = fmtChg(scan.weight_lbs, prev?.weight_lbs, ''); return c ? <p className={c.color}>{c.text}</p> : null })()}</div>}
+                      {scan.body_fat_mass_lbs != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">BFM</p><p className="text-red-400 font-medium">{scan.body_fat_mass_lbs} lbs</p>{(() => { const c = fmtChg(scan.body_fat_mass_lbs, prev?.body_fat_mass_lbs, '', true); return c ? <p className={c.color}>{c.text}</p> : null })()}</div>}
+                      {scan.percent_body_fat != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">PBF</p><p className="text-purple-400 font-medium">{scan.percent_body_fat}%</p>{(() => { const c = fmtChg(scan.percent_body_fat, prev?.percent_body_fat, '%', true); return c ? <p className={c.color}>{c.text}</p> : null })()}</div>}
+                      {scan.skeletal_muscle_mass_lbs != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">SMM</p><p className="text-blue-400 font-medium">{scan.skeletal_muscle_mass_lbs}</p>{(() => { const c = fmtChg(scan.skeletal_muscle_mass_lbs, prev?.skeletal_muscle_mass_lbs, ''); return c ? <p className={c.color}>{c.text}</p> : null })()}</div>}
+                      {scan.fat_free_mass_lbs != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">FFM</p><p className="text-green-400 font-medium">{scan.fat_free_mass_lbs}</p></div>}
+                      {scan.bmi != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">BMI</p><p className="text-yellow-400 font-medium">{scan.bmi}</p></div>}
+                      {scan.total_body_water_lbs != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">TBW</p><p className="text-cyan-400 font-medium">{scan.total_body_water_lbs}</p></div>}
+                      {scan.ecw_tbw_ratio != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">ECW/TBW</p><p className={`font-medium ${scan.ecw_tbw_ratio <= 0.39 ? 'text-green-400' : 'text-yellow-400'}`}>{scan.ecw_tbw_ratio}</p></div>}
+                      {scan.phase_angle_whole_body != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">Phase∠</p><p className="text-blue-400 font-medium">{scan.phase_angle_whole_body}°</p></div>}
+                      {scan.visceral_fat_area_cm2 != null && <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">VFA</p><p className={`font-medium ${scan.visceral_fat_area_cm2 <= 100 ? 'text-green-400' : scan.visceral_fat_area_cm2 <= 150 ? 'text-yellow-400' : 'text-red-400'}`}>{scan.visceral_fat_area_cm2} cm²</p></div>}
+                    </div>
+                    {/* Segmental Lean */}
+                    {(scan.seg_lean_right_arm_lbs || scan.seg_lean_trunk_lbs || scan.seg_lean_right_leg_lbs) && (
+                      <div className="mt-2">
+                        <p className="text-xs text-slate-600 mb-1">Segmental Lean (lbs) / Phase Angle (°)</p>
+                        <div className="grid grid-cols-5 gap-1 text-center text-xs">
+                          <div><p className="text-slate-600">R.Arm</p><p className="text-slate-300">{scan.seg_lean_right_arm_lbs ?? '—'}</p>{scan.phase_angle_right_arm != null && <p className="text-slate-500">{scan.phase_angle_right_arm}°</p>}</div>
+                          <div><p className="text-slate-600">L.Arm</p><p className="text-slate-300">{scan.seg_lean_left_arm_lbs ?? '—'}</p>{scan.phase_angle_left_arm != null && <p className="text-slate-500">{scan.phase_angle_left_arm}°</p>}</div>
+                          <div><p className="text-slate-600">Trunk</p><p className="text-slate-300">{scan.seg_lean_trunk_lbs ?? '—'}</p>{scan.phase_angle_trunk != null && <p className="text-slate-500">{scan.phase_angle_trunk}°</p>}</div>
+                          <div><p className="text-slate-600">R.Leg</p><p className="text-slate-300">{scan.seg_lean_right_leg_lbs ?? '—'}</p>{scan.phase_angle_right_leg != null && <p className="text-slate-500">{scan.phase_angle_right_leg}°</p>}</div>
+                          <div><p className="text-slate-600">L.Leg</p><p className="text-slate-300">{scan.seg_lean_left_leg_lbs ?? '—'}</p>{scan.phase_angle_left_leg != null && <p className="text-slate-500">{scan.phase_angle_left_leg}°</p>}</div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )

@@ -59,6 +59,13 @@ const QUICK_ACTIONS: QuickAction[] = [
     description: 'Log & review',
     href: '/athlete/supplements',
   },
+  {
+    id: 'biometrics',
+    icon: '📊',
+    label: 'Body Comp',
+    description: 'InBody scans',
+    href: '/athlete/biometrics',
+  },
 ]
 
 function greeting() {

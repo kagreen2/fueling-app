@@ -21,6 +21,8 @@ interface AthleteProfile {
   goal_phase: string
   training_days_per_week: number
   season_phase: string
+  /** InBody-measured BMR — when available, used instead of Mifflin-St Jeor estimate */
+  inbody_bmr?: number
 }
 
 interface NutritionRecommendation {
@@ -214,13 +216,17 @@ function getYouthGrowthCalories(age: number): number {
 export function calculateNutritionRecommendation(
   athlete: AthleteProfile
 ): NutritionRecommendation {
-  // Step 1: Calculate RMR (Mifflin-St Jeor)
-  const rmr = calculateRMR(
+  // Step 1: Calculate RMR
+  // If an InBody-measured BMR is available, use it (more accurate than any formula).
+  // Otherwise fall back to Mifflin-St Jeor estimation.
+  const estimatedRmr = calculateRMR(
     athlete.weight_lbs,
     athlete.height_inches,
     athlete.age,
     athlete.sex
   )
+  const rmr = athlete.inbody_bmr && athlete.inbody_bmr > 0 ? athlete.inbody_bmr : estimatedRmr
+  const rmrSource = athlete.inbody_bmr && athlete.inbody_bmr > 0 ? 'InBody 580 measured' : 'Mifflin-St Jeor estimate'
 
   // Step 2: Apply activity multiplier (ISSN/IOC factors)
   const activityMultiplier = getActivityMultiplier(
@@ -271,7 +277,7 @@ export function calculateNutritionRecommendation(
 
   const methodology = `
 ISSN/IOC Evidence-Based Calculation:
-- RMR (Mifflin-St Jeor): ${Math.round(rmr)} cal
+- RMR (${rmrSource}): ${Math.round(rmr)} cal${athlete.inbody_bmr && athlete.inbody_bmr > 0 ? ` (Mifflin-St Jeor estimate was ${Math.round(estimatedRmr)} cal)` : ''}
 - Activity Factor: ${activityMultiplier.toFixed(2)}x (${athlete.training_days_per_week} days/week, ${athlete.sport}, ${athlete.season_phase})
 - Base TDEE: ${Math.round(rmr * activityMultiplier)} cal
 - Position Adjustment: ${positionAdjustment > 1 ? `+${((positionAdjustment - 1) * 100).toFixed(0)}%` : 'None'}
@@ -290,6 +296,7 @@ Fat: 30% of total calories for hormonal health and essential fatty acids.
 Carbs: Primary fuel source for training and recovery.
 ${youthCalories > 0 ? `Youth athlete: +${youthCalories} cal added for growth and development.` : ''}
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
+${athlete.inbody_bmr ? `Using InBody 580 measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
 ${athlete.season_phase === 'in_season' ? 'In-season: Elevated energy demands from competition + practice.' : ''}
   `.trim()
 
