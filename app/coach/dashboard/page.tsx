@@ -22,6 +22,9 @@ interface AthleteRow {
     weight_lbs: number | null
     goal_phase: string | null
     season_phase: string | null
+    user_type: string | null
+    activity_level: string | null
+    training_style: string | null
     profile: {
       full_name: string
       email: string
@@ -67,6 +70,9 @@ interface AthleteData {
   weight: number | null
   goal: string | null
   season: string | null
+  userType: string | null
+  activityLevel: string | null
+  trainingStyle: string | null
   teamId: string
   teamName: string
   todayCalories: number
@@ -110,6 +116,30 @@ function formatGoal(goal: string | null): string {
 function formatSport(sport: string | null): string {
   if (!sport) return 'N/A'
   return sport.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function formatTrainingStyle(style: string | null): string {
+  if (!style) return 'General'
+  const map: Record<string, string> = {
+    strength: 'Strength',
+    crossfit: 'CrossFit',
+    cardio: 'Cardio',
+    mixed: 'Mixed',
+    yoga_pilates: 'Yoga/Pilates',
+  }
+  return map[style] || style.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function formatUserContext(a: AthleteData): string {
+  if (a.userType === 'member') {
+    return formatTrainingStyle(a.trainingStyle)
+  }
+  return `${formatSport(a.sport)}${a.position ? ` · ${a.position}` : ''}`
+}
+
+function getUserTypeBadge(userType: string | null): { label: string; color: string } {
+  if (userType === 'member') return { label: 'General Fitness', color: 'bg-blue-500/20 text-blue-400' }
+  return { label: 'Athlete', color: 'bg-purple-500/20 text-purple-400' }
 }
 
 function getWellnessLabel(score: number): 'thriving' | 'okay' | 'watch' | 'concern' {
@@ -213,6 +243,9 @@ export default function CoachDashboardPage() {
             weight_lbs,
             goal_phase,
             season_phase,
+            user_type,
+            activity_level,
+            training_style,
             profile:profiles(full_name, email)
           )
         `)
@@ -233,6 +266,9 @@ export default function CoachDashboardPage() {
           weight_lbs,
           goal_phase,
           season_phase,
+          user_type,
+          activity_level,
+          training_style,
           profile:profiles(full_name, email)
         )
       `)
@@ -387,6 +423,9 @@ export default function CoachDashboardPage() {
         weight: athlete?.weight_lbs,
         goal: athlete?.goal_phase,
         season: athlete?.season_phase,
+        userType: athlete?.user_type || 'athlete',
+        activityLevel: athlete?.activity_level,
+        trainingStyle: athlete?.training_style,
         teamId: m.team_id,
         teamName: teamMap[m.team_id] || 'Unknown Team',
         todayCalories,
@@ -884,7 +923,7 @@ export default function CoachDashboardPage() {
                               </div>
                               <div>
                                 <p className="text-white text-sm font-medium">{a.name}</p>
-                                <p className="text-slate-500 text-xs">{formatSport(a.sport)}{a.position ? ` · ${a.position}` : ''}</p>
+                                <p className="text-slate-500 text-xs">{formatUserContext(a)}</p>
                               </div>
                             </div>
                           </td>
@@ -1016,7 +1055,7 @@ export default function CoachDashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white font-medium text-sm truncate">{a.name}</p>
-                        <p className="text-slate-500 text-xs">{a.teamName} · {formatSport(a.sport)}</p>
+                        <p className="text-slate-500 text-xs">{a.teamName} · {formatUserContext(a)}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className={`text-lg font-bold ${
@@ -1079,7 +1118,7 @@ export default function CoachDashboardPage() {
                               </div>
                               <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
                             </div>
-                            <p className="text-slate-500 text-xs mb-2">{alert.athlete.teamName} · {formatSport(alert.athlete.sport)}</p>
+                            <p className="text-slate-500 text-xs mb-2">{alert.athlete.teamName} · {formatUserContext(alert.athlete)}</p>
                             <div className="flex items-center gap-2">
                               <svg className={`w-3.5 h-3.5 flex-shrink-0 ${
                                 alert.severity === 'high' ? 'text-red-400' : 'text-orange-400'
@@ -1130,7 +1169,7 @@ export default function CoachDashboardPage() {
                                 <p className="text-white font-medium">{a.name}</p>
                                 <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
                               </div>
-                              <p className="text-slate-500 text-xs mb-2">{a.teamName} · {formatSport(a.sport)}</p>
+                              <p className="text-slate-500 text-xs mb-2">{a.teamName} · {formatUserContext(a)}</p>
                               <div className="flex flex-col gap-1">
                                 {reasons.map((r, i) => (
                                   <div key={i} className="flex items-center gap-2">

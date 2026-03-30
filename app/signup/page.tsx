@@ -20,7 +20,7 @@ export default function SignupPage( ) {
     password: '',
     confirmPassword: '',
     inviteCode: '',
-    role: 'athlete' as 'athlete' | 'coach',
+    role: 'athlete' as 'athlete' | 'member' | 'coach',
   })
 
   // Pre-fill invite code from URL params (e.g., from QR code scan)
@@ -34,6 +34,8 @@ export default function SignupPage( ) {
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
+
+  const isAthleteOrMember = form.role === 'athlete' || form.role === 'member'
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
@@ -87,19 +89,23 @@ export default function SignupPage( ) {
           attempts++
         }
 
+        // For both athlete and member roles, store as 'athlete' in profiles
+        // The user_type distinction is stored in the athletes table during onboarding
+        const profileRole = form.role === 'coach' ? 'coach' : 'athlete'
+
         if (!profileExists) {
           await supabase.from('profiles').insert({
             id: data.user.id,
             full_name: form.fullName,
             email: form.email,
-            role: form.role,
-            subscription_status: form.role === 'athlete' ? 'unpaid' : null,
+            role: profileRole,
+            subscription_status: isAthleteOrMember ? 'unpaid' : null,
           })
         } else {
           await supabase.from('profiles').update({
-            role: form.role,
+            role: profileRole,
             full_name: form.fullName,
-            subscription_status: form.role === 'athlete' ? 'unpaid' : null,
+            subscription_status: isAthleteOrMember ? 'unpaid' : null,
           }).eq('id', data.user.id)
         }
 
@@ -109,6 +115,9 @@ export default function SignupPage( ) {
           if (form.inviteCode.trim()) {
             localStorage.setItem('fuel_invite_code', form.inviteCode.trim().toUpperCase())
           }
+
+          // Store user type selection so onboarding can pre-fill it
+          localStorage.setItem('fuel_user_type', form.role)
 
           const res = await fetch('/api/billing/athlete-checkout', {
             method: 'POST',
@@ -151,9 +160,10 @@ export default function SignupPage( ) {
             <div className="text-4xl">⚡</div>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Join Fuel Different</h1>
-          <p className="text-slate-400">Performance fueling for serious athletes</p>
+          <p className="text-slate-400">Performance fueling for serious athletes &amp; fitness enthusiasts</p>
         </div>
 
+        {/* Role selection — 3 options */}
         <div className="flex gap-3 mb-6">
           <button
             type="button"
@@ -165,8 +175,21 @@ export default function SignupPage( ) {
             }`}
           >
             <div className="text-2xl mb-1">🏈</div>
-            <div className="font-semibold text-sm">I&apos;m an Athlete</div>
-            <div className="text-xs text-slate-500 mt-0.5">Track meals &amp; performance</div>
+            <div className="font-semibold text-sm">Athlete</div>
+            <div className="text-xs text-slate-500 mt-0.5">Sport-specific nutrition</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setForm(prev => ({ ...prev, role: 'member' }))}
+            className={`flex-1 py-4 rounded-xl border-2 transition-all duration-200 text-center ${
+              form.role === 'member'
+                ? 'border-blue-500 bg-blue-500/10 text-white'
+                : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
+            }`}
+          >
+            <div className="text-2xl mb-1">💪</div>
+            <div className="font-semibold text-sm">General Fitness</div>
+            <div className="text-xs text-slate-500 mt-0.5">Personalized coaching</div>
           </button>
           <button
             type="button"
@@ -178,7 +201,7 @@ export default function SignupPage( ) {
             }`}
           >
             <div className="text-2xl mb-1">📋</div>
-            <div className="font-semibold text-sm">I&apos;m a Coach</div>
+            <div className="font-semibold text-sm">Coach</div>
             <div className="text-xs text-slate-500 mt-0.5">Monitor your team</div>
           </button>
         </div>
@@ -229,7 +252,7 @@ export default function SignupPage( ) {
             />
           </div>
 
-          {form.role === 'athlete' && (
+          {isAthleteOrMember && (
             <div>
               <label className="text-slate-300 text-sm font-medium mb-2 block">
                 Team Invite Code <span className="text-slate-500">(from your coach)</span>
@@ -250,14 +273,14 @@ export default function SignupPage( ) {
           {form.role === 'coach' && (
             <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3">
               <p className="text-sm text-orange-300/80">
-                After signing up, you&apos;ll create your team and get an invite code to share with your athletes.
+                After signing up, you&apos;ll create your team and get an invite code to share with your athletes and members.
               </p>
             </div>
           )}
 
-          {form.role === 'athlete' && (
-            <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl px-4 py-3">
-              <p className="text-sm text-purple-300/80">
+          {isAthleteOrMember && (
+            <div className={`${form.role === 'member' ? 'bg-blue-500/5 border-blue-500/20' : 'bg-purple-500/5 border-purple-500/20'} border rounded-xl px-4 py-3`}>
+              <p className={`text-sm ${form.role === 'member' ? 'text-blue-300/80' : 'text-purple-300/80'}`}>
                 After creating your account, you&apos;ll be directed to complete payment ($20/month). Have a promo code? You can enter it at checkout.
               </p>
             </div>
@@ -275,11 +298,13 @@ export default function SignupPage( ) {
             className={`w-full font-semibold py-3 rounded-xl text-lg transition-colors mt-2 text-white ${
               form.role === 'coach'
                 ? 'bg-orange-600 hover:bg-orange-700 disabled:bg-orange-600/50'
+                : form.role === 'member'
+                ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50'
                 : 'bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50'
             }`}
           >
             {loading
-              ? (form.role === 'athlete' ? 'Creating account & preparing checkout...' : 'Creating account...')
+              ? (isAthleteOrMember ? 'Creating account & preparing checkout...' : 'Creating account...')
               : form.role === 'coach'
               ? 'Create Coach Account'
               : 'Create Account & Continue to Payment'}

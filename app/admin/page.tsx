@@ -204,11 +204,11 @@ export default function AdminDashboard() {
       if (teamsRes.data) setTeams(teamsRes.data)
       if (teamMembersRes.data) setTeamMembers(teamMembersRes.data)
       if (athletesRes.data) {
-        // Filter out admin/coach accounts that have athlete records
-        const athleteProfileIds = new Set(
-          (profilesRes.data || []).filter((p: any) => p.role === 'athlete').map((p: any) => p.id)
+        // Filter out admin/coach accounts that have athlete records — include both athletes and members
+        const athleteOrMemberProfileIds = new Set(
+          (profilesRes.data || []).filter((p: any) => p.role === 'athlete' || p.role === 'member').map((p: any) => p.id)
         )
-        const realAthletes = athletesRes.data.filter((a: any) => athleteProfileIds.has(a.profile_id))
+        const realAthletes = athletesRes.data.filter((a: any) => athleteOrMemberProfileIds.has(a.profile_id))
         setAthletes(realAthletes)
       }
       if (recsRes.data) setNutritionRecs(recsRes.data)
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
     }
   }
 
-  const athleteProfiles = useMemo(() => profiles.filter(p => p.role === 'athlete'), [profiles])
+  const athleteProfiles = useMemo(() => profiles.filter(p => p.role === 'athlete' || p.role === 'member'), [profiles])
   const coachProfiles = useMemo(() => profiles.filter(p => p.role === 'coach'), [profiles])
   const adminProfiles = useMemo(() => profiles.filter(p => ['admin', 'super_admin'].includes(p.role)), [profiles])
 
@@ -323,13 +323,13 @@ export default function AdminDashboard() {
     // New athletes (joined in last 7 days)
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const newAthletes = profiles.filter(p => p.role === 'athlete' && new Date(p.created_at) > sevenDaysAgo)
+    const newAthletes = profiles.filter(p => (p.role === 'athlete' || p.role === 'member') && new Date(p.created_at) > sevenDaysAgo)
     if (newAthletes.length > 0) {
       items.push({
         id: 'new_athletes',
         type: 'info',
         icon: '✨',
-        message: `${newAthletes.length} new athlete${newAthletes.length > 1 ? 's' : ''} joined this week: ${newAthletes.slice(0, 3).map(a => a.full_name).join(', ')}${newAthletes.length > 3 ? ` +${newAthletes.length - 3} more` : ''}`,
+        message: `${newAthletes.length} new member${newAthletes.length > 1 ? 's' : ''} joined this week: ${newAthletes.slice(0, 3).map(a => a.full_name).join(', ')}${newAthletes.length > 3 ? ` +${newAthletes.length - 3} more` : ''}`,
         tab: 'users',
       })
     }
@@ -1009,7 +1009,7 @@ export default function AdminDashboard() {
                             >
                               Edit
                             </button>
-                            {user.role === 'athlete' && athleteByProfileId[user.id] && (
+                            {(user.role === 'athlete' || user.role === 'member') && athleteByProfileId[user.id] && (
                               <button
                                 onClick={() => router.push(`/coach/athlete/${athleteByProfileId[user.id].id}`)}
                                 className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
@@ -1348,17 +1348,17 @@ export default function AdminDashboard() {
                 <p className="text-2xl font-bold text-white">{teams.length}</p>
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Athletes</p>
-                <p className="text-2xl font-bold text-white">{profiles.filter(p => p.role === 'athlete').length}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Athletes & Members</p>
+                <p className="text-2xl font-bold text-white">{profiles.filter(p => p.role === 'athlete' || p.role === 'member').length}</p>
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Price/Athlete</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Price/Member</p>
                 <p className="text-2xl font-bold text-green-400">$20</p>
                 <p className="text-xs text-slate-500">per month</p>
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Est. Monthly Revenue</p>
-                <p className="text-2xl font-bold text-green-400">${(profiles.filter(p => p.role === 'athlete').length * 20).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-green-400">${(profiles.filter(p => p.role === 'athlete' || p.role === 'member').length * 20).toLocaleString()}</p>
               </div>
             </div>
 

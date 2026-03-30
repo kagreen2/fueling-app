@@ -6,9 +6,19 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
-const STEPS = [
+// Steps change based on user type
+const ATHLETE_STEPS = [
+  'User type',
   'Personal info',
   'Sport & team',
+  'Body stats',
+  'Goals',
+  'Training',
+]
+
+const MEMBER_STEPS = [
+  'User type',
+  'Personal info',
   'Body stats',
   'Goals',
   'Training',
@@ -28,7 +38,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     const invite = searchParams.get('invite')
     if (invite) {
-      setForm(prev => ({ ...prev, inviteCode: invite.toUpperCase() }))
+      setForm(prev => ({ ...prev, inviteCode: invite.toUpperCase(), userType: 'athlete' }))
       // Auto-lookup the team
       const lookupTeam = async () => {
         const { data: team } = await supabase
@@ -40,31 +50,46 @@ export default function OnboardingPage() {
       }
       lookupTeam()
     }
+
+    // Pick up user type from signup page selection
+    const storedUserType = localStorage.getItem('fuel_user_type')
+    if (storedUserType === 'athlete' || storedUserType === 'member') {
+      setForm(prev => ({ ...prev, userType: storedUserType }))
+      setStep(1) // Skip the user type step since they already chose
+      localStorage.removeItem('fuel_user_type')
+    }
   }, [searchParams, supabase])
 
   const [form, setForm] = useState({
+    // Step 0 — User type
+    userType: '' as '' | 'athlete' | 'member',
     // Step 1 — Personal
     dob: '',
     sex: '',
     school: '',
     grade: '',
-    // Step 2 — Sport
+    // Step 2 (athlete) — Sport
     sport: '',
     position: '',
     teamLevel: '',
     seasonPhase: '',
     inviteCode: '',
-    // Step 3 — Body
+    // Step 2/3 — Body
     heightFt: '',
     heightIn: '',
     weightLbs: '',
-    // Step 4 — Goals
+    // Step 3/4 — Goals
     goalPhase: '',
     allergies: '',
     dietaryRestrictions: '',
-    // Step 5 — Training
+    // Step 4/5 — Training
     trainingSchedule: '',
+    // Member-specific fields
+    activityLevel: '',
+    trainingStyle: '',
   })
+
+  const STEPS = form.userType === 'member' ? MEMBER_STEPS : ATHLETE_STEPS
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -102,6 +127,9 @@ export default function OnboardingPage() {
     setStep(s => Math.max(s - 1, 0))
   }
 
+  // Get the current step name to determine which content to show
+  const currentStepName = STEPS[step]
+
   async function handleSubmit() {
     setLoading(true)
     setError('')
@@ -120,27 +148,32 @@ export default function OnboardingPage() {
 
     let athleteId: string
 
+    const athleteData = {
+      dob: form.dob,
+      sex: form.sex,
+      school: form.school || null,
+      grade: form.userType === 'athlete' ? form.grade : null,
+      sport: form.userType === 'athlete' ? (form.sport || null) : null,
+      position: form.userType === 'athlete' ? (form.position || null) : null,
+      team_level: form.userType === 'athlete' ? (form.teamLevel || null) : null,
+      height_inches: heightInches,
+      weight_lbs: parseFloat(form.weightLbs) || null,
+      goal_phase: form.goalPhase || 'maintain_performance',
+      season_phase: form.userType === 'athlete' ? (form.seasonPhase || 'offseason') : null,
+      allergies: form.allergies ? form.allergies.split(',').map((s: string) => s.trim()) : [],
+      dietary_restrictions: form.dietaryRestrictions ? form.dietaryRestrictions.split(',').map((s: string) => s.trim()) : [],
+      training_schedule: form.trainingSchedule,
+      onboarding_complete: true,
+      user_type: form.userType || 'athlete',
+      activity_level: form.userType === 'member' ? (form.activityLevel || null) : null,
+      training_style: form.userType === 'member' ? (form.trainingStyle || null) : null,
+    }
+
     if (existing) {
       athleteId = existing.id
       const { error: err } = await supabase
         .from('athletes')
-        .update({
-          dob: form.dob,
-          sex: form.sex,
-          school: form.school || null,
-          grade: form.grade,
-          sport: form.sport || null,
-          position: form.position || null,
-          team_level: form.teamLevel || null,
-          height_inches: heightInches,
-          weight_lbs: parseFloat(form.weightLbs) || null,
-          goal_phase: form.goalPhase || 'maintain_performance',
-          season_phase: form.seasonPhase || 'offseason',
-          allergies: form.allergies ? form.allergies.split(',').map((s: string) => s.trim()) : [],
-          dietary_restrictions: form.dietaryRestrictions ? form.dietaryRestrictions.split(',').map((s: string) => s.trim()) : [],
-          training_schedule: form.trainingSchedule,
-          onboarding_complete: true,
-        })
+        .update(athleteData)
         .eq('profile_id', user.id)
       if (err) { setError(err.message); setLoading(false); return }
     } else {
@@ -148,21 +181,7 @@ export default function OnboardingPage() {
         .from('athletes')
         .insert({
           profile_id: user.id,
-          dob: form.dob,
-          sex: form.sex,
-          school: form.school || null,
-          grade: form.grade,
-          sport: form.sport || null,
-          position: form.position || null,
-          team_level: form.teamLevel || null,
-          height_inches: heightInches,
-          weight_lbs: parseFloat(form.weightLbs) || null,
-          goal_phase: form.goalPhase || 'maintain_performance',
-          season_phase: form.seasonPhase || 'offseason',
-          allergies: form.allergies ? form.allergies.split(',').map((s: string) => s.trim()) : [],
-          dietary_restrictions: form.dietaryRestrictions ? form.dietaryRestrictions.split(',').map((s: string) => s.trim()) : [],
-          training_schedule: form.trainingSchedule,
-          onboarding_complete: true,
+          ...athleteData,
         })
         .select('id')
         .single()
@@ -170,7 +189,7 @@ export default function OnboardingPage() {
       athleteId = newAthlete.id
     }
 
-    // Join team if invite code was provided
+    // Join team if invite code was provided (athletes only)
     if (form.inviteCode.trim()) {
       try {
         const { data: team } = await supabase
@@ -189,7 +208,6 @@ export default function OnboardingPage() {
         }
       } catch (e) {
         console.error('Error joining team:', e)
-        // Don't block onboarding if team join fails
       }
     }
 
@@ -245,8 +263,57 @@ export default function OnboardingPage() {
 
         {/* Form Container */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 backdrop-blur">
-          {/* Step 1 — Personal info */}
-          {step === 0 && (
+          
+          {/* Step: User Type Selection */}
+          {currentStepName === 'User type' && (
+            <div className="flex flex-col gap-4">
+              <h2 className="text-2xl font-bold text-white mb-2">Welcome to Fuel Different</h2>
+              <p className="text-slate-400 text-sm">How would you like to use the app?</p>
+              
+              <button
+                type="button"
+                onClick={() => { update('userType', 'athlete'); next() }}
+                className={`w-full text-left px-5 py-5 rounded-xl border transition-all ${
+                  form.userType === 'athlete'
+                    ? 'border-purple-600 bg-purple-600/10 text-white'
+                    : 'border-slate-600 bg-slate-700/50 text-slate-300 hover:border-slate-500 hover:bg-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center text-2xl">
+                    🏆
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">Athlete</div>
+                    <div className="text-sm text-slate-400">I play a sport and want sport-specific nutrition guidance</div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { update('userType', 'member'); next() }}
+                className={`w-full text-left px-5 py-5 rounded-xl border transition-all ${
+                  form.userType === 'member'
+                    ? 'border-purple-600 bg-purple-600/10 text-white'
+                    : 'border-slate-600 bg-slate-700/50 text-slate-300 hover:border-slate-500 hover:bg-slate-700'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-purple-600/20 flex items-center justify-center text-2xl">
+                    💪
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg">General Fitness</div>
+                    <div className="text-sm text-slate-400">I train at the gym and want personalized nutrition coaching</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* Step: Personal info */}
+          {currentStepName === 'Personal info' && (
             <div className="flex flex-col gap-4">
               <h2 className="text-2xl font-bold text-white mb-2">Personal info</h2>
               
@@ -265,25 +332,29 @@ export default function OnboardingPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="text-slate-300 text-sm font-medium mb-2 block">School</label>
-                <input type="text" value={form.school} onChange={e => update('school', e.target.value)} placeholder="School name" className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500" />
-              </div>
+              {form.userType === 'athlete' && (
+                <>
+                  <div>
+                    <label className="text-slate-300 text-sm font-medium mb-2 block">School</label>
+                    <input type="text" value={form.school} onChange={e => update('school', e.target.value)} placeholder="School name" className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500" />
+                  </div>
 
-              <div>
-                <label className="text-slate-300 text-sm font-medium mb-2 block">Grade</label>
-                <select value={form.grade} onChange={e => update('grade', e.target.value)} className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors appearance-none">
-                  <option value="">Select...</option>
-                  {['7th','8th','9th','10th','11th','12th','College Freshman','College Sophomore','College Junior','College Senior'].map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
+                  <div>
+                    <label className="text-slate-300 text-sm font-medium mb-2 block">Grade</label>
+                    <select value={form.grade} onChange={e => update('grade', e.target.value)} className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors appearance-none">
+                      <option value="">Select...</option>
+                      {['7th','8th','Freshman','Sophomore','Junior','Senior','College Freshman','College Sophomore','College Junior','College Senior'].map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
-          {/* Step 2 — Sport & team */}
-          {step === 1 && (
+          {/* Step: Sport & team (athletes only) */}
+          {currentStepName === 'Sport & team' && (
             <div className="flex flex-col gap-4">
               <h2 className="text-2xl font-bold text-white mb-2">Sport & team</h2>
               
@@ -374,8 +445,8 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 3 — Body stats */}
-          {step === 2 && (
+          {/* Step: Body stats */}
+          {currentStepName === 'Body stats' && (
             <div className="flex flex-col gap-4">
               <h2 className="text-2xl font-bold text-white mb-2">Body stats</h2>
               <p className="text-slate-400 text-sm">Used to calculate your personal fueling targets.</p>
@@ -399,35 +470,60 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 4 — Goals */}
-          {step === 3 && (
+          {/* Step: Goals */}
+          {currentStepName === 'Goals' && (
             <div className="flex flex-col gap-4">
               <h2 className="text-2xl font-bold text-white mb-2">Your goal</h2>
               
               <div>
                 <label className="text-slate-300 text-sm font-medium mb-3 block">Primary goal</label>
                 <div className="flex flex-col gap-2">
-                  {[
-                    { value: 'gain_lean_mass', label: 'Gain lean mass', desc: 'Build muscle while minimizing fat' },
-                    { value: 'lose_body_fat', label: 'Lose body fat', desc: 'Reduce fat while keeping muscle' },
-                    { value: 'maintain_performance', label: 'Maintain & perform', desc: 'Fuel training without changing weight' },
-                    { value: 'in_season_maintenance', label: 'In-season maintenance', desc: 'Stay fueled and recovered during season' },
-                    { value: 'recover_rebuild', label: 'Recover & rebuild', desc: 'Coming back from injury or offseason' },
-                  ].map(g => (
-                    <button
-                      key={g.value}
-                      type="button"
-                      onClick={() => update('goalPhase', g.value)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                        form.goalPhase === g.value
-                          ? 'border-purple-600 bg-purple-600/10 text-white'
-                          : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
-                      }`}
-                    >
-                      <div className="font-medium">{g.label}</div>
-                      <div className="text-sm text-slate-500">{g.desc}</div>
-                    </button>
-                  ))}
+                  {form.userType === 'athlete' ? (
+                    // Athlete goals
+                    [
+                      { value: 'gain_lean_mass', label: 'Gain lean mass', desc: 'Build muscle while minimizing fat' },
+                      { value: 'lose_body_fat', label: 'Lose body fat', desc: 'Reduce fat while keeping muscle' },
+                      { value: 'maintain_performance', label: 'Maintain & perform', desc: 'Fuel training without changing weight' },
+                      { value: 'in_season_maintenance', label: 'In-season maintenance', desc: 'Stay fueled and recovered during season' },
+                      { value: 'recover_rebuild', label: 'Recover & rebuild', desc: 'Coming back from injury or offseason' },
+                    ].map(g => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => update('goalPhase', g.value)}
+                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                          form.goalPhase === g.value
+                            ? 'border-purple-600 bg-purple-600/10 text-white'
+                            : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
+                        }`}
+                      >
+                        <div className="font-medium">{g.label}</div>
+                        <div className="text-sm text-slate-500">{g.desc}</div>
+                      </button>
+                    ))
+                  ) : (
+                    // General fitness goals
+                    [
+                      { value: 'lose_body_fat', label: 'Lose body fat', desc: 'Reduce fat while preserving muscle' },
+                      { value: 'gain_lean_mass', label: 'Build muscle', desc: 'Gain lean mass and strength' },
+                      { value: 'maintain_performance', label: 'Maintain weight', desc: 'Stay at current weight while improving fitness' },
+                      { value: 'recover_rebuild', label: 'Improve overall health', desc: 'Better energy, recovery, and general wellness' },
+                    ].map(g => (
+                      <button
+                        key={g.value}
+                        type="button"
+                        onClick={() => update('goalPhase', g.value)}
+                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                          form.goalPhase === g.value
+                            ? 'border-purple-600 bg-purple-600/10 text-white'
+                            : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
+                        }`}
+                      >
+                        <div className="font-medium">{g.label}</div>
+                        <div className="text-sm text-slate-500">{g.desc}</div>
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -443,16 +539,74 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Step 5 — Training */}
-          {step === 4 && (
+          {/* Step: Training */}
+          {currentStepName === 'Training' && (
             <div className="flex flex-col gap-4">
-              <h2 className="text-2xl font-bold text-white mb-2">Training schedule</h2>
-              <p className="text-slate-400 text-sm">How many days per week do you train?</p>
-              
+              <h2 className="text-2xl font-bold text-white mb-2">Training</h2>
+
+              {form.userType === 'member' && (
+                <>
+                  <div>
+                    <label className="text-slate-300 text-sm font-medium mb-3 block">Activity level</label>
+                    <div className="flex flex-col gap-2">
+                      {[
+                        { value: 'sedentary', label: 'Sedentary', desc: 'Desk job, little to no exercise' },
+                        { value: 'lightly_active', label: 'Lightly active', desc: 'Light exercise 1-3 days/week' },
+                        { value: 'moderately_active', label: 'Moderately active', desc: 'Moderate exercise 3-5 days/week' },
+                        { value: 'very_active', label: 'Very active', desc: 'Hard exercise 6-7 days/week' },
+                        { value: 'extremely_active', label: 'Extremely active', desc: 'Very hard exercise, physical job, or 2x/day training' },
+                      ].map(a => (
+                        <button
+                          key={a.value}
+                          type="button"
+                          onClick={() => update('activityLevel', a.value)}
+                          className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                            form.activityLevel === a.value
+                              ? 'border-purple-600 bg-purple-600/10 text-white'
+                              : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
+                          }`}
+                        >
+                          <div className="font-medium">{a.label}</div>
+                          <div className="text-sm text-slate-500">{a.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 text-sm font-medium mb-3 block">Training style</label>
+                    <div className="flex flex-col gap-2">
+                      {[
+                        { value: 'strength', label: 'Strength Training', desc: 'Weightlifting, powerlifting, bodybuilding' },
+                        { value: 'crossfit', label: 'CrossFit / Functional Fitness', desc: 'Mixed modality, high intensity' },
+                        { value: 'cardio', label: 'Cardio / Endurance', desc: 'Running, cycling, swimming' },
+                        { value: 'mixed', label: 'Mixed / General Fitness', desc: 'Combination of strength and cardio' },
+                        { value: 'yoga_pilates', label: 'Yoga / Pilates', desc: 'Flexibility, mobility, and bodyweight' },
+                      ].map(t => (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => update('trainingStyle', t.value)}
+                          className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                            form.trainingStyle === t.value
+                              ? 'border-purple-600 bg-purple-600/10 text-white'
+                              : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
+                          }`}
+                        >
+                          <div className="font-medium">{t.label}</div>
+                          <div className="text-sm text-slate-500">{t.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="text-slate-300 text-sm font-medium mb-3 block">Training frequency</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['3', '4', '5', '6', '7'].map(days => (
+                <p className="text-slate-400 text-sm mb-3">How many days per week do you train?</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {(form.userType === 'member' ? ['1', '2', '3', '4', '5', '6', '7'] : ['3', '4', '5', '6', '7']).map(days => (
                     <button
                       key={days}
                       type="button"
@@ -480,7 +634,7 @@ export default function OnboardingPage() {
 
           {/* Navigation buttons */}
           <div className="flex gap-3 mt-8">
-            {step > 0 && (
+            {step > 0 && currentStepName !== 'User type' && (
               <Button
                 variant="secondary"
                 onClick={back}
@@ -489,21 +643,23 @@ export default function OnboardingPage() {
                 Back
               </Button>
             )}
-            {step < STEPS.length - 1 ? (
-              <Button
-                onClick={next}
-                className="flex-1 bg-purple-600 hover:bg-purple-700"
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="flex-1 bg-purple-600 hover:bg-purple-700"
-              >
-                {loading ? 'Completing...' : 'Complete Profile'}
-              </Button>
+            {currentStepName !== 'User type' && (
+              step < STEPS.length - 1 ? (
+                <Button
+                  onClick={next}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                >
+                  {loading ? 'Completing...' : 'Complete Profile'}
+                </Button>
+              )
             )}
           </div>
         </div>

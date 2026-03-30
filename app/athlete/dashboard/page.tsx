@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
 import { ProgressRing } from '@/components/ui/ProgressRing'
+import ChatPanel from '@/components/ChatPanel'
 
 interface AthleteStats {
   todayCalories: number
@@ -98,6 +99,8 @@ export default function AthleteDashboard() {
   const [athlete, setAthlete] = useState<any>(null)
   const [showTutorial, setShowTutorial] = useState(false)
   const [tutorialStep, setTutorialStep] = useState(0)
+  const [userId, setUserId] = useState<string>('')
+  const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string } | null>(null)
 
   const TUTORIAL_SLIDES = [
     {
@@ -206,6 +209,49 @@ export default function AthleteDashboard() {
       }
 
       setAthlete(athleteData)
+      setUserId(user.id)
+
+      // Check for coach assignment (for chat)
+      const { data: coachAssignment } = await supabase
+        .from('athlete_coach_assignments')
+        .select('coach_id')
+        .eq('athlete_id', athleteData.id)
+        .limit(1)
+        .single()
+
+      if (coachAssignment) {
+        const { data: coachProf } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('id', coachAssignment.coach_id)
+          .single()
+        if (coachProf) setCoachProfile(coachProf)
+      } else {
+        // Check team-based coach
+        const { data: teamMembership } = await supabase
+          .from('team_members')
+          .select('team_id')
+          .eq('athlete_id', athleteData.id)
+          .limit(1)
+          .single()
+
+        if (teamMembership) {
+          const { data: team } = await supabase
+            .from('teams')
+            .select('coach_id')
+            .eq('id', teamMembership.team_id)
+            .single()
+
+          if (team?.coach_id) {
+            const { data: coachProf } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .eq('id', team.coach_id)
+              .single()
+            if (coachProf) setCoachProfile(coachProf)
+          }
+        }
+      }
 
       // Get nutrition recommendations
       const { data: recsData } = await supabase
@@ -707,6 +753,20 @@ export default function AthleteDashboard() {
           </div>
         )}
       </div>
+      {/* Coach Chat */}
+      {athlete && userId && coachProfile && (
+        <div className="mt-6">
+          <ChatPanel
+            athleteId={athlete.id}
+            currentUserId={userId}
+            otherUserId={coachProfile.id}
+            otherUserName={coachProfile.full_name || 'Your Coach'}
+            otherUserRole="Coach"
+            compact
+          />
+        </div>
+      )}
+
       {/* Tutorial Slideshow Modal */}
       {showTutorial && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">

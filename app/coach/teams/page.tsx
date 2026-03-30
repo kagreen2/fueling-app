@@ -257,7 +257,7 @@ export default function CoachTeamsPage() {
               <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </div>
             <h2 className="text-xl font-bold text-white mb-2">No Teams Yet</h2>
-            <p className="text-slate-400 mb-6 max-w-md mx-auto">Create your first team and share the invite code with your athletes. They'll enter the code during signup to join your team.</p>
+            <p className="text-slate-400 mb-6 max-w-md mx-auto">Create your first team and share the invite code with your athletes and members. They'll enter the code during signup to join your team.</p>
             <button
               onClick={() => setShowCreate(true)}
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors"
@@ -273,7 +273,7 @@ export default function CoachTeamsPage() {
                   <div>
                     <h3 className="text-white font-semibold text-lg">{team.name}</h3>
                     <p className="text-slate-400 text-sm">
-                      {team.sport || 'No sport specified'} · {team.memberCount} athlete{team.memberCount !== 1 ? 's' : ''}
+                      {team.sport || 'General'} · {team.memberCount} member{team.memberCount !== 1 ? 's' : ''}
                     </p>
                     {team.description && (
                       <p className="text-slate-500 text-sm mt-1">{team.description}</p>
@@ -317,7 +317,7 @@ export default function CoachTeamsPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
                       {showQR === team.id ? 'Hide QR' : 'Show QR Code'}
                     </button>
-                    <p className="text-slate-500 text-xs">Share this code with your athletes. They'll enter it during signup to join this team.</p>
+                    <p className="text-slate-500 text-xs">Share this code with your athletes and members. They'll enter it during signup to join this team.</p>
                   </div>
 
                   {/* QR Code Display */}
@@ -330,7 +330,7 @@ export default function CoachTeamsPage() {
                         includeMargin={true}
                       />
                       <p className="text-slate-600 text-xs text-center font-medium">Scan to join {team.name}</p>
-                      <p className="text-slate-400 text-xs text-center">Athletes scan this QR code to sign up with the invite code pre-filled</p>
+                      <p className="text-slate-400 text-xs text-center">Scan this QR code to sign up with the invite code pre-filled</p>
                     </div>
                   )}
                 </div>
@@ -341,7 +341,7 @@ export default function CoachTeamsPage() {
                     onClick={() => router.push(`/coach/dashboard?team=${team.id}`)}
                     className="px-4 py-2 bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 text-sm font-medium rounded-lg border border-purple-500/20 transition-colors"
                   >
-                    View Athletes
+                    View Members
                   </button>
                   {deleteConfirm === team.id ? (
                     <div className="flex items-center gap-2">

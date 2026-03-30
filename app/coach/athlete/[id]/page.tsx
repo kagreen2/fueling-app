@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import InBodyProgressCharts from '@/components/InBodyProgressCharts'
+import ChatPanel from '@/components/ChatPanel'
 
 function getLocalDateString(date: Date = new Date()): string {
   const year = date.getFullYear()
@@ -62,6 +64,7 @@ export default function CoachAthleteDetailPage() {
   const [savingNote, setSavingNote] = useState(false)
   const [notesLoading, setNotesLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string>('')
 
   // Supplements state
   const [supplements, setSupplements] = useState<any[]>([])
@@ -325,6 +328,7 @@ export default function CoachAthleteDetailPage() {
 
     const adminCheck = userProfile && ['admin', 'super_admin'].includes(userProfile.role)
     setIsAdmin(!!adminCheck)
+    setCurrentUserId(user.id)
     const isAdmin = adminCheck
 
     if (!isAdmin) {
@@ -1006,6 +1010,13 @@ export default function CoachAthleteDetailPage() {
             </div>
           )}
 
+          {/* Progress Charts */}
+          {!biometricsLoading && biometricScans.length >= 1 && (
+            <div className="px-5 py-4">
+              <InBodyProgressCharts scans={biometricScans} compact />
+            </div>
+          )}
+
           {/* Scan History */}
           {biometricsLoading ? (
             <div className="p-6 text-center"><div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
@@ -1135,6 +1146,19 @@ export default function CoachAthleteDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Chat / Messaging */}
+        {athlete && profile && currentUserId && athlete.profile_id && (
+          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
+            <ChatPanel
+              athleteId={athleteId}
+              currentUserId={currentUserId}
+              otherUserId={athlete.profile_id}
+              otherUserName={profile.full_name || 'Athlete'}
+              otherUserRole={athlete.user_type === 'member' ? 'General Fitness' : 'Athlete'}
+            />
+          </div>
+        )}
       </div>
     </main>
   )

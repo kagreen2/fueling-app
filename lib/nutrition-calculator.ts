@@ -8,6 +8,10 @@
  * - Carbs: Remaining calories (fueling training & recovery)
  * - Activity level significantly impacts TDEE via ISSN/IOC activity factors
  * - Youth athletes (under 18) get a growth factor adjustment
+ * 
+ * Supports two user types:
+ * - Athletes: Sport-specific multipliers, season phase, position adjustments, youth growth
+ * - General Fitness: Activity-level and training-style based multipliers
  */
 
 interface AthleteProfile {
@@ -23,6 +27,12 @@ interface AthleteProfile {
   season_phase: string
   /** InBody-measured BMR — when available, used instead of Mifflin-St Jeor estimate */
   inbody_bmr?: number
+  /** User type — 'athlete' or 'member' */
+  user_type?: 'athlete' | 'member'
+  /** Activity level for general members */
+  activity_level?: string
+  /** Training style for general members */
+  training_style?: string
 }
 
 interface NutritionRecommendation {
@@ -55,7 +65,7 @@ function calculateRMR(
 }
 
 /**
- * Get activity multiplier based on training frequency, sport type, and season
+ * Get activity multiplier for ATHLETES based on training frequency, sport type, and season
  * 
  * References:
  * - ISSN Position Stand on Diets and Body Composition (2017)
@@ -67,7 +77,7 @@ function calculateRMR(
  * Sport-specific multipliers account for training intensity and metabolic demands
  * Season phase adjustments reflect periodized energy needs
  */
-function getActivityMultiplier(
+function getAthleteActivityMultiplier(
   training_days_per_week: number,
   sport: string,
   season_phase: string
@@ -88,12 +98,10 @@ function getActivityMultiplier(
   }
 
   // Sport-specific intensity adjustments (IOC Consensus)
-  // High-intensity intermittent sports: elevated EPOC, higher glycolytic demand
   const highIntensitySports = [
     'football', 'rugby', 'hockey', 'basketball', 'soccer',
     'lacrosse', 'wrestling', 'volleyball', 'tennis'
   ]
-  // Endurance sports: sustained aerobic output, highest caloric burn per session
   const enduranceSports = [
     'cross_country', 'track', 'track_and_field', 'swimming', 'rowing', 'cycling',
     'triathlon', 'distance_running'
@@ -116,6 +124,70 @@ function getActivityMultiplier(
     baseMultiplier *= 1.08  // Competition + practice demands
   } else if (season_phase === 'postseason') {
     baseMultiplier *= 0.90  // Active recovery
+  }
+
+  return baseMultiplier
+}
+
+/**
+ * Get activity multiplier for GENERAL MEMBERS based on activity level and training style
+ * 
+ * Uses standard ISSN activity factors with training-style adjustments:
+ * - CrossFit/Functional: +5% (high EPOC, mixed modality)
+ * - Strength Training: +3% (elevated post-exercise metabolism)
+ * - Cardio/Endurance: +5% (sustained caloric burn)
+ * - Yoga/Pilates: no adjustment (lower metabolic demand)
+ */
+function getMemberActivityMultiplier(
+  activity_level: string,
+  training_style: string,
+  training_days_per_week: number
+): number {
+  // Base multiplier from activity level
+  let baseMultiplier: number
+
+  switch (activity_level) {
+    case 'sedentary':
+      baseMultiplier = 1.2
+      break
+    case 'lightly_active':
+      baseMultiplier = 1.375
+      break
+    case 'moderately_active':
+      baseMultiplier = 1.55
+      break
+    case 'very_active':
+      baseMultiplier = 1.725
+      break
+    case 'extremely_active':
+      baseMultiplier = 1.9
+      break
+    default:
+      // Fallback: derive from training days if activity level not set
+      if (training_days_per_week >= 6) baseMultiplier = 1.9
+      else if (training_days_per_week >= 5) baseMultiplier = 1.725
+      else if (training_days_per_week >= 3) baseMultiplier = 1.55
+      else if (training_days_per_week >= 1) baseMultiplier = 1.375
+      else baseMultiplier = 1.2
+  }
+
+  // Training style adjustments
+  switch (training_style) {
+    case 'crossfit':
+      baseMultiplier *= 1.05  // High EPOC, mixed modality
+      break
+    case 'strength':
+      baseMultiplier *= 1.03  // Elevated post-exercise metabolism
+      break
+    case 'cardio':
+      baseMultiplier *= 1.05  // Sustained caloric burn
+      break
+    case 'mixed':
+      baseMultiplier *= 1.03  // Moderate adjustment
+      break
+    case 'yoga_pilates':
+      // No adjustment — lower metabolic demand
+      break
   }
 
   return baseMultiplier
@@ -146,7 +218,7 @@ function getProteinPerLb(goal_phase: string): number {
 }
 
 /**
- * Get position-specific caloric adjustment
+ * Get position-specific caloric adjustment (athletes only)
  * Accounts for body size demands and positional energy expenditure
  */
 function getPositionAdjustment(sport: string, position?: string): number {
@@ -212,11 +284,14 @@ function getYouthGrowthCalories(age: number): number {
  * 3. Carbs: remaining calories (primary training fuel)
  * 
  * Calorie calculation:
- * TDEE = RMR × Activity Factor + Goal Adjustment + Youth Growth Factor + Position Adjustment
+ * Athletes: TDEE = RMR × Activity Factor + Goal Adjustment + Youth Growth Factor + Position Adjustment
+ * Members:  TDEE = RMR × Activity Factor + Goal Adjustment
  */
 export function calculateNutritionRecommendation(
   athlete: AthleteProfile
 ): NutritionRecommendation {
+  const isAthlete = athlete.user_type !== 'member'
+
   // Step 1: Calculate RMR
   // If an InBody-measured BMR is available, use it (more accurate than any formula).
   // Otherwise fall back to Mifflin-St Jeor estimation.
@@ -229,29 +304,51 @@ export function calculateNutritionRecommendation(
   const rmr = athlete.inbody_bmr && athlete.inbody_bmr > 0 ? athlete.inbody_bmr : estimatedRmr
   const rmrSource = athlete.inbody_bmr && athlete.inbody_bmr > 0 ? 'InBody 580 measured' : 'Mifflin-St Jeor estimate'
 
-  // Step 2: Apply activity multiplier (ISSN/IOC factors)
-  const activityMultiplier = getActivityMultiplier(
-    athlete.training_days_per_week,
-    athlete.sport,
-    athlete.season_phase
-  )
+  // Step 2: Apply activity multiplier
+  let activityMultiplier: number
+  let activityDescription: string
+
+  if (isAthlete) {
+    activityMultiplier = getAthleteActivityMultiplier(
+      athlete.training_days_per_week,
+      athlete.sport,
+      athlete.season_phase
+    )
+    activityDescription = `${athlete.training_days_per_week} days/week, ${athlete.sport || 'general'}, ${athlete.season_phase || 'offseason'}`
+  } else {
+    activityMultiplier = getMemberActivityMultiplier(
+      athlete.activity_level || 'moderately_active',
+      athlete.training_style || 'mixed',
+      athlete.training_days_per_week
+    )
+    activityDescription = `${athlete.activity_level || 'moderately active'}, ${athlete.training_style || 'mixed'} training, ${athlete.training_days_per_week} days/week`
+  }
+
   let tdee = rmr * activityMultiplier
 
-  // Step 3: Apply position-specific adjustment
-  const positionAdjustment = getPositionAdjustment(athlete.sport, athlete.position)
-  tdee *= positionAdjustment
+  // Step 3: Apply position-specific adjustment (athletes only)
+  let positionAdjustment = 1.0
+  if (isAthlete) {
+    positionAdjustment = getPositionAdjustment(athlete.sport, athlete.position)
+    tdee *= positionAdjustment
+  }
 
-  // Step 4: Add youth growth calories (IOC Youth Consensus)
-  const youthCalories = getYouthGrowthCalories(athlete.age)
-  tdee += youthCalories
+  // Step 4: Add youth growth calories (athletes only — members are assumed adult)
+  let youthCalories = 0
+  if (isAthlete) {
+    youthCalories = getYouthGrowthCalories(athlete.age)
+    tdee += youthCalories
+  }
 
   // Step 5: Adjust for goal phase
   const goalPhase = athlete.goal_phase.toLowerCase()
+  let goalAdjustmentCals = 0
   if (goalPhase.includes('gain') || goalPhase.includes('muscle') || goalPhase.includes('lean_mass')) {
-    tdee += 400  // Caloric surplus for lean mass gain
+    goalAdjustmentCals = 400  // Caloric surplus for lean mass gain
   } else if (goalPhase.includes('lose') || goalPhase.includes('fat') || goalPhase.includes('cut')) {
-    tdee -= 300  // Moderate deficit to preserve muscle
+    goalAdjustmentCals = -300  // Moderate deficit to preserve muscle
   }
+  tdee += goalAdjustmentCals
 
   // Step 6: Calculate macros — PROTEIN FIRST approach
   const proteinPerLb = getProteinPerLb(athlete.goal_phase)
@@ -272,25 +369,40 @@ export function calculateNutritionRecommendation(
   const totalCals = Math.round(protein_g * 4 + carbs_g * 4 + fat_g * 9)
 
   // Build methodology string
-  const goalAdjustment = goalPhase.includes('gain') || goalPhase.includes('muscle') || goalPhase.includes('lean_mass')
-    ? '+400' : goalPhase.includes('lose') || goalPhase.includes('fat') || goalPhase.includes('cut')
-    ? '-300' : '0'
+  const goalAdjustmentStr = goalAdjustmentCals > 0 ? `+${goalAdjustmentCals}` : `${goalAdjustmentCals}`
 
-  const methodology = `
-ISSN/IOC Evidence-Based Calculation:
+  let methodology: string
+  if (isAthlete) {
+    methodology = `
+ISSN/IOC Evidence-Based Calculation (Athlete):
 - RMR (${rmrSource}): ${Math.round(rmr)} cal${athlete.inbody_bmr && athlete.inbody_bmr > 0 ? ` (Mifflin-St Jeor estimate was ${Math.round(estimatedRmr)} cal)` : ''}
-- Activity Factor: ${activityMultiplier.toFixed(2)}x (${athlete.training_days_per_week} days/week, ${athlete.sport}, ${athlete.season_phase})
+- Activity Factor: ${activityMultiplier.toFixed(2)}x (${activityDescription})
 - Base TDEE: ${Math.round(rmr * activityMultiplier)} cal
 - Position Adjustment: ${positionAdjustment > 1 ? `+${((positionAdjustment - 1) * 100).toFixed(0)}%` : 'None'}
 - Youth Growth Factor: ${youthCalories > 0 ? `+${youthCalories} cal` : 'N/A (adult)'}
-- Goal Adjustment: ${goalAdjustment} cal (${athlete.goal_phase})
+- Goal Adjustment: ${goalAdjustmentStr} cal (${athlete.goal_phase})
 - Final TDEE: ${Math.round(tdee)} cal
 - Protein: ${proteinPerLb.toFixed(1)}g/lb × ${athlete.weight_lbs}lb = ${protein_g}g
 - Fat: 30% of TDEE = ${fat_g}g
 - Carbs: Remaining = ${carbs_g}g
-  `.trim()
+    `.trim()
+  } else {
+    methodology = `
+ISSN Evidence-Based Calculation (General Fitness):
+- RMR (${rmrSource}): ${Math.round(rmr)} cal${athlete.inbody_bmr && athlete.inbody_bmr > 0 ? ` (Mifflin-St Jeor estimate was ${Math.round(estimatedRmr)} cal)` : ''}
+- Activity Factor: ${activityMultiplier.toFixed(2)}x (${activityDescription})
+- Base TDEE: ${Math.round(rmr * activityMultiplier)} cal
+- Goal Adjustment: ${goalAdjustmentStr} cal (${athlete.goal_phase})
+- Final TDEE: ${Math.round(tdee)} cal
+- Protein: ${proteinPerLb.toFixed(1)}g/lb × ${athlete.weight_lbs}lb = ${protein_g}g
+- Fat: 30% of TDEE = ${fat_g}g
+- Carbs: Remaining = ${carbs_g}g
+    `.trim()
+  }
 
-  const notes = `
+  let notes: string
+  if (isAthlete) {
+    notes = `
 Based on ISSN Position Stands and IOC Consensus guidelines.
 Protein target: ${proteinPerLb.toFixed(1)}g per pound of body weight.
 Fat: 30% of total calories for hormonal health and essential fatty acids.
@@ -299,7 +411,18 @@ ${youthCalories > 0 ? `Youth athlete: +${youthCalories} cal added for growth and
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
 ${athlete.inbody_bmr ? `Using InBody 580 measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
 ${athlete.season_phase === 'in_season' ? 'In-season: Elevated energy demands from competition + practice.' : ''}
-  `.trim()
+    `.trim()
+  } else {
+    notes = `
+Based on ISSN Position Stands for general fitness populations.
+Protein target: ${proteinPerLb.toFixed(1)}g per pound of body weight.
+Fat: 30% of total calories for hormonal health and essential fatty acids.
+Carbs: Primary fuel source for training and recovery.
+Activity level: ${athlete.activity_level || 'moderately active'} | Training style: ${athlete.training_style || 'mixed'}
+${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
+${athlete.inbody_bmr ? `Using InBody 580 measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
+    `.trim()
+  }
 
   return {
     daily_calories: totalCals,

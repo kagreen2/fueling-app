@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
+import InBodyProgressCharts from '@/components/InBodyProgressCharts'
 
 interface BiometricScan {
   id: string
@@ -222,6 +223,11 @@ export default function BiometricsPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Progress Charts */}
+        {scans.length >= 1 && (
+          <InBodyProgressCharts scans={scans} />
+        )}
 
         {/* Latest Scan Summary */}
         {latestScan && (
