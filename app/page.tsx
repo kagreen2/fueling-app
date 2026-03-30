@@ -35,6 +35,7 @@ export default function Home() {
           <div className="hidden sm:flex items-center gap-6 text-sm text-slate-400">
             <button onClick={() => scrollToSection('the-edge')} className="hover:text-white transition-colors">The Edge</button>
             <button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">How It Works</button>
+            <button onClick={() => scrollToSection('fitness-enthusiasts')} className="hover:text-white transition-colors">Fitness Enthusiasts</button>
             <button onClick={() => scrollToSection('for-coaches')} className="hover:text-white transition-colors">For Coaches</button>
           </div>
           <div className="flex gap-2.5">
@@ -281,8 +282,84 @@ export default function Home() {
         </div>
       </section>
 
+      {/* For Fitness Enthusiasts */}
+      <section id="fitness-enthusiasts" className="py-24 px-4 border-t border-slate-800/60">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="order-2 lg:order-1">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-700/60 shadow-2xl shadow-green-900/20 bg-slate-800/40 p-8">
+                <div className="text-center mb-6">
+                  <div className="text-5xl mb-4">💪</div>
+                  <div className="text-2xl font-bold text-white mb-2">You Show Up. Every. Day.</div>
+                  <div className="text-slate-400">Now make every rep count.</div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { val: '5:30 AM', label: 'Alarm goes off' },
+                    { val: '4-5x', label: 'Workouts per week' },
+                    { val: '???', label: 'Calories needed' },
+                    { val: '???', label: 'Protein target' },
+                  ].map((s, i) => (
+                    <div key={i} className="bg-slate-700/40 rounded-lg p-3 text-center">
+                      <div className={`text-lg font-bold ${i < 2 ? 'text-green-400' : 'text-red-400'}`}>{s.val}</div>
+                      <div className="text-xs text-slate-500">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-center">
+                  <div className="inline-flex items-center gap-1.5 text-sm text-green-400 font-medium">
+                    <LightningBolt className="w-4 h-4" />
+                    Fuel Different fills in the blanks.
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-green-500/10 border border-green-500/25 rounded-full">
+                <span className="text-sm font-medium text-green-400">For Fitness Enthusiasts</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+                You Train Like an Athlete.<br /><span className="text-green-400">Fuel Like One.</span>
+              </h2>
+              <p className="text-slate-400 mb-4 text-lg leading-relaxed">
+                You don&apos;t need a roster spot to take your nutrition seriously. You hit the gym before sunrise, you push through when it hurts, and you hold yourself to a higher standard. That&apos;s an athlete.
+              </p>
+              <p className="text-slate-400 mb-8 text-base leading-relaxed">
+                But here&apos;s the truth: most gym-goers are leaving results on the table because they&apos;re guessing on nutrition. Fuel Different gives you the same evidence-based system that collegiate and professional athletes use — personalized for <em>your</em> body, <em>your</em> training style, and <em>your</em> goals.
+              </p>
+              <div className="space-y-4">
+                {[
+                  'Personalized macros based on your training style — strength, CrossFit, cardio, or mixed',
+                  'AI meal tracking that takes 5 seconds — just snap a photo',
+                  'InBody scan integration for precision body composition tracking',
+                  'Goal-specific plans: lose fat, build muscle, or optimize performance',
+                  'Direct access to a nutrition coach who keeps you accountable',
+                  'No bro science — every number is backed by ISSN research',
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <span className="text-slate-300">{item}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8">
+                <Button
+                  onClick={() => router.push('/signup')}
+                  size="lg"
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base px-8"
+                >
+                  Start Fueling Smarter
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* For Coaches */}
-      <section id="for-coaches" className="py-24 px-4 border-t border-slate-800/60">
+      <section id="for-coaches" className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1 relative rounded-2xl overflow-hidden border border-slate-700/60 shadow-2xl shadow-purple-900/20">
@@ -382,13 +459,14 @@ export default function Home() {
                 <LightningBolt className="w-5 h-5" />
                 <span className="font-bold text-white">Fuel Different</span>
               </div>
-              <p className="text-slate-500 text-sm leading-relaxed">Evidence-based nutrition coaching for athletes and coaches who refuse to settle.</p>
+              <p className="text-slate-500 text-sm leading-relaxed">Evidence-based nutrition coaching for athletes, fitness enthusiasts, and coaches who refuse to settle.</p>
             </div>
             <div>
               <h4 className="font-semibold text-slate-300 mb-4 text-sm uppercase tracking-wider">Product</h4>
               <ul className="space-y-2.5 text-sm text-slate-500">
                 <li><button onClick={() => scrollToSection('the-edge')} className="hover:text-white transition-colors">The Edge</button></li>
                 <li><button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">How It Works</button></li>
+                <li><button onClick={() => scrollToSection('fitness-enthusiasts')} className="hover:text-white transition-colors">Fitness Enthusiasts</button></li>
                 <li><button onClick={() => scrollToSection('for-coaches')} className="hover:text-white transition-colors">For Coaches</button></li>
               </ul>
             </div>
