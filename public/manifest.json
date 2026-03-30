@@ -1,7 +1,7 @@
 {
-  "name": "Fuel Different — Performance Nutrition",
+  "name": "Fuel Different — Evidence-Based Nutrition Coaching",
   "short_name": "Fuel Different",
-  "description": "AI-powered nutrition tracking and coaching platform for student athletes.",
+  "description": "AI-powered nutrition tracking and coaching platform for athletes and fitness enthusiasts.",
   "start_url": "/login",
   "display": "standalone",
   "background_color": "#0F172A",
@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-192-PocscrgojEbdJSVNv8Eyxf.png",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-192_4a157b7a.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-512-JQoDE7gaomSKzeZcwhxNCY.png",
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-512_1306ffdf.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fuel Different — Performance Nutrition for Athletes",
-  description: "AI-powered nutrition tracking and coaching platform for student athletes. Track meals, monitor wellness, manage supplements, and optimize performance with personalized macro recommendations.",
-  keywords: ["nutrition tracking", "athlete nutrition", "sports nutrition", "meal tracking", "macro calculator", "student athlete"],
+  title: "Fuel Different — Evidence-Based Nutrition Coaching",
+  description: "AI-powered nutrition tracking and coaching platform for athletes and fitness enthusiasts. Personalized macros, InBody integration, smart meal tracking, and real-time coach communication.",
+  keywords: ["nutrition tracking", "athlete nutrition", "sports nutrition", "meal tracking", "macro calculator", "InBody", "nutrition coaching", "fitness nutrition"],
   robots: {
     index: true,
     follow: true,
@@ -32,11 +32,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-192-PocscrgojEbdJSVNv8Eyxf.png", sizes: "192x192", type: "image/png" },
-      { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-512-JQoDE7gaomSKzeZcwhxNCY.png", sizes: "512x512", type: "image/png" },
+      { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-192_4a157b7a.png", sizes: "192x192", type: "image/png" },
+      { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-512_1306ffdf.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-192-PocscrgojEbdJSVNv8Eyxf.png", sizes: "192x192" },
+      { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-192_4a157b7a.png", sizes: "192x192" },
     ],
   },
 };
