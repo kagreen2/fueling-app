@@ -14,6 +14,8 @@ export default function SignupPage( ) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -53,6 +55,11 @@ export default function SignupPage( ) {
 
     if (!form.fullName.trim()) {
       setError('Please enter your full name')
+      return
+    }
+
+    if (!agreedToTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy')
       return
     }
 
@@ -310,12 +317,20 @@ export default function SignupPage( ) {
               : 'Create Account & Continue to Payment'}
           </Button>
 
-          <p className="text-xs text-slate-500 text-center mt-3">
-            By creating an account, you agree to our{' '}
-            <a href="/terms" className="text-purple-400 hover:text-purple-300 underline">Terms of Service</a>{' '}
-            and{' '}
-            <a href="/privacy" className="text-purple-400 hover:text-purple-300 underline">Privacy Policy</a>.
-          </p>
+          <label className="flex items-start gap-3 mt-2 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={e => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 cursor-pointer"
+            />
+            <span className="text-xs text-slate-400 leading-relaxed">
+              I agree to the{' '}
+              <a href="/terms" target="_blank" className="text-purple-400 hover:text-purple-300 underline">Terms of Service</a>{' '}
+              and{' '}
+              <a href="/privacy" target="_blank" className="text-purple-400 hover:text-purple-300 underline">Privacy Policy</a>
+            </span>
+          </label>
 
         </form>
 
