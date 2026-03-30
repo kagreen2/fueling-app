@@ -552,6 +552,7 @@ export default function OnboardingPage() {
                   <div>
                     <p className="text-white font-medium text-sm">Have an InBody scan?</p>
                     <p className="text-slate-400 text-xs mt-0.5">Upload a photo of your InBody printout for the most accurate macro targets. This is optional — you can skip and enter your stats manually.</p>
+                    <p className="text-slate-500 text-[10px] mt-1.5 leading-snug">By uploading your InBody scan, you consent to Fuel Different collecting, processing, and securely storing your body composition data to provide personalized nutrition recommendations. This data is shared only with your assigned coach and is never sold to third parties. You may request deletion at any time. <a href="/privacy" target="_blank" className="text-purple-400 underline">Privacy Policy</a></p>
                   </div>
                 </div>
 

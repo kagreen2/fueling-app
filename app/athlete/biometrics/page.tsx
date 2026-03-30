@@ -317,7 +317,8 @@ export default function BiometricsPage() {
               <div className="bg-slate-700/30 rounded-xl p-5 border border-dashed border-slate-600">
                 <div className="text-center">
                   <p className="text-white font-medium mb-1">📸 Scan Your InBody 580 Printout</p>
-                  <p className="text-slate-400 text-sm mb-4">Take a photo or upload — we'll read all the numbers automatically</p>
+                  <p className="text-slate-400 text-sm mb-3">Take a photo or upload — we'll read all the numbers automatically</p>
+                  <p className="text-slate-500 text-[10px] mb-4 leading-snug max-w-md mx-auto">By uploading your InBody scan, you consent to Fuel Different collecting, processing, and securely storing your body composition data to provide personalized nutrition recommendations. This data is shared only with your assigned coach and is never sold. You may request deletion at any time. <a href="/privacy" target="_blank" className="text-purple-400 underline">Privacy Policy</a></p>
                   {!scanPreview ? (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                       <Button onClick={() => fileInputRef.current?.click()} className="bg-purple-600 hover:bg-purple-700">📷 Take Photo / Upload</Button>

@@ -33,7 +33,7 @@ export default function Home() {
             <span className="text-xl font-bold text-white tracking-tight">Fuel Different</span>
           </div>
           <div className="hidden sm:flex items-center gap-6 text-sm text-slate-400">
-            <button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors">Features</button>
+            <button onClick={() => scrollToSection('the-edge')} className="hover:text-white transition-colors">The Edge</button>
             <button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">How It Works</button>
             <button onClick={() => scrollToSection('for-coaches')} className="hover:text-white transition-colors">For Coaches</button>
           </div>
@@ -68,17 +68,20 @@ export default function Home() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-green-500/10 border border-green-500/25 rounded-full">
               <LightningBolt className="w-4 h-4" />
-              <span className="text-sm font-medium text-green-400">For Athletes, Coaches &amp; Fitness Enthusiasts</span>
+              <span className="text-sm font-medium text-green-400">The Competitive Advantage Your Opponents Don&apos;t Have</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 leading-[1.1] tracking-tight">
-              Fuel Your
+              Fuel Different.
               <br />
-              <span className="bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">Performance</span>
+              <span className="bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">Outperform.</span>
             </h1>
 
-            <p className="text-lg sm:text-xl text-slate-300 mb-10 max-w-2xl leading-relaxed">
-              Evidence-based nutrition coaching powered by AI. Personalized macros, smart meal tracking, InBody integration, and real-time coach communication — all in one app.
+            <p className="text-lg sm:text-xl text-slate-300 mb-4 max-w-2xl leading-relaxed font-medium">
+              Everyone trains hard. Not everyone fuels smart.
+            </p>
+            <p className="text-base sm:text-lg text-slate-400 mb-10 max-w-2xl leading-relaxed">
+              Evidence-based nutrition coaching that gives athletes and their coaches the edge they need to dominate. Personalized macros, AI meal tracking, InBody integration, and real-time coach communication — built for teams that refuse to settle.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -87,30 +90,54 @@ export default function Home() {
                 size="lg"
                 className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base px-8"
               >
-                Get Started
+                Start Dominating
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => scrollToSection('features')}
+                onClick={() => scrollToSection('the-edge')}
                 className="text-base border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white px-8"
               >
-                See How It Works
+                See What You&apos;re Missing
               </Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Core Features */}
-      <section id="features" className="py-24 px-4 border-t border-slate-800/60">
+      {/* The Problem */}
+      <section className="py-20 px-4 border-t border-slate-800/60">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+            Your Competition Is <span className="text-red-400">Guessing</span>
+          </h2>
+          <p className="text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed mb-10">
+            Most athletes train hard but fuel blindly. They don&apos;t know their real calorie needs, they don&apos;t track what they eat, and they have no idea if their supplements are safe or effective. That&apos;s the gap. That&apos;s your opportunity.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { stat: '73%', label: 'of athletes don\'t know their daily calorie needs' },
+              { stat: '2-5%', label: 'performance drop from poor fueling on game day' },
+              { stat: '1 in 4', label: 'supplements contain banned or undisclosed substances' },
+            ].map((item, i) => (
+              <div key={i} className="bg-slate-800/30 border border-slate-700/40 rounded-xl p-6">
+                <div className="text-3xl font-black text-purple-400 mb-2">{item.stat}</div>
+                <div className="text-sm text-slate-400">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* The Edge - Features */}
+      <section id="the-edge" className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Everything You Need to <span className="text-green-400">Perform</span>
+              Your <span className="text-green-400">Unfair Advantage</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              Built from the ground up for athletes and coaches who take nutrition seriously.
+              While your competition guesses, you&apos;ll have precision. Every tool you need to fuel like a pro and perform at your peak.
             </p>
           </div>
 
@@ -121,47 +148,47 @@ export default function Home() {
                   <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><circle cx="12" cy="13" r="3" /></svg>
                 ),
                 title: 'AI Meal Tracking',
-                desc: 'Snap a photo of your meal and get an instant macro breakdown. Our AI analyzes your food and provides personalized coaching feedback.',
+                desc: 'Snap a photo. Get instant macros. No more guessing what\'s on your plate — our AI breaks it down and tells you exactly how it fits your targets.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 ),
-                title: 'Personalized Macros',
-                desc: 'ISSN evidence-based calculations tailored to your body composition, sport, training phase, and goals. Powered by Katch-McArdle when InBody data is available.',
+                title: 'Precision Macros',
+                desc: 'Not generic calculator numbers. Your macros are built from your actual body composition, sport demands, training phase, and goals — backed by ISSN research.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 ),
                 title: 'InBody Integration',
-                desc: 'Upload your InBody 580 scan and we automatically extract your body composition data for precision BMR calculation and progress tracking.',
+                desc: 'Upload your InBody 580 scan and unlock precision BMR. No more estimated formulas — your plan is built on your real body composition data.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
                 ),
                 title: 'Daily Check-ins',
-                desc: 'Track energy, sleep, soreness, and stress levels daily. Your coach sees trends and gets alerts when something needs attention.',
+                desc: 'Track energy, sleep, soreness, and stress. Your coach sees the trends before problems become injuries — and adjusts your plan accordingly.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 ),
                 title: 'Coach Messaging',
-                desc: 'Direct messaging between athletes and coaches. Get real-time guidance, feedback on meals, and answers to nutrition questions.',
+                desc: 'Direct line to your coach. Get real-time feedback on meals, ask questions, and stay accountable. No more waiting until the next practice.',
               },
               {
                 icon: (
                   <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                 ),
                 title: 'Supplement Safety',
-                desc: 'Submit supplements for AI-powered safety review and coach approval. Get flagged for banned substances before you take them.',
+                desc: 'Don\'t risk your eligibility. Every supplement gets screened for banned substances and safety before you take it. Protect your career.',
               },
             ].map((feature, i) => (
               <div
                 key={i}
-                className="group bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 hover:border-purple-500/40 hover:bg-slate-800/60 transition-all duration-300"
+                className="group bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 hover:border-green-500/40 hover:bg-slate-800/60 transition-all duration-300"
               >
                 <div className="w-11 h-11 rounded-xl bg-slate-700/60 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   {feature.icon}
@@ -175,14 +202,14 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
+      <section id="how-it-works" className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Get Started in <span className="text-green-400">3 Steps</span>
+              From Zero to <span className="text-green-400">Dialed In</span> in 5 Minutes
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto text-lg">
-              From signup to personalized nutrition targets in under 5 minutes.
+              No complicated setup. No waiting on a nutritionist. Your personalized plan, ready now.
             </p>
           </div>
 
@@ -190,18 +217,18 @@ export default function Home() {
             {[
               {
                 step: '01',
-                title: 'Create Your Profile',
-                desc: 'Choose Athlete or General Fitness. Enter your body stats, goals, and optionally upload an InBody scan for maximum accuracy.',
+                title: 'Build Your Profile',
+                desc: 'Tell us your sport, position, body stats, and goals. Upload an InBody scan for maximum precision — or skip it and we\'ll still dial you in.',
               },
               {
                 step: '02',
-                title: 'Get Your Plan',
-                desc: 'Our evidence-based calculator generates personalized calorie and macro targets based on your body composition, activity level, and goals.',
+                title: 'Get Your Battle Plan',
+                desc: 'Our evidence-based engine calculates your exact calorie and macro targets. Not cookie-cutter numbers — targets built for your body and your sport.',
               },
               {
                 step: '03',
-                title: 'Track & Improve',
-                desc: 'Log meals with AI photo analysis, check in daily, track hydration, and communicate with your coach — all from your dashboard.',
+                title: 'Execute & Dominate',
+                desc: 'Track meals with AI, check in daily, stay connected with your coach, and watch your performance separate from the pack.',
               },
             ].map((item, i) => (
               <div key={i} className="relative">
@@ -215,28 +242,28 @@ export default function Home() {
       </section>
 
       {/* For Athletes */}
-      <section className="py-24 px-4 border-t border-slate-800/60">
+      <section className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 bg-purple-500/10 border border-purple-500/25 rounded-full">
-                <span className="text-sm font-medium text-purple-400">For Athletes &amp; Members</span>
+                <span className="text-sm font-medium text-purple-400">For Athletes</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-                Your Nutrition,<br /><span className="text-purple-400">Dialed In</span>
+                Same Sport.<br /><span className="text-purple-400">Unfair Advantage.</span>
               </h2>
               <p className="text-slate-400 mb-8 text-lg leading-relaxed">
-                Whether you're a competitive athlete or focused on general fitness, get a nutrition plan built around your body, your goals, and your lifestyle.
+                Your opponents train the same hours you do. The difference is what happens off the field. Fuel Different gives you the precision nutrition edge that turns hard work into dominance.
               </p>
               <div className="space-y-4">
                 {[
-                  'Personalized calorie & macro targets',
-                  'AI-powered meal photo analysis',
-                  'Daily wellness check-ins',
-                  'Hydration tracking',
-                  'InBody body composition progress',
-                  'Direct coach messaging',
-                  'Supplement safety reviews',
+                  'Macros tailored to your sport, position & training phase',
+                  'AI meal tracking — snap a photo, get instant feedback',
+                  'InBody-powered precision BMR (no more guessing)',
+                  'Daily wellness tracking your coach actually sees',
+                  'Direct messaging with your nutrition coach',
+                  'Supplement screening to protect your eligibility',
+                  'Body composition trends that prove you\'re improving',
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-5 h-5 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0">
@@ -255,7 +282,7 @@ export default function Home() {
       </section>
 
       {/* For Coaches */}
-      <section id="for-coaches" className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
+      <section id="for-coaches" className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1 relative rounded-2xl overflow-hidden border border-slate-700/60 shadow-2xl shadow-purple-900/20">
@@ -266,20 +293,20 @@ export default function Home() {
                 <span className="text-sm font-medium text-green-400">For Coaches</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-                Your Team,<br /><span className="text-green-400">At a Glance</span>
+                Build a Team That<br /><span className="text-green-400">Can&apos;t Be Outworked.</span>
               </h2>
               <p className="text-slate-400 mb-8 text-lg leading-relaxed">
-                Monitor your entire roster from one dashboard. Get real-time alerts, manage nutrition plans, and communicate directly with each athlete.
+                The best coaches don&apos;t just train harder — they fuel smarter. Monitor every athlete&apos;s nutrition, catch problems before they become injuries, and build a culture of accountability that your competition can&apos;t match.
               </p>
               <div className="space-y-4">
                 {[
-                  'Team dashboard with real-time alerts',
-                  'Individual athlete nutrition management',
-                  'Biometric scan tracking & trends',
-                  'Direct messaging with athletes',
-                  'Supplement approval workflow',
-                  'Team invite codes for easy onboarding',
-                  'Wellness & recovery monitoring',
+                  'Full team dashboard with real-time nutrition alerts',
+                  'Individual macro management for every athlete',
+                  'InBody scan tracking with body composition trends',
+                  'Direct messaging — coach every meal, every day',
+                  'Supplement approval workflow to protect your athletes',
+                  'One-click team invite codes for instant onboarding',
+                  'Wellness & recovery monitoring across your roster',
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-5 h-5 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0">
@@ -294,15 +321,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Capabilities Grid */}
-      <section className="py-24 px-4 border-t border-slate-800/60">
+      {/* Built on Science */}
+      <section className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Built on <span className="text-purple-400">Science</span>
+              Not Bro Science. <span className="text-purple-400">Real Science.</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              Every recommendation is grounded in peer-reviewed sports nutrition research from the ISSN and ACSM.
+              Every recommendation is grounded in peer-reviewed sports nutrition research from the ISSN and ACSM. The same science used by D1 programs and Olympic teams.
             </p>
           </div>
 
@@ -327,21 +354,21 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
+      <section className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-2xl mx-auto text-center">
           <LightningBolt className="w-12 h-12 mx-auto mb-6" />
           <h2 className="text-3xl sm:text-4xl font-bold mb-5">
-            Ready to Fuel Different?
+            Your Competition Won&apos;t Wait.<br />Neither Should You.
           </h2>
           <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-            Join athletes and coaches who are taking nutrition seriously with evidence-based, personalized fueling plans.
+            Every day you&apos;re not fueling with precision is a day your opponent is closing the gap. Commit to the program. Dominate your sport.
           </p>
           <Button
             onClick={() => router.push('/signup')}
             size="lg"
             className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base px-10"
           >
-            Get Started
+            Start Dominating
           </Button>
         </div>
       </section>
@@ -355,12 +382,12 @@ export default function Home() {
                 <LightningBolt className="w-5 h-5" />
                 <span className="font-bold text-white">Fuel Different</span>
               </div>
-              <p className="text-slate-500 text-sm leading-relaxed">Evidence-based nutrition coaching for athletes and fitness enthusiasts.</p>
+              <p className="text-slate-500 text-sm leading-relaxed">Evidence-based nutrition coaching for athletes and coaches who refuse to settle.</p>
             </div>
             <div>
               <h4 className="font-semibold text-slate-300 mb-4 text-sm uppercase tracking-wider">Product</h4>
               <ul className="space-y-2.5 text-sm text-slate-500">
-                <li><button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors">Features</button></li>
+                <li><button onClick={() => scrollToSection('the-edge')} className="hover:text-white transition-colors">The Edge</button></li>
                 <li><button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">How It Works</button></li>
                 <li><button onClick={() => scrollToSection('for-coaches')} className="hover:text-white transition-colors">For Coaches</button></li>
               </ul>
