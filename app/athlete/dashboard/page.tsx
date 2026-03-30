@@ -87,8 +87,8 @@ export default function AthleteDashboard() {
     thisWeekMeals: 0,
     thisWeekCheckIns: 0,
     thisWeekHydration: 0,
-    calorieGoal: 2500,
-    proteinGoal: 150,
+    calorieGoal: 0,
+    proteinGoal: 0,
     waterGoal: 100,
   })
   const [recentMeals, setRecentMeals] = useState<any[]>([])
@@ -327,8 +327,8 @@ export default function AthleteDashboard() {
     )
   }
 
-  const caloriePercent = Math.min((stats.todayCalories / stats.calorieGoal) * 100, 100)
-  const proteinPercent = Math.min((stats.todayProtein / stats.proteinGoal) * 100, 100)
+  const caloriePercent = stats.calorieGoal > 0 ? Math.min((stats.todayCalories / stats.calorieGoal) * 100, 100) : 0
+  const proteinPercent = stats.proteinGoal > 0 ? Math.min((stats.todayProtein / stats.proteinGoal) * 100, 100) : 0
   const waterPercent = Math.min((stats.todayWater / stats.waterGoal) * 100, 100)
 
   return (
@@ -410,14 +410,14 @@ export default function AthleteDashboard() {
           <div className="grid md:grid-cols-3 gap-4">
             <StatCard
               label="Calories"
-              value={`${Math.round(stats.todayCalories)} / ${stats.calorieGoal}`}
+              value={`${Math.round(stats.todayCalories)} / ${stats.calorieGoal > 0 ? stats.calorieGoal : '—'}`}
               unit="kcal"
               icon="🔥"
               color="red"
             />
             <StatCard
               label="Protein"
-              value={`${Math.round(stats.todayProtein)} / ${stats.proteinGoal}`}
+              value={`${Math.round(stats.todayProtein)} / ${stats.proteinGoal > 0 ? stats.proteinGoal : '—'}`}
               unit="g"
               icon="💪"
               color="green"

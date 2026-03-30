@@ -391,8 +391,8 @@ export default function CoachDashboardPage() {
         teamName: teamMap[m.team_id] || 'Unknown Team',
         todayCalories,
         todayProtein,
-        targetCalories: rec?.daily_calories || 2500,
-        targetProtein: rec?.daily_protein_g || 150,
+        targetCalories: rec?.daily_calories || 0,
+        targetProtein: rec?.daily_protein_g || 0,
         loggedToday,
         daysActive,
         totalDays,
@@ -447,7 +447,7 @@ export default function CoachDashboardPage() {
       // Compliance below 30%
       if (a.complianceRate < 30) return true
       // Consistently under 50% of calorie target when they do log
-      if (a.todayCalories > 0 && a.todayCalories < a.targetCalories * 0.5) return true
+      if (a.todayCalories > 0 && a.targetCalories > 0 && a.todayCalories < a.targetCalories * 0.5) return true
       return false
     }).sort((a, b) => b.daysSinceLastLog - a.daysSinceLastLog)
   }, [filteredAthletes])
@@ -924,7 +924,7 @@ export default function CoachDashboardPage() {
                                 />
                               </div>
                               <span className="text-slate-300 text-xs font-mono w-20">
-                                {a.todayCalories}/{a.targetCalories}
+                                {a.todayCalories}/{a.targetCalories > 0 ? a.targetCalories : '—'}
                               </span>
                             </div>
                           </td>
@@ -937,7 +937,7 @@ export default function CoachDashboardPage() {
                                 />
                               </div>
                               <span className="text-slate-300 text-xs font-mono w-16">
-                                {a.todayProtein}/{a.targetProtein}g
+                                {a.todayProtein}/{a.targetProtein > 0 ? `${a.targetProtein}g` : '—'}
                               </span>
                             </div>
                           </td>
@@ -1113,7 +1113,7 @@ export default function CoachDashboardPage() {
                       const reasons: string[] = []
                       if (a.daysSinceLastLog >= 3) reasons.push(`Haven't logged in ${a.daysSinceLastLog} days`)
                       if (a.complianceRate < 30) reasons.push(`Only ${a.complianceRate}% compliance (30 days)`)
-                      if (a.todayCalories > 0 && a.todayCalories < a.targetCalories * 0.5) reasons.push(`Under 50% of calorie target today`)
+                      if (a.todayCalories > 0 && a.targetCalories > 0 && a.todayCalories < a.targetCalories * 0.5) reasons.push(`Under 50% of calorie target today`)
 
                       return (
                         <div

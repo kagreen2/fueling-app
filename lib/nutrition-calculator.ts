@@ -123,24 +123,25 @@ function getActivityMultiplier(
 
 /**
  * Get protein recommendation in grams per POUND of body weight
- * Range: 1.0-1.4 g/lb (equivalent to ~2.2-3.1 g/kg)
  * 
- * References:
- * - ISSN Position Stand: 1.4-2.0 g/kg for exercising individuals (2017)
- * - For athletes in caloric deficit: up to 2.3-3.1 g/kg to preserve lean mass
- * - Converted to per-lb for practical athlete use
+ * Fuel Different Protocol:
+ * - Gain lean mass: 1.2-1.4 g/lb (using 1.3 midpoint)
+ * - Lose body fat: 1.0-1.2 g/lb (using 1.1 midpoint)
+ * - Maintain & perform: 1.0-1.2 g/lb (using 1.1 midpoint)
+ * - In-season maintenance: 1.0-1.2 g/lb (using 1.1 midpoint)
+ * - Recover & rebuild: 1.2-1.4 g/lb (using 1.3 midpoint)
  */
 function getProteinPerLb(goal_phase: string): number {
   const goal = goal_phase.toLowerCase()
   if (goal.includes('gain') || goal.includes('muscle') || goal.includes('lean_mass')) {
-    return 1.3  // Muscle gain: higher protein to support hypertrophy
-  } else if (goal.includes('lose') || goal.includes('fat') || goal.includes('cut')) {
-    return 1.4  // Fat loss: highest protein to preserve muscle in deficit
+    return 1.3  // Gain lean mass: 1.2-1.4 g/lb
   } else if (goal.includes('recover') || goal.includes('rebuild')) {
-    return 1.2  // Recovery: support tissue repair
+    return 1.3  // Recover & rebuild: 1.2-1.4 g/lb
+  } else if (goal.includes('lose') || goal.includes('fat') || goal.includes('cut')) {
+    return 1.1  // Lose body fat: 1.0-1.2 g/lb
   } else {
     // maintain, in_season_maintenance, default
-    return 1.1  // Maintenance: sustain lean mass
+    return 1.1  // Maintain & perform / In-season maintenance: 1.0-1.2 g/lb
   }
 }
 

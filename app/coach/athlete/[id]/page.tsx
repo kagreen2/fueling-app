@@ -133,10 +133,10 @@ export default function CoachAthleteDetailPage() {
 
   function startEditMacros() {
     setMacroForm({
-      daily_calories: recs?.daily_calories || 2500,
-      daily_protein_g: recs?.daily_protein_g || 150,
-      daily_carbs_g: recs?.daily_carbs_g || 300,
-      daily_fat_g: recs?.daily_fat_g || 80,
+      daily_calories: recs?.daily_calories || 0,
+      daily_protein_g: recs?.daily_protein_g || 0,
+      daily_carbs_g: recs?.daily_carbs_g || 0,
+      daily_fat_g: recs?.daily_fat_g || 0,
     })
     setEditingMacros(true)
   }
@@ -461,8 +461,8 @@ export default function CoachAthleteDetailPage() {
     )
   }
 
-  const targetCal = recs?.daily_calories || 2500
-  const targetPro = recs?.daily_protein_g || 150
+  const targetCal = recs?.daily_calories || 0
+  const targetPro = recs?.daily_protein_g || 0
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800">
@@ -548,19 +548,19 @@ export default function CoachAthleteDetailPage() {
           {!editingMacros ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="text-center">
-                <p className="text-xl sm:text-2xl font-bold text-purple-400">{targetCal}</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-400">{targetCal > 0 ? targetCal : '—'}</p>
                 <p className="text-slate-500 text-xs">Calories</p>
               </div>
               <div className="text-center">
-                <p className="text-xl sm:text-2xl font-bold text-blue-400">{recs?.daily_protein_g || 150}g</p>
+                <p className="text-xl sm:text-2xl font-bold text-blue-400">{recs?.daily_protein_g ? `${recs.daily_protein_g}g` : '—'}</p>
                 <p className="text-slate-500 text-xs">Protein</p>
               </div>
               <div className="text-center">
-                <p className="text-xl sm:text-2xl font-bold text-orange-400">{recs?.daily_carbs_g || 300}g</p>
+                <p className="text-xl sm:text-2xl font-bold text-orange-400">{recs?.daily_carbs_g ? `${recs.daily_carbs_g}g` : '—'}</p>
                 <p className="text-slate-500 text-xs">Carbs</p>
               </div>
               <div className="text-center">
-                <p className="text-xl sm:text-2xl font-bold text-yellow-400">{recs?.daily_fat_g || 80}g</p>
+                <p className="text-xl sm:text-2xl font-bold text-yellow-400">{recs?.daily_fat_g ? `${recs.daily_fat_g}g` : '—'}</p>
                 <p className="text-slate-500 text-xs">Fat</p>
               </div>
             </div>
