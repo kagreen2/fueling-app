@@ -18,7 +18,7 @@ ALTER TABLE athletes ADD CONSTRAINT check_activity_level
   CHECK (activity_level IS NULL OR activity_level IN ('sedentary', 'lightly_active', 'moderately_active', 'very_active', 'extra_active')) NOT VALID;
 
 ALTER TABLE athletes ADD CONSTRAINT check_training_style 
-  CHECK (training_style IS NULL OR training_style IN ('strength', 'crossfit', 'cardio', 'mixed', 'yoga_pilates')) NOT VALID;
+  CHECK (training_style IS NULL OR training_style IN ('strength', 'crossfit', 'cardio', 'mixed', 'yoga_pilates', 'dance')) NOT VALID;
 
 -- Validate constraints (non-blocking)
 ALTER TABLE athletes VALIDATE CONSTRAINT check_user_type;

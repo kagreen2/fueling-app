@@ -174,7 +174,7 @@ function getMemberActivityMultiplier(
   // Training style adjustments
   switch (training_style) {
     case 'crossfit':
-      baseMultiplier *= 1.05  // High EPOC, mixed modality
+      baseMultiplier *= 1.05  // HIIT: High EPOC, CrossFit, bootcamps, functional fitness
       break
     case 'strength':
       baseMultiplier *= 1.03  // Elevated post-exercise metabolism
@@ -187,6 +187,9 @@ function getMemberActivityMultiplier(
       break
     case 'yoga_pilates':
       // No adjustment — lower metabolic demand
+      break
+    case 'dance':
+      baseMultiplier *= 1.04  // Dance: moderate-to-high cardio demand, sustained movement
       break
   }
 

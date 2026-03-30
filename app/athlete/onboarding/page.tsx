@@ -748,10 +748,11 @@ export default function OnboardingPage() {
                     <div className="flex flex-col gap-2">
                       {[
                         { value: 'strength', label: 'Strength Training', desc: 'Weightlifting, powerlifting, bodybuilding' },
-                        { value: 'crossfit', label: 'CrossFit / Functional Fitness', desc: 'Mixed modality, high intensity' },
+                        { value: 'crossfit', label: 'High Intensity Interval Training (HIIT)', desc: 'CrossFit, bootcamps, functional fitness' },
                         { value: 'cardio', label: 'Cardio / Endurance', desc: 'Running, cycling, swimming' },
                         { value: 'mixed', label: 'Mixed / General Fitness', desc: 'Combination of strength and cardio' },
                         { value: 'yoga_pilates', label: 'Yoga / Pilates', desc: 'Flexibility, mobility, and bodyweight' },
+                        { value: 'dance', label: 'Dance', desc: 'Hip hop, pole, dance classes, Zumba' },
                       ].map(t => (
                         <button
                           key={t.value}
