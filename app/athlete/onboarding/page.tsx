@@ -34,6 +34,13 @@ export default function OnboardingPage() {
   const [teamLookup, setTeamLookup] = useState<{ name: string; sport: string | null } | null>(null)
   const [teamLookupError, setTeamLookupError] = useState('')
 
+  // InBody scan upload state
+  const [inbodyScanFile, setInbodyScanFile] = useState<File | null>(null)
+  const [inbodyScanPreview, setInbodyScanPreview] = useState<string | null>(null)
+  const [inbodyScanning, setInbodyScanning] = useState(false)
+  const [inbodyScanError, setInbodyScanError] = useState<string | null>(null)
+  const [inbodyData, setInbodyData] = useState<any>(null)
+
   // Pre-fill invite code from URL params (passed from signup page)
   useEffect(() => {
     const invite = searchParams.get('invite')
@@ -130,6 +137,41 @@ export default function OnboardingPage() {
   // Get the current step name to determine which content to show
   const currentStepName = STEPS[step]
 
+  async function handleInBodyUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setInbodyScanFile(file)
+    setInbodyScanPreview(URL.createObjectURL(file))
+    setInbodyScanError(null)
+    setInbodyScanning(true)
+
+    try {
+      const fd = new FormData()
+      fd.append('photo', file)
+      const res = await fetch('/api/biometrics/scan-photo', { method: 'POST', body: fd })
+      const result = await res.json()
+
+      if (!res.ok) {
+        setInbodyScanError(result.error || 'Failed to read scan. You can still enter your stats manually below.')
+        setInbodyScanning(false)
+        return
+      }
+
+      const d = result.data
+      setInbodyData(d)
+
+      // Auto-fill weight from InBody if available
+      if (d.weight_lbs) {
+        update('weightLbs', Math.round(d.weight_lbs).toString())
+      }
+
+      setInbodyScanning(false)
+    } catch {
+      setInbodyScanError('Failed to process photo. You can still enter your stats manually below.')
+      setInbodyScanning(false)
+    }
+  }
+
   async function handleSubmit() {
     setLoading(true)
     setError('')
@@ -211,7 +253,59 @@ export default function OnboardingPage() {
       }
     }
 
+    // If InBody data was uploaded, save it as a biometric scan record
+    if (inbodyData) {
+      try {
+        let photoUrl: string | null = null
+        if (inbodyScanFile) {
+          const fileName = `${athleteId}/${Date.now()}-${inbodyScanFile.name}`
+          const { data: uploadData, error: uploadError } = await supabase.storage.from('biometric-scans').upload(fileName, inbodyScanFile)
+          if (!uploadError && uploadData) {
+            const { data: urlData } = supabase.storage.from('biometric-scans').getPublicUrl(uploadData.path)
+            photoUrl = urlData.publicUrl
+          }
+        }
+
+        const pn = (v: any) => v != null ? parseFloat(v) || null : null
+        await supabase.from('biometric_scans').insert({
+          athlete_id: athleteId,
+          scan_date: new Date().toISOString().split('T')[0],
+          weight_lbs: pn(inbodyData.weight_lbs),
+          intracellular_water_lbs: pn(inbodyData.intracellular_water_lbs),
+          extracellular_water_lbs: pn(inbodyData.extracellular_water_lbs),
+          dry_lean_mass_lbs: pn(inbodyData.dry_lean_mass_lbs),
+          body_fat_mass_lbs: pn(inbodyData.body_fat_mass_lbs),
+          total_body_water_lbs: pn(inbodyData.total_body_water_lbs),
+          fat_free_mass_lbs: pn(inbodyData.fat_free_mass_lbs),
+          skeletal_muscle_mass_lbs: pn(inbodyData.skeletal_muscle_mass_lbs),
+          bmi: pn(inbodyData.bmi),
+          percent_body_fat: pn(inbodyData.percent_body_fat),
+          seg_lean_right_arm_lbs: pn(inbodyData.seg_lean_right_arm_lbs),
+          seg_lean_left_arm_lbs: pn(inbodyData.seg_lean_left_arm_lbs),
+          seg_lean_trunk_lbs: pn(inbodyData.seg_lean_trunk_lbs),
+          seg_lean_right_leg_lbs: pn(inbodyData.seg_lean_right_leg_lbs),
+          seg_lean_left_leg_lbs: pn(inbodyData.seg_lean_left_leg_lbs),
+          ecw_tbw_ratio: pn(inbodyData.ecw_tbw_ratio),
+          visceral_fat_area_cm2: pn(inbodyData.visceral_fat_area_cm2),
+          source: 'athlete',
+          entered_by: user.id,
+          notes: 'Uploaded during onboarding',
+          photo_url: photoUrl,
+        })
+
+        // Also update athlete record with body fat from InBody
+        const updates: any = {}
+        if (inbodyData.percent_body_fat) updates.body_fat_percentage = parseFloat(inbodyData.percent_body_fat)
+        if (Object.keys(updates).length > 0) {
+          await supabase.from('athletes').update(updates).eq('id', athleteId)
+        }
+      } catch (e) {
+        console.error('Error saving InBody scan:', e)
+      }
+    }
+
     // Generate personalized nutrition recommendations
+    // (This will automatically use InBody data if a biometric scan exists)
     try {
       await fetch('/api/recommendations/generate', {
         method: 'POST',
@@ -450,7 +544,82 @@ export default function OnboardingPage() {
             <div className="flex flex-col gap-4">
               <h2 className="text-2xl font-bold text-white mb-2">Body stats</h2>
               <p className="text-slate-400 text-sm">Used to calculate your personal fueling targets.</p>
-              
+
+              {/* InBody scan upload — optional */}
+              <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center text-lg flex-shrink-0">📊</div>
+                  <div>
+                    <p className="text-white font-medium text-sm">Have an InBody scan?</p>
+                    <p className="text-slate-400 text-xs mt-0.5">Upload a photo of your InBody printout for the most accurate macro targets. This is optional — you can skip and enter your stats manually.</p>
+                  </div>
+                </div>
+
+                {!inbodyScanPreview && !inbodyData && (
+                  <label className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-700/50 hover:bg-slate-700 border border-dashed border-slate-600 hover:border-purple-500/50 rounded-lg cursor-pointer transition-all">
+                    <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span className="text-sm text-slate-300 font-medium">Upload InBody Photo</span>
+                    <input type="file" accept="image/*" capture="environment" onChange={handleInBodyUpload} className="hidden" />
+                  </label>
+                )}
+
+                {inbodyScanning && (
+                  <div className="flex items-center justify-center gap-2 py-3 text-purple-400">
+                    <div className="animate-spin h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full"></div>
+                    <span className="text-sm">Reading your InBody scan...</span>
+                  </div>
+                )}
+
+                {inbodyScanError && (
+                  <div className="mt-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-3 py-2 rounded-lg">
+                    {inbodyScanError}
+                  </div>
+                )}
+
+                {inbodyData && !inbodyScanning && (
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 text-sm px-3 py-2 rounded-lg mb-3">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      <span>InBody data extracted successfully!</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      {inbodyData.weight_lbs && (
+                        <div className="bg-slate-700/50 rounded-lg px-3 py-2">
+                          <div className="text-slate-500 text-xs">Weight</div>
+                          <div className="text-white font-medium">{Math.round(inbodyData.weight_lbs)} lbs</div>
+                        </div>
+                      )}
+                      {inbodyData.percent_body_fat && (
+                        <div className="bg-slate-700/50 rounded-lg px-3 py-2">
+                          <div className="text-slate-500 text-xs">Body Fat</div>
+                          <div className="text-white font-medium">{inbodyData.percent_body_fat}%</div>
+                        </div>
+                      )}
+                      {inbodyData.skeletal_muscle_mass_lbs && (
+                        <div className="bg-slate-700/50 rounded-lg px-3 py-2">
+                          <div className="text-slate-500 text-xs">Skeletal Muscle</div>
+                          <div className="text-white font-medium">{Math.round(inbodyData.skeletal_muscle_mass_lbs * 10) / 10} lbs</div>
+                        </div>
+                      )}
+                      {inbodyData.fat_free_mass_lbs && (
+                        <div className="bg-slate-700/50 rounded-lg px-3 py-2">
+                          <div className="text-slate-500 text-xs">Fat-Free Mass</div>
+                          <div className="text-white font-medium">{Math.round(inbodyData.fat_free_mass_lbs * 10) / 10} lbs</div>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setInbodyData(null); setInbodyScanFile(null); setInbodyScanPreview(null); setInbodyScanError(null) }}
+                      className="mt-2 text-xs text-slate-500 hover:text-slate-400 transition-colors"
+                    >
+                      Remove scan &amp; enter manually
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Manual entry fields — always shown */}
               <div>
                 <label className="text-slate-300 text-sm font-medium mb-2 block">Height</label>
                 <div className="flex gap-3">
@@ -464,7 +633,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="text-slate-300 text-sm font-medium mb-2 block">Current weight (lbs)</label>
+                <label className="text-slate-300 text-sm font-medium mb-2 block">Current weight (lbs){inbodyData?.weight_lbs ? ' — auto-filled from InBody' : ''}</label>
                 <input type="number" value={form.weightLbs} onChange={e => update('weightLbs', e.target.value)} placeholder="185" className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500" />
               </div>
             </div>
