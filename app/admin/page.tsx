@@ -1434,7 +1434,12 @@ export default function AdminDashboard() {
                               {user.full_name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-white text-sm font-medium">{user.full_name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-white text-sm font-medium">{user.full_name}</p>
+                                {(user.role === 'athlete' || user.role === 'member') && !athleteByProfileId[user.id] && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium">Not Onboarded</span>
+                                )}
+                              </div>
                               <p className="text-slate-500 text-xs">{user.email}</p>
                             </div>
                           </div>
@@ -1458,13 +1463,22 @@ export default function AdminDashboard() {
                             >
                               Edit
                             </button>
-                            {(user.role === 'athlete' || user.role === 'member') && athleteByProfileId[user.id] && (
-                              <button
-                                onClick={() => router.push(`/coach/athlete/${athleteByProfileId[user.id].id}`)}
-                                className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
-                              >
-                                View
-                              </button>
+                            {(user.role === 'athlete' || user.role === 'member') && (
+                              athleteByProfileId[user.id] ? (
+                                <button
+                                  onClick={() => router.push(`/coach/athlete/${athleteByProfileId[user.id].id}`)}
+                                  className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                                >
+                                  View
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => router.push(`/admin/user/${user.id}`)}
+                                  className="text-yellow-400 hover:text-yellow-300 text-sm font-medium transition-colors"
+                                >
+                                  View
+                                </button>
+                              )
                             )}
                           </div>
                         </td>

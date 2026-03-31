@@ -82,6 +82,16 @@ export default function SignupPage( ) {
       }
 
       if (data.user) {
+        // Mirror session to localStorage for PWA homescreen persistence
+        if (data.session) {
+          try {
+            window.localStorage.setItem('fuel-different-auth', JSON.stringify({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            }))
+          } catch {}
+        }
+
         // Wait for profile to be created by trigger
         let profileExists = false
         let attempts = 0

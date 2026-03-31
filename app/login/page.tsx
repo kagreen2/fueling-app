@@ -39,6 +39,16 @@ export default function LoginPage( ) {
       return
     }
 
+    // Mirror session to localStorage for PWA homescreen persistence
+    if (data.session) {
+      try {
+        window.localStorage.setItem("fuel-different-auth", JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        }))
+      } catch {}
+    }
+
     // Route based on role AND subscription status
     const { data: profile } = await supabase
       .from('profiles')
