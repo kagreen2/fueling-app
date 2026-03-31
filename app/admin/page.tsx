@@ -660,11 +660,23 @@ export default function AdminDashboard() {
 
   async function handleAddToTeam(teamId: string, athleteId: string) {
     try {
-      // 1. Add to team_members
-      const { error } = await supabase
+      // 1. Add to team_members using insert (not upsert, so errors are visible)
+      const { data: insertData, error: insertError } = await supabase
         .from('team_members')
-        .upsert({ team_id: teamId, athlete_id: athleteId }, { onConflict: 'team_id,athlete_id' })
-      if (error) { console.error('Error adding to team:', error); return }
+        .insert({ team_id: teamId, athlete_id: athleteId })
+        .select()
+
+      if (insertError) {
+        // If duplicate, that's OK - athlete is already on the team
+        if (insertError.code === '23505') {
+          alert('This athlete is already on this team.')
+        } else {
+          alert('Error adding athlete to team: ' + insertError.message)
+          console.error('Error adding to team:', insertError)
+        }
+        return
+      }
+
       setTeamMembers(prev => [...prev, { team_id: teamId, athlete_id: athleteId }])
 
       // 2. Auto-assign the team's coach to this athlete
@@ -691,7 +703,8 @@ export default function AdminDashboard() {
 
       setAddingToTeamId(null)
       setSelectedAthleteForTeam('')
-    } catch (e) {
+    } catch (e: any) {
+      alert('Unexpected error: ' + (e?.message || 'Unknown error'))
       console.error('Error adding to team:', e)
     }
   }
