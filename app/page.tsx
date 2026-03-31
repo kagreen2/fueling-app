@@ -149,7 +149,7 @@ export default function Home() {
                   <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><circle cx="12" cy="13" r="3" /></svg>
                 ),
                 title: 'AI Meal Tracking',
-                desc: 'Snap a photo. Get instant macros. No more guessing what\'s on your plate — our AI breaks it down and tells you exactly how it fits your targets.',
+                desc: 'Snap a photo. Get instant macros. No more guessing what\'s on your plate — our platform breaks it down and tells you exactly how it fits your targets.',
               },
               {
                 icon: (
