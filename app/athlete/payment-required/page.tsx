@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
+import LightningBolt from '@/components/ui/LightningBolt'
 
 export default function PaymentRequiredPage( ) {
   const router = useRouter()
@@ -99,7 +100,7 @@ export default function PaymentRequiredPage( ) {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">⚡</div>
+          <LightningBolt className="w-12 h-12 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-white mb-2">Complete Your Subscription</h1>
           <p className="text-slate-400">
             {wasCanceled

@@ -231,7 +231,7 @@ export default function AdminDashboard() {
   }
 
   const athleteProfiles = useMemo(() => profiles.filter(p => p.role === 'athlete' || p.role === 'member'), [profiles])
-  const coachProfiles = useMemo(() => profiles.filter(p => p.role === 'coach'), [profiles])
+  const coachProfiles = useMemo(() => profiles.filter(p => ['coach', 'admin', 'super_admin'].includes(p.role)), [profiles])
   const adminProfiles = useMemo(() => profiles.filter(p => ['admin', 'super_admin'].includes(p.role)), [profiles])
 
   const athleteByProfileId = useMemo(() => {
@@ -349,7 +349,7 @@ export default function AdminDashboard() {
     // Missed check-ins (athletes who haven't checked in for 2+ days)
     const twoDaysAgo = new Date()
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
-    const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0]
+    const twoDaysAgoStr = getLocalDateString(twoDaysAgo)
     const missedCheckinAthletes = athletes.filter(a => {
       const latest = latestCheckinByAthlete[a.id]
       return !latest || latest.date < twoDaysAgoStr
@@ -364,6 +364,21 @@ export default function AdminDashboard() {
           message: `${names.length} athlete${names.length > 1 ? 's' : ''} missed check-in (2+ days): ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3} more` : ''}`,
         })
       }
+    }
+
+    // Incomplete onboarding — users with profile but no athlete record
+    const athleteProfileIds = new Set(athletes.map(a => a.profile_id))
+    const incompleteOnboarding = profiles.filter(p => 
+      (p.role === 'athlete' || p.role === 'member') && !athleteProfileIds.has(p.id)
+    )
+    if (incompleteOnboarding.length > 0) {
+      items.push({
+        id: 'incomplete_onboarding',
+        type: 'warning',
+        icon: '🚧',
+        message: `${incompleteOnboarding.length} user${incompleteOnboarding.length > 1 ? 's' : ''} haven't completed onboarding: ${incompleteOnboarding.slice(0, 3).map(u => u.full_name).join(', ')}${incompleteOnboarding.length > 3 ? ` +${incompleteOnboarding.length - 3} more` : ''}`,
+        tab: 'users',
+      })
     }
 
     return items.filter(a => !dismissedAlerts.has(a.id))

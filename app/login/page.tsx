@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import LightningBolt from '@/components/ui/LightningBolt'
 
 export default function LoginPage( ) {
   const router = useRouter()
@@ -92,7 +93,7 @@ export default function LoginPage( ) {
       <div className="w-full max-w-md relative z-10">
         <div className="mb-8 text-center">
           <div className="inline-block mb-4">
-            <div className="text-4xl">⚡</div>
+            <LightningBolt className="w-10 h-10" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Welcome Back</h1>
           <p className="text-slate-400">Sign in to your Fuel Different account</p>

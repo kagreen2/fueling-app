@@ -609,7 +609,7 @@ export default function CoachAthleteDetailPage() {
             </div>
           )}
           {recs?.reasoning && recs.reasoning.startsWith('Manually') && (
-            <p className="text-xs text-yellow-400/70 mt-3 text-center">⚡ {recs.reasoning}</p>
+            <p className="text-xs text-yellow-400/70 mt-3 text-center"><span className="text-green-400">●</span> {recs.reasoning}</p>
           )}
         </div>
 

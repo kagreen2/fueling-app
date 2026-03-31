@@ -15,6 +15,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Fetch the athlete record to determine user_type and context
+    const { data: athlete } = await supabase
+      .from('athletes')
+      .select('user_type, sport, training_style, activity_level, goal_phase')
+      .eq('profile_id', user.id)
+      .single()
+
+    const userType = athlete?.user_type || 'athlete'
+    const sport = athlete?.sport || null
+    const trainingStyle = athlete?.training_style || null
+    const activityLevel = athlete?.activity_level || null
+    const goalPhase = athlete?.goal_phase || null
+
     const formData = await request.formData()
     const photo = formData.get('photo') as File | null
     const description = formData.get('description') as string || ''
@@ -38,17 +51,47 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const prompt = `You are an expert sports nutrition coach AI for a performance fueling app used by high school and college athletes.
+    // Build context-aware prompt based on user type
+    let roleDescription: string
+    let feedbackGuidance: string
+    let nextStepGuidance: string
 
-Your job is to analyze meals and provide accurate macro estimates and personalized coaching feedback to help athletes optimize their performance and recovery.
+    if (userType === 'member') {
+      // General fitness / wellness member
+      const styleContext = trainingStyle ? ` Their training style is ${trainingStyle}.` : ''
+      const levelContext = activityLevel ? ` Their activity level is ${activityLevel}.` : ''
+      const goalContext = goalPhase ? ` Their current goal is: ${goalPhase.replace(/_/g, ' ')}.` : ''
+
+      roleDescription = `You are an expert nutrition coach AI for a wellness and fitness app. Your user is a general fitness enthusiast (not a competitive athlete).${styleContext}${levelContext}${goalContext}
+
+Your job is to analyze meals and provide accurate macro estimates and personalized coaching feedback to help them reach their health and fitness goals.`
+
+      feedbackGuidance = `feedback should be encouraging, specific, and relate to their general health, energy levels, body composition goals, and overall wellness — NOT competitive sports performance. Do not reference high school, college, or competitive athletics.`
+
+      nextStepGuidance = `nextStep should suggest complementary foods, portion adjustments, or meal timing tips for their fitness and wellness goals`
+    } else {
+      // Competitive athlete
+      const sportContext = sport ? ` They play ${sport}.` : ''
+      const goalContext = goalPhase ? ` Their current goal is: ${goalPhase.replace(/_/g, ' ')}.` : ''
+
+      roleDescription = `You are an expert sports nutrition coach AI for a performance fueling app used by competitive athletes.${sportContext}${goalContext}
+
+Your job is to analyze meals and provide accurate macro estimates and personalized coaching feedback to help athletes optimize their performance and recovery.`
+
+      feedbackGuidance = `feedback should be encouraging, specific, and relate to athletic performance and recovery`
+
+      nextStepGuidance = `nextStep should suggest complementary foods or timing for better recovery and performance`
+    }
+
+    const prompt = `${roleDescription}
 
 ${mealTitle ? `Meal name: ${mealTitle}` : ''}
-${description ? `Athlete description: ${description}` : ''}
+${description ? `User description: ${description}` : ''}
 
 Analyze this meal carefully and provide:
 1. Accurate calorie and macro estimates (protein, carbs, fat in grams)
 2. Your confidence level in the estimate
-3. Coaching feedback that's encouraging and specific to athletic performance
+3. Coaching feedback that's encouraging and specific
 4. One actionable next step for their nutrition
 
 Return ONLY valid JSON in exactly this format, no other text:
@@ -59,8 +102,8 @@ Return ONLY valid JSON in exactly this format, no other text:
   "carbs": 60,
   "fat": 18,
   "confidence": "high",
-  "feedback": "2-3 sentence coaching feedback about this meal's quality for athletic performance and recovery",
-  "nextStep": "one specific actionable suggestion for their next meal or snack to optimize their fueling",
+  "feedback": "2-3 sentence coaching feedback about this meal's quality",
+  "nextStep": "one specific actionable suggestion for their next meal or snack",
   "clarifyingQuestion": null
 }
 
@@ -68,10 +111,10 @@ Rules:
 - confidence must be "high", "medium", or "low" based on how clearly you can identify the food
 - All macro values must be numbers (not strings) in grams
 - Calories should be realistic for the portion size visible
-- feedback should be encouraging, specific, and relate to athletic performance
-- nextStep should suggest complementary foods or timing for better recovery
+- ${feedbackGuidance}
+- ${nextStepGuidance}
 - If you cannot identify the food clearly, set confidence to "low" and provide a clarifying question instead
-- For high confidence estimates, provide specific performance benefits in the feedback`
+- For high confidence estimates, provide specific benefits in the feedback`
 
     content.push({ type: 'text', text: prompt })
     messages.push({ role: 'user', content })

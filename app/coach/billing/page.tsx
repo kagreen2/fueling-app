@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import LightningBolt from '@/components/ui/LightningBolt'
 
 interface Team {
   id: string
@@ -208,7 +209,7 @@ export default function BillingPage() {
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-purple-600/20 rounded-xl flex items-center justify-center">
-              <span className="text-xl">⚡</span>
+              <LightningBolt className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Fuel Different</h2>

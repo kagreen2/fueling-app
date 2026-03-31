@@ -114,6 +114,12 @@ export default function ProfilePage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [portalLoading, setPortalLoading] = useState(false)
+  const [teamCode, setTeamCode] = useState('')
+  const [joiningTeam, setJoiningTeam] = useState(false)
+  const [teamInfo, setTeamInfo] = useState<{ id: string; name: string; sport: string | null } | null>(null)
+  const [teamError, setTeamError] = useState('')
+  const [teamSuccess, setTeamSuccess] = useState('')
+  const [currentTeams, setCurrentTeams] = useState<{ id: string; name: string; sport: string | null }[]>([])
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -163,6 +169,21 @@ export default function ProfilePage() {
         .single()
 
       if (recsData) setRecs(recsData)
+
+      // Load current team memberships
+      const { data: memberships } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('athlete_id', athleteData.id)
+
+      if (memberships && memberships.length > 0) {
+        const teamIds = memberships.map(m => m.team_id)
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('id, name, sport')
+          .in('id', teamIds)
+        if (teamsData) setCurrentTeams(teamsData)
+      }
     }
 
     setLoading(false)
@@ -283,6 +304,57 @@ export default function ProfilePage() {
       setError('Something went wrong. Please try again.')
       setPortalLoading(false)
     }
+  }
+
+  async function handleJoinTeam() {
+    if (!teamCode.trim() || !athlete) return
+    setJoiningTeam(true)
+    setTeamError('')
+    setTeamSuccess('')
+
+    try {
+      // Look up team by invite code
+      const { data: team, error: lookupError } = await supabase
+        .from('teams')
+        .select('id, name, sport')
+        .eq('invite_code', teamCode.trim().toUpperCase())
+        .single()
+
+      if (lookupError || !team) {
+        setTeamError('No team found with that invite code. Please check and try again.')
+        setJoiningTeam(false)
+        return
+      }
+
+      // Check if already a member
+      if (currentTeams.some(t => t.id === team.id)) {
+        setTeamError(`You're already a member of ${team.name}.`)
+        setJoiningTeam(false)
+        return
+      }
+
+      // Join the team
+      const { error: joinError } = await supabase
+        .from('team_members')
+        .upsert({
+          team_id: team.id,
+          athlete_id: athlete.id,
+        }, { onConflict: 'team_id,athlete_id' })
+
+      if (joinError) {
+        setTeamError('Failed to join team: ' + joinError.message)
+        setJoiningTeam(false)
+        return
+      }
+
+      setCurrentTeams(prev => [...prev, team])
+      setTeamSuccess(`Successfully joined ${team.name}!`)
+      setTeamCode('')
+    } catch (e) {
+      setTeamError('Something went wrong. Please try again.')
+    }
+
+    setJoiningTeam(false)
   }
 
   async function handleSignOut() {
@@ -564,7 +636,7 @@ export default function ProfilePage() {
                         <p className="text-xs text-slate-400">Protein</p>
                       </div>
                       <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-orange-400">{recs.daily_carbs_g}g</p>
+                        <p className="text-2xl font-bold text-purple-400">{recs.daily_carbs_g}g</p>
                         <p className="text-xs text-slate-400">Carbs</p>
                       </div>
                       <div className="bg-slate-700/50 rounded-lg p-3 text-center">
@@ -640,6 +712,61 @@ export default function ProfilePage() {
               Saving will recalculate your personalized nutrition targets
             </p>
           </div>
+        )}
+
+        {/* Join a Team */}
+        {!editing && (
+          <Card className="mb-6 border-slate-700/50">
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-white">Team</p>
+                  <p className="text-xs text-slate-400 mt-1">Join a team using an invite code from your coach</p>
+                </div>
+
+                {/* Current teams */}
+                {currentTeams.length > 0 && (
+                  <div className="space-y-2">
+                    {currentTeams.map(team => (
+                      <div key={team.id} className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+                        <span className="text-green-400 text-sm">&#10003;</span>
+                        <div>
+                          <p className="text-sm text-white font-medium">{team.name}</p>
+                          {team.sport && <p className="text-xs text-slate-400 capitalize">{team.sport.replace(/_/g, ' ')}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Join form */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={teamCode}
+                    onChange={e => { setTeamCode(e.target.value.toUpperCase()); setTeamError(''); setTeamSuccess(''); }}
+                    placeholder="Enter invite code"
+                    maxLength={10}
+                    className="flex-1 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500 uppercase"
+                  />
+                  <button
+                    onClick={handleJoinTeam}
+                    disabled={joiningTeam || !teamCode.trim()}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    {joiningTeam ? 'Joining...' : 'Join'}
+                  </button>
+                </div>
+
+                {teamError && (
+                  <p className="text-xs text-red-400">{teamError}</p>
+                )}
+                {teamSuccess && (
+                  <p className="text-xs text-green-400">{teamSuccess}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Re-run Onboarding */}

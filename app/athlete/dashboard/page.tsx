@@ -10,6 +10,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { StatCard } from '@/components/ui/StatCard'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import ChatPanel from '@/components/ChatPanel'
+import LightningBolt from '@/components/ui/LightningBolt'
 
 interface AthleteStats {
   todayCalories: number
@@ -366,7 +367,7 @@ export default function AthleteDashboard() {
     return (
       <main className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">⚡</div>
+          <LightningBolt className="w-10 h-10 mx-auto mb-4 animate-pulse" />
           <p className="text-slate-400">Loading your dashboard...</p>
         </div>
       </main>
