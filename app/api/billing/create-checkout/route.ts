@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
 function getSupabaseAdmin() {
   return createClient(
@@ -11,10 +12,30 @@ function getSupabaseAdmin() {
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Authenticate the caller via session cookie
+    const authSupabase = await createServerClient()
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized — please log in' }, { status: 401 })
+    }
+
     const { teamId, athleteCount, coachId, coachEmail } = await req.json()
 
     if (!teamId || !athleteCount || !coachId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // 2. Verify the logged-in user IS the coach (or an admin/super_admin)
+    if (user.id !== coachId) {
+      const { data: callerProfile } = await authSupabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (!callerProfile || !['admin', 'super_admin'].includes(callerProfile.role)) {
+        return NextResponse.json({ error: 'Forbidden — you can only create checkout for your own team' }, { status: 403 })
+      }
     }
 
     const supabaseAdmin = getSupabaseAdmin()
@@ -27,7 +48,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (!team || team.coach_id !== coachId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: 'Unauthorized — coach does not own this team' }, { status: 403 })
     }
 
     // Check if team already has a Stripe customer

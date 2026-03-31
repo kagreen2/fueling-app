@@ -1,8 +1,37 @@
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+
+/**
+ * Shared helper: authenticate the caller and verify admin/super_admin role.
+ * Returns { user, profile } on success, or a NextResponse error.
+ */
+async function requireAdmin() {
+  const authSupabase = await createServerClient()
+  const { data: { user }, error: authError } = await authSupabase.auth.getUser()
+  if (authError || !user) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+
+  const { data: profile } = await authSupabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
+    return { error: NextResponse.json({ error: 'Forbidden — admin access required' }, { status: 403 }) }
+  }
+
+  return { user, profile }
+}
 
 export async function GET(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await requireAdmin()
+    if ('error' in auth && auth.error) return auth.error
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -32,6 +61,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const auth = await requireAdmin()
+    if ('error' in auth && auth.error) return auth.error
+
     const { setting_key, setting_value } = await request.json()
     
     if (!setting_key || setting_value === undefined) {
@@ -42,22 +75,6 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-
-    // Check if user is admin
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     // Update setting
     const { data: updated, error } = await supabase

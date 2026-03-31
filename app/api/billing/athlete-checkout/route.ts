@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe/server'
 import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
 
-function getSupabaseAdmin( ) {
+function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -11,10 +12,31 @@ function getSupabaseAdmin( ) {
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Authenticate the caller via session cookie
+    const authSupabase = await createServerClient()
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized — please log in' }, { status: 401 })
+    }
+
     const { userId, email, fullName } = await req.json()
 
     if (!userId || !email) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // 2. Verify the logged-in user matches the userId being charged
+    //    (admins/super_admins can also initiate checkout on behalf of an athlete)
+    if (user.id !== userId) {
+      const { data: callerProfile } = await authSupabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (!callerProfile || !['admin', 'super_admin'].includes(callerProfile.role)) {
+        return NextResponse.json({ error: 'Forbidden — you can only create a checkout for your own account' }, { status: 403 })
+      }
     }
 
     const supabaseAdmin = getSupabaseAdmin()
@@ -57,7 +79,7 @@ export async function POST(req: NextRequest) {
       customer: customerId,
       payment_method_types: ['card'],
       mode: 'subscription',
-      allow_promotion_codes: true, // <-- Enables promo/coupon codes on checkout page
+      allow_promotion_codes: true,
       line_items: [
         {
           price_data: {

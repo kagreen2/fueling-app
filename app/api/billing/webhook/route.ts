@@ -3,7 +3,7 @@ import { stripe } from '@/lib/stripe/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
-function getSupabaseAdmin( ) {
+function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -18,11 +18,21 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event
 
   try {
+    // In production, ALWAYS require webhook signature verification.
+    // The dev bypass is only allowed when NODE_ENV is explicitly 'development'.
     if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
       event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
-    } else {
-      // For development/testing without webhook signing
+    } else if (process.env.NODE_ENV === 'development') {
+      // Local development only — accept unsigned events for testing
+      console.warn('⚠️  Webhook signature verification skipped (development mode)')
       event = JSON.parse(body) as Stripe.Event
+    } else {
+      // Production without a webhook secret or signature — reject
+      console.error('Missing STRIPE_WEBHOOK_SECRET or stripe-signature header in production')
+      return NextResponse.json(
+        { error: 'Webhook signature verification required. Set STRIPE_WEBHOOK_SECRET in production.' },
+        { status: 400 }
+      )
     }
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message)
