@@ -179,6 +179,12 @@ export default function PaymentRequiredPage( ) {
           >
             Sign out
           </button>
+          <a
+            href="mailto:kelly@crossfitironflag.com?subject=Fuel Different — Payment Help"
+            className="text-slate-500 text-sm hover:text-slate-400 transition block mt-1"
+          >
+            Having trouble? Contact support
+          </a>
         </div>
       </div>
     </main>

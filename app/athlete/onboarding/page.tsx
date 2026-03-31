@@ -338,6 +338,18 @@ export default function OnboardingPage() {
       </div>
 
       <div className="w-full max-w-md relative z-10">
+        {/* Welcome-back nudge for returning users */}
+        {step === 0 && (
+          <div className="mb-4 bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start gap-3 animate-in fade-in duration-500">
+            <span className="text-xl flex-shrink-0">👋</span>
+            <div>
+              <p className="text-green-400/70 text-sm mt-0.5">
+                You're almost there — just a few quick steps to unlock your personalized nutrition plan.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-white mb-2">Let's Get Started</h1>

@@ -230,6 +230,12 @@ export default function LoginPage( ) {
           <Link href="/" className="text-slate-500 text-sm hover:text-slate-400 transition block">
             Back to home
           </Link>
+          <a
+            href="mailto:kelly@crossfitironflag.com?subject=Fuel Different — Login Help"
+            className="text-slate-500 text-sm hover:text-slate-400 transition block mt-2"
+          >
+            Need help? Contact support
+          </a>
         </div>
       </div>
     </main>

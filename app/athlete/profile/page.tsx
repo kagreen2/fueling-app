@@ -808,6 +808,12 @@ export default function ProfilePage() {
             >
               Sign Out
             </button>
+            <a
+              href="mailto:kelly@crossfitironflag.com?subject=Fuel Different — Support Request"
+              className="block w-full py-3 text-center text-slate-400 hover:text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-xl transition-all text-sm font-medium"
+            >
+              Contact Support
+            </a>
             <p className="text-xs text-slate-600 text-center">
               Fuel Different v1.0
             </p>
