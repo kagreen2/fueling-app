@@ -324,7 +324,7 @@ export default function CoachTeamsPage() {
                   {showQR === team.id && (
                     <div className="mt-4 flex flex-col items-center gap-3 p-4 bg-white rounded-xl">
                       <QRCodeSVG
-                        value={`https://fueling-app.vercel.app/signup?invite=${team.invite_code}`}
+                        value={`https://fueldifferent.app/signup?invite=${team.invite_code}`}
                         size={200}
                         level="H"
                         includeMargin={true}

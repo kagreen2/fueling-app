@@ -173,6 +173,7 @@ export default function AdminDashboard() {
   const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null)
   const [confirmDeleteTeam, setConfirmDeleteTeam] = useState<Team | null>(null)
   const [addingToTeamId, setAddingToTeamId] = useState<string | null>(null)
+  const [selectedAthleteForTeam, setSelectedAthleteForTeam] = useState<string>('')
 
   useEffect(() => {
     loadData()
@@ -659,13 +660,37 @@ export default function AdminDashboard() {
 
   async function handleAddToTeam(teamId: string, athleteId: string) {
     try {
+      // 1. Add to team_members
       const { error } = await supabase
         .from('team_members')
         .upsert({ team_id: teamId, athlete_id: athleteId }, { onConflict: 'team_id,athlete_id' })
-      if (!error) {
-        setTeamMembers(prev => [...prev, { team_id: teamId, athlete_id: athleteId }])
-        setAddingToTeamId(null)
+      if (error) { console.error('Error adding to team:', error); return }
+      setTeamMembers(prev => [...prev, { team_id: teamId, athlete_id: athleteId }])
+
+      // 2. Auto-assign the team's coach to this athlete
+      const team = teams.find(t => t.id === teamId)
+      if (team?.coach_id) {
+        // Remove existing coach assignment for this athlete if any
+        const existing = coachAssignments.find(a => a.athlete_id === athleteId)
+        if (existing) {
+          await supabase.from('athlete_coach_assignments').delete().eq('id', existing.id)
+        }
+        // Create new assignment to the team's coach
+        const { data: newAssignment, error: assignError } = await supabase
+          .from('athlete_coach_assignments')
+          .insert({ athlete_id: athleteId, coach_id: team.coach_id })
+          .select()
+          .single()
+        if (!assignError && newAssignment) {
+          setCoachAssignments(prev => [
+            ...prev.filter(a => a.athlete_id !== athleteId),
+            newAssignment,
+          ])
+        }
       }
+
+      setAddingToTeamId(null)
+      setSelectedAthleteForTeam('')
     } catch (e) {
       console.error('Error adding to team:', e)
     }
@@ -1256,11 +1281,11 @@ export default function AdminDashboard() {
                     {addingToTeamId === team.id ? (
                       <div className="flex items-center gap-2">
                         <select
-                          id={`add-athlete-select-${team.id}`}
+                          value={selectedAthleteForTeam}
+                          onChange={e => setSelectedAthleteForTeam(e.target.value)}
                           className="flex-1 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600"
-                          defaultValue=""
                         >
-                          <option value="" disabled>Select an athlete to add...</option>
+                          <option value="">Select an athlete to add...</option>
                           {athletes
                             .filter(a => !memberIds.includes(a.id))
                             .map(a => {
@@ -1270,15 +1295,15 @@ export default function AdminDashboard() {
                         </select>
                         <button
                           onClick={() => {
-                            const select = document.getElementById(`add-athlete-select-${team.id}`) as HTMLSelectElement
-                            if (select?.value) handleAddToTeam(team.id, select.value)
+                            if (selectedAthleteForTeam) handleAddToTeam(team.id, selectedAthleteForTeam)
                           }}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          disabled={!selectedAthleteForTeam}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                         >
                           Add
                         </button>
                         <button
-                          onClick={() => setAddingToTeamId(null)}
+                          onClick={() => { setAddingToTeamId(null); setSelectedAthleteForTeam('') }}
                           className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
                         >
                           Cancel

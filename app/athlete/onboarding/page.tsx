@@ -236,7 +236,7 @@ export default function OnboardingPage() {
       try {
         const { data: team } = await supabase
           .from('teams')
-          .select('id')
+          .select('id, coach_id')
           .eq('invite_code', form.inviteCode.trim().toUpperCase())
           .single()
 
@@ -247,6 +247,16 @@ export default function OnboardingPage() {
               team_id: team.id,
               athlete_id: athleteId,
             }, { onConflict: 'team_id,athlete_id' })
+
+          // Auto-assign the team's coach to this athlete
+          if (team.coach_id) {
+            await supabase
+              .from('athlete_coach_assignments')
+              .upsert({
+                athlete_id: athleteId,
+                coach_id: team.coach_id,
+              }, { onConflict: 'athlete_id' })
+          }
         }
       } catch (e) {
         console.error('Error joining team:', e)

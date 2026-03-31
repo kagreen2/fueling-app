@@ -316,7 +316,7 @@ export default function ProfilePage() {
       // Look up team by invite code
       const { data: team, error: lookupError } = await supabase
         .from('teams')
-        .select('id, name, sport')
+        .select('id, name, sport, coach_id')
         .eq('invite_code', teamCode.trim().toUpperCase())
         .single()
 
@@ -345,6 +345,16 @@ export default function ProfilePage() {
         setTeamError('Failed to join team: ' + joinError.message)
         setJoiningTeam(false)
         return
+      }
+
+      // Auto-assign the team's coach to this athlete
+      if (team.coach_id) {
+        await supabase
+          .from('athlete_coach_assignments')
+          .upsert({
+            athlete_id: athlete.id,
+            coach_id: team.coach_id,
+          }, { onConflict: 'athlete_id' })
       }
 
       setCurrentTeams(prev => [...prev, team])
