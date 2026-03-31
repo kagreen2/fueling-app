@@ -204,7 +204,7 @@ export default function SignupPage( ) {
             onClick={() => setForm(prev => ({ ...prev, role: 'coach', inviteCode: '' }))}
             className={`flex-1 py-4 rounded-xl border-2 transition-all duration-200 text-center ${
               form.role === 'coach'
-                ? 'border-orange-500 bg-orange-500/10 text-white'
+                ? 'border-purple-500 bg-purple-500/10 text-white'
                 : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
             }`}
           >
@@ -279,8 +279,8 @@ export default function SignupPage( ) {
           )}
 
           {form.role === 'coach' && (
-            <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl px-4 py-3">
-              <p className="text-sm text-orange-300/80">
+            <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl px-4 py-3">
+              <p className="text-sm text-purple-300/80">
                 After signing up, you&apos;ll create your team and get an invite code to share with your athletes and members.
               </p>
             </div>
@@ -305,7 +305,7 @@ export default function SignupPage( ) {
             disabled={loading}
             className={`w-full font-semibold py-3 rounded-xl text-lg transition-colors mt-2 text-white ${
               form.role === 'coach'
-                ? 'bg-orange-600 hover:bg-orange-700 disabled:bg-orange-600/50'
+                ? 'bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50'
                 : form.role === 'member'
                 ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50'
                 : 'bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50'

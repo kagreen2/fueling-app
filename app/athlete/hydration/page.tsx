@@ -78,7 +78,7 @@ export default function HydrationPage() {
     if (oz >= 100) return { label: 'Excellent', color: 'text-green-400', emoji: '💧' }
     if (oz >= 80) return { label: 'Good', color: 'text-green-400', emoji: '💧' }
     if (oz >= 60) return { label: 'Moderate', color: 'text-yellow-400', emoji: '⚠️' }
-    if (oz >= 40) return { label: 'Low', color: 'text-orange-400', emoji: '⚠️' }
+    if (oz >= 40) return { label: 'Low', color: 'text-amber-400', emoji: '⚠️' }
     return { label: 'Critical', color: 'text-red-400', emoji: '🚨' }
   }
 

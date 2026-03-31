@@ -560,7 +560,7 @@ export default function CoachAthleteDetailPage() {
                 <p className="text-slate-500 text-xs">Protein</p>
               </div>
               <div className="text-center">
-                <p className="text-xl sm:text-2xl font-bold text-orange-400">{recs?.daily_carbs_g ? `${recs.daily_carbs_g}g` : '—'}</p>
+                <p className="text-xl sm:text-2xl font-bold text-purple-400">{recs?.daily_carbs_g ? `${recs.daily_carbs_g}g` : '—'}</p>
                 <p className="text-slate-500 text-xs">Carbs</p>
               </div>
               <div className="text-center">
@@ -594,7 +594,7 @@ export default function CoachAthleteDetailPage() {
                   type="number"
                   value={macroForm.daily_carbs_g}
                   onChange={e => setMacroForm(prev => ({ ...prev, daily_carbs_g: parseInt(e.target.value) || 0 }))}
-                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:border-orange-500"
+                  className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-center text-lg font-bold focus:outline-none focus:border-purple-500"
                 />
               </div>
               <div>

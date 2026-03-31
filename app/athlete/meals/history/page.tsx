@@ -321,7 +321,7 @@ export default function MealHistoryPage() {
                                       <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${
                                         meal.confidence === 'high' ? 'bg-green-500/20 text-green-400' :
                                         meal.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                        'bg-orange-500/20 text-orange-400'
+                                        'bg-purple-500/20 text-purple-400'
                                       }`}>
                                         {meal.confidence === 'high' ? '✓' : meal.confidence === 'medium' ? '~' : '?'}
                                       </span>
@@ -340,7 +340,7 @@ export default function MealHistoryPage() {
                               {/* Quick Macro Bar */}
                               <div className="flex h-1.5 rounded-full overflow-hidden bg-slate-700 mt-3">
                                 <div className="bg-blue-500" style={{ width: `${proteinPct}%` }} />
-                                <div className="bg-orange-500" style={{ width: `${carbsPct}%` }} />
+                                <div className="bg-purple-500" style={{ width: `${carbsPct}%` }} />
                                 <div className="bg-yellow-500" style={{ width: `${fatPct}%` }} />
                               </div>
                               <div className="flex justify-between text-xs text-slate-500 mt-1">
@@ -383,7 +383,7 @@ export default function MealHistoryPage() {
                                     <p className="text-xs text-slate-500">{Math.round(proteinPct)}%</p>
                                   </div>
                                   <div className="bg-slate-700/50 rounded-lg p-2 text-center">
-                                    <p className="text-xs text-orange-400">Carbs</p>
+                                    <p className="text-xs text-purple-400">Carbs</p>
                                     <p className="font-bold text-white">{meal.carbs || 0}g</p>
                                     <p className="text-xs text-slate-500">{Math.round(carbsPct)}%</p>
                                   </div>

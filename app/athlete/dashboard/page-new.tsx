@@ -14,7 +14,7 @@ interface QuickAction {
   label: string
   description: string
   href: string
-  color: 'green' | 'blue' | 'purple' | 'orange'
+  color: 'green' | 'blue' | 'purple' | 'purple'
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
@@ -32,7 +32,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     label: 'Log a Meal',
     description: 'Photo or description',
     href: '/athlete/meals',
-    color: 'orange',
+    color: 'purple',
   },
   {
     id: 'hydration',
@@ -56,7 +56,7 @@ const colorMap = {
   green: 'hover:border-green-500/50 hover:bg-slate-700/50',
   blue: 'hover:border-blue-500/50 hover:bg-slate-700/50',
   purple: 'hover:border-purple-500/50 hover:bg-slate-700/50',
-  orange: 'hover:border-orange-500/50 hover:bg-slate-700/50',
+  purple: 'hover:border-purple-500/50 hover:bg-slate-700/50',
 }
 
 export default function AthleteDashboard() {

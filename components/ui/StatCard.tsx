@@ -10,7 +10,7 @@ interface StatCardProps {
   unit?: string
   trend?: 'up' | 'down' | 'neutral'
   trendValue?: string
-  color?: 'green' | 'blue' | 'yellow' | 'red' | 'orange'
+  color?: 'green' | 'blue' | 'yellow' | 'red' | 'purple'
   size?: 'sm' | 'md' | 'lg'
 }
 
@@ -29,7 +29,7 @@ export function StatCard({
     blue: 'text-blue-400',
     yellow: 'text-yellow-400',
     red: 'text-red-400',
-    orange: 'text-orange-400',
+    purple: 'text-purple-400',
   }
 
   const trendStyles = {

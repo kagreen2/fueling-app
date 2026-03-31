@@ -295,7 +295,7 @@ export default function MealsPage() {
                   value={analysis.fat}
                   unit="g"
                   icon="🧈"
-                  color="orange"
+                  color="yellow"
                   size="sm"
                 />
               </div>

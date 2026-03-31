@@ -618,7 +618,7 @@ export default function AthleteDashboard() {
                       <p className="text-sm text-slate-400 mb-2">Carbs & Fat</p>
                       <div className="flex gap-2 mb-2">
                         <div className="flex-1">
-                          <p className="text-xs text-orange-400 font-medium">{recommendations.daily_carbs_g}g</p>
+                          <p className="text-xs text-purple-400 font-medium">{recommendations.daily_carbs_g}g</p>
                           <p className="text-xs text-slate-500">Carbs</p>
                         </div>
                         <div className="flex-1">
@@ -627,7 +627,7 @@ export default function AthleteDashboard() {
                         </div>
                       </div>
                       <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-slate-700">
-                        <div className="bg-orange-500 flex-1" />
+                        <div className="bg-purple-500 flex-1" />
                         <div className="bg-yellow-500 flex-1" />
                       </div>
                     </div>
@@ -678,7 +678,7 @@ export default function AthleteDashboard() {
                               <span className={`text-xs font-medium mt-1 inline-block px-2 py-1 rounded ${
                                 meal.confidence === 'high' ? 'bg-green-500/20 text-green-300' :
                                 meal.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-300' :
-                                'bg-orange-500/20 text-orange-300'
+                                'bg-purple-500/20 text-purple-300'
                               }`}>
                                 {meal.confidence === 'high' ? '✓ High confidence' :
                                  meal.confidence === 'medium' ? '~ Medium confidence' :
@@ -719,7 +719,7 @@ export default function AthleteDashboard() {
                             title="Protein"
                           />
                           <div
-                            className="bg-orange-500"
+                            className="bg-purple-500"
                             style={{ width: `${carbsPct}%` }}
                             title="Carbs"
                           />

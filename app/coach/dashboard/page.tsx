@@ -153,7 +153,7 @@ function getWellnessColor(label: string | null): string {
   switch (label) {
     case 'thriving': return 'text-green-400'
     case 'okay': return 'text-yellow-400'
-    case 'watch': return 'text-orange-400'
+    case 'watch': return 'text-amber-400'
     case 'concern': return 'text-red-400'
     default: return 'text-slate-500'
   }
@@ -163,7 +163,7 @@ function getWellnessBgColor(label: string | null): string {
   switch (label) {
     case 'thriving': return 'bg-green-500/10'
     case 'okay': return 'bg-yellow-500/10'
-    case 'watch': return 'bg-orange-500/10'
+    case 'watch': return 'bg-amber-500/10'
     case 'concern': return 'bg-red-500/10'
     default: return 'bg-slate-500/10'
   }
@@ -1089,9 +1089,9 @@ export default function CoachDashboardPage() {
                 {/* Wellness Alerts Section */}
                 {wellnessAlerts.length > 0 && (
                   <div className="space-y-3">
-                    <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-4 flex items-center gap-3">
-                      <svg className="w-5 h-5 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                      <p className="text-orange-400 text-sm font-medium">{wellnessAlerts.length} wellness alert{wellnessAlerts.length !== 1 ? 's' : ''} — athletes may need a check-in conversation</p>
+                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 flex items-center gap-3">
+                      <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      <p className="text-amber-400 text-sm font-medium">{wellnessAlerts.length} wellness alert{wellnessAlerts.length !== 1 ? 's' : ''} — athletes may need a check-in conversation</p>
                     </div>
 
                     {wellnessAlerts.map((alert, idx) => (
@@ -1102,10 +1102,10 @@ export default function CoachDashboardPage() {
                       >
                         <div className="flex items-start gap-4">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            alert.severity === 'high' ? 'bg-red-500/10' : alert.severity === 'medium' ? 'bg-orange-500/10' : 'bg-yellow-500/10'
+                            alert.severity === 'high' ? 'bg-red-500/10' : alert.severity === 'medium' ? 'bg-amber-500/10' : 'bg-yellow-500/10'
                           }`}>
                             <svg className={`w-5 h-5 ${
-                              alert.severity === 'high' ? 'text-red-400' : alert.severity === 'medium' ? 'text-orange-400' : 'text-yellow-400'
+                              alert.severity === 'high' ? 'text-red-400' : alert.severity === 'medium' ? 'text-amber-400' : 'text-yellow-400'
                             }`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1113,7 +1113,7 @@ export default function CoachDashboardPage() {
                               <div className="flex items-center gap-2">
                                 <p className="text-white font-medium">{alert.athlete.name}</p>
                                 <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
-                                  alert.severity === 'high' ? 'bg-red-500/20 text-red-400' : alert.severity === 'medium' ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/20 text-yellow-400'
+                                  alert.severity === 'high' ? 'bg-red-500/20 text-red-400' : alert.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-yellow-500/20 text-yellow-400'
                                 }`}>{alert.severity}</span>
                               </div>
                               <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
@@ -1121,7 +1121,7 @@ export default function CoachDashboardPage() {
                             <p className="text-slate-500 text-xs mb-2">{alert.athlete.teamName} · {formatUserContext(alert.athlete)}</p>
                             <div className="flex items-center gap-2">
                               <svg className={`w-3.5 h-3.5 flex-shrink-0 ${
-                                alert.severity === 'high' ? 'text-red-400' : 'text-orange-400'
+                                alert.severity === 'high' ? 'text-red-400' : 'text-amber-400'
                               }`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                               <span className="text-slate-300 text-sm">{alert.message}</span>
                             </div>

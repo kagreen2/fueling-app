@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import LightningBolt from '@/components/ui/LightningBolt'
 
 interface Profile {
   id: string
@@ -160,6 +161,18 @@ export default function AdminDashboard() {
   const [sendingReset, setSendingReset] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Profile | null>(null)
   const [deletingUser, setDeletingUser] = useState(false)
+
+  // Team management state
+  const [showCreateTeam, setShowCreateTeam] = useState(false)
+  const [creatingTeam, setCreatingTeam] = useState(false)
+  const [newTeamForm, setNewTeamForm] = useState({ name: '', sport: '', description: '' })
+  const [teamError, setTeamError] = useState('')
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null)
+  const [editTeamForm, setEditTeamForm] = useState({ name: '', sport: '', coach_id: '' })
+  const [savingTeam, setSavingTeam] = useState(false)
+  const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null)
+  const [confirmDeleteTeam, setConfirmDeleteTeam] = useState<Team | null>(null)
+  const [addingToTeamId, setAddingToTeamId] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -527,6 +540,137 @@ export default function AdminDashboard() {
     return map
   }, [coachAssignments])
 
+  function generateInviteCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let code = ''
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return code
+  }
+
+  async function handleCreateTeam() {
+    if (!newTeamForm.name.trim()) {
+      setTeamError('Team name is required')
+      return
+    }
+    setCreatingTeam(true)
+    setTeamError('')
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Generate unique invite code
+      let inviteCode = generateInviteCode()
+      let attempts = 0
+      while (attempts < 5) {
+        const { data: existing } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('invite_code', inviteCode)
+          .single()
+        if (!existing) break
+        inviteCode = generateInviteCode()
+        attempts++
+      }
+
+      const { data: newTeam, error } = await supabase
+        .from('teams')
+        .insert({
+          name: newTeamForm.name.trim(),
+          sport: newTeamForm.sport.trim() || null,
+          coach_id: user.id,
+          invite_code: inviteCode,
+        })
+        .select()
+        .single()
+
+      if (error) {
+        setTeamError('Failed to create team: ' + error.message)
+      } else if (newTeam) {
+        setTeams(prev => [...prev, newTeam])
+        setNewTeamForm({ name: '', sport: '', description: '' })
+        setShowCreateTeam(false)
+      }
+    } catch (e) {
+      setTeamError('Something went wrong creating the team.')
+    }
+    setCreatingTeam(false)
+  }
+
+  async function handleSaveTeam() {
+    if (!editingTeam) return
+    setSavingTeam(true)
+    try {
+      const updates: any = {
+        name: editTeamForm.name.trim(),
+        sport: editTeamForm.sport.trim() || null,
+      }
+      if (editTeamForm.coach_id) {
+        updates.coach_id = editTeamForm.coach_id
+      }
+      const { error } = await supabase
+        .from('teams')
+        .update(updates)
+        .eq('id', editingTeam.id)
+
+      if (!error) {
+        setTeams(prev => prev.map(t => t.id === editingTeam.id ? { ...t, ...updates } : t))
+        setEditingTeam(null)
+      }
+    } catch (e) {
+      console.error('Error saving team:', e)
+    }
+    setSavingTeam(false)
+  }
+
+  async function handleDeleteTeam(teamId: string) {
+    setDeletingTeamId(teamId)
+    try {
+      // Remove all team members first
+      await supabase.from('team_members').delete().eq('team_id', teamId)
+      // Then delete the team
+      const { error } = await supabase.from('teams').delete().eq('id', teamId)
+      if (!error) {
+        setTeams(prev => prev.filter(t => t.id !== teamId))
+        setTeamMembers(prev => prev.filter(m => m.team_id !== teamId))
+        setConfirmDeleteTeam(null)
+      }
+    } catch (e) {
+      console.error('Error deleting team:', e)
+    }
+    setDeletingTeamId(null)
+  }
+
+  async function handleRemoveFromTeam(teamId: string, athleteId: string) {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('athlete_id', athleteId)
+      if (!error) {
+        setTeamMembers(prev => prev.filter(m => !(m.team_id === teamId && m.athlete_id === athleteId)))
+      }
+    } catch (e) {
+      console.error('Error removing from team:', e)
+    }
+  }
+
+  async function handleAddToTeam(teamId: string, athleteId: string) {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .upsert({ team_id: teamId, athlete_id: athleteId }, { onConflict: 'team_id,athlete_id' })
+      if (!error) {
+        setTeamMembers(prev => [...prev, { team_id: teamId, athlete_id: athleteId }])
+        setAddingToTeamId(null)
+      }
+    } catch (e) {
+      console.error('Error adding to team:', e)
+    }
+  }
+
   async function assignCoach(athleteId: string, coachId: string) {
     setAssigningAthleteId(athleteId)
     try {
@@ -651,7 +795,7 @@ export default function AdminDashboard() {
     return (
       <main className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-4">&#9889;</div>
+          <LightningBolt className="w-10 h-10 mx-auto mb-4" />
           <p className="text-slate-400">Loading admin dashboard...</p>
         </div>
       </main>
@@ -838,7 +982,7 @@ export default function AdminDashboard() {
                               <p className="text-purple-400 text-xs mt-1">{coachTeams.map(t => t.name).join(', ')}</p>
                             )}
                           </div>
-                          <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">Coach</span>
+                          <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">Coach</span>
                         </div>
                       )
                     })}
@@ -874,21 +1018,191 @@ export default function AdminDashboard() {
 
         {/* ═══ TEAMS TAB ═══ */}
         {activeTab === 'teams' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
+            {/* Header with Create Team button */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider">Team Management</h3>
+              <button
+                onClick={() => { setShowCreateTeam(true); setTeamError('') }}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                + Create Team
+              </button>
+            </div>
+
+            {/* Create Team Form */}
+            {showCreateTeam && (
+              <div className="bg-slate-800/80 border border-purple-500/30 rounded-xl p-5">
+                <h4 className="text-white font-semibold mb-4">Create New Team</h4>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-400 text-sm block mb-1">Team Name *</label>
+                    <input
+                      type="text"
+                      value={newTeamForm.name}
+                      onChange={e => setNewTeamForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Varsity Football"
+                      className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 placeholder-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 text-sm block mb-1">Sport</label>
+                    <input
+                      type="text"
+                      value={newTeamForm.sport}
+                      onChange={e => setNewTeamForm(prev => ({ ...prev, sport: e.target.value }))}
+                      placeholder="e.g., Football"
+                      className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 placeholder-slate-500"
+                    />
+                  </div>
+                </div>
+                {teamError && <p className="text-red-400 text-sm mt-2">{teamError}</p>}
+                <div className="flex items-center gap-3 mt-4">
+                  <button
+                    onClick={handleCreateTeam}
+                    disabled={creatingTeam}
+                    className="px-5 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white text-sm font-semibold rounded-lg transition-colors"
+                  >
+                    {creatingTeam ? 'Creating...' : 'Create Team'}
+                  </button>
+                  <button
+                    onClick={() => { setShowCreateTeam(false); setTeamError(''); setNewTeamForm({ name: '', sport: '', description: '' }) }}
+                    className="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Team Modal */}
+            {editingTeam && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingTeam(null)}>
+                <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+                  <h4 className="text-white font-semibold text-lg mb-4">Edit Team</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-slate-400 text-sm block mb-1">Team Name</label>
+                      <input
+                        type="text"
+                        value={editTeamForm.name}
+                        onChange={e => setEditTeamForm(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-400 text-sm block mb-1">Sport</label>
+                      <input
+                        type="text"
+                        value={editTeamForm.sport}
+                        onChange={e => setEditTeamForm(prev => ({ ...prev, sport: e.target.value }))}
+                        className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-400 text-sm block mb-1">Assign Coach</label>
+                      <select
+                        value={editTeamForm.coach_id}
+                        onChange={e => setEditTeamForm(prev => ({ ...prev, coach_id: e.target.value }))}
+                        className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600"
+                      >
+                        <option value="">Select a coach...</option>
+                        {coachProfiles.map(c => (
+                          <option key={c.id} value={c.id}>{c.full_name} ({c.role.replace('_', ' ')})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="bg-slate-700/50 rounded-lg p-3">
+                      <p className="text-slate-400 text-xs">Invite Code</p>
+                      <p className="text-purple-400 font-mono text-lg tracking-widest">{editingTeam.invite_code}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 mt-5">
+                    <button
+                      onClick={handleSaveTeam}
+                      disabled={savingTeam}
+                      className="px-5 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white text-sm font-semibold rounded-lg transition-colors"
+                    >
+                      {savingTeam ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button
+                      onClick={() => setEditingTeam(null)}
+                      className="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Delete Team Confirmation Modal */}
+            {confirmDeleteTeam && (
+              <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setConfirmDeleteTeam(null)}>
+                <div className="bg-slate-800 border border-red-500/30 rounded-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                  <h4 className="text-white font-semibold text-lg mb-2">Delete Team</h4>
+                  <p className="text-slate-400 text-sm mb-1">Are you sure you want to delete <span className="text-white font-medium">{confirmDeleteTeam.name}</span>?</p>
+                  <p className="text-red-400 text-xs mb-4">This will remove all athletes from this team. This action cannot be undone.</p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleDeleteTeam(confirmDeleteTeam.id)}
+                      disabled={deletingTeamId === confirmDeleteTeam.id}
+                      className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 text-white text-sm font-semibold rounded-lg transition-colors"
+                    >
+                      {deletingTeamId === confirmDeleteTeam.id ? 'Deleting...' : 'Delete Team'}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteTeam(null)}
+                      className="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Teams List */}
             {teams.map(team => {
               const coachProfile = profiles.find(p => p.id === team.coach_id)
               const memberIds = teamAthleteMap[team.id] || []
               return (
                 <div key={team.id} className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-                  <div className="px-5 py-4 border-b border-slate-700 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-white font-semibold text-lg">{team.name}</h3>
-                      <p className="text-slate-400 text-sm mt-0.5">
-                        {formatSport(team.sport)} &middot; Coach: {coachProfile?.full_name || 'Unassigned'} &middot; {memberIds.length} athlete{memberIds.length !== 1 ? 's' : ''}
-                      </p>
+                  {/* Team Header with Actions */}
+                  <div className="px-5 py-4 border-b border-slate-700">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-white font-semibold text-lg">{team.name}</h3>
+                          <span className="text-xs bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg font-mono tracking-wider">{team.invite_code}</span>
+                        </div>
+                        <p className="text-slate-400 text-sm mt-1">
+                          {formatSport(team.sport)} &middot; Coach: <span className="text-purple-400">{coachProfile?.full_name || 'Unassigned'}</span> &middot; {memberIds.length} member{memberIds.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button
+                          onClick={() => {
+                            setEditingTeam(team)
+                            setEditTeamForm({ name: team.name, sport: team.sport || '', coach_id: team.coach_id })
+                          }}
+                          className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                          title="Edit team"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteTeam(team)}
+                          className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Delete team"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-xs bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg font-mono tracking-wider">{team.invite_code}</span>
                   </div>
+
+                  {/* Team Members Table */}
                   {memberIds.length > 0 ? (
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -896,31 +1210,94 @@ export default function AdminDashboard() {
                           <tr className="border-b border-slate-700 text-left">
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Athlete</th>
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Sport / Position</th>
-                            <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Today&#39;s Log</th>
+                            <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Today's Log</th>
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Target</th>
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Wellness</th>
                             <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Coach</th>
-                            <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
+                            <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {memberIds.map(aid => renderAthleteRow(aid))}
+                          {memberIds.map(aid => {
+                            const row = renderAthleteRow(aid)
+                            if (!row) return null
+                            return row
+                          })}
                         </tbody>
                       </table>
+                      {/* Remove from team buttons */}
+                      <div className="px-5 py-2 border-t border-slate-700/30">
+                        <div className="flex flex-wrap gap-2">
+                          {memberIds.map(aid => {
+                            const p = profileByAthleteId[aid]
+                            if (!p) return null
+                            return (
+                              <button
+                                key={`remove-${team.id}-${aid}`}
+                                onClick={() => { if (confirm(`Remove ${p.full_name} from ${team.name}?`)) handleRemoveFromTeam(team.id, aid) }}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-700/50 hover:bg-red-500/10 text-slate-400 hover:text-red-400 text-xs rounded-lg transition-colors group"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                Remove {p.full_name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="p-6 text-center">
                       <p className="text-slate-500 text-sm">No athletes on this team yet. Share invite code <span className="font-mono text-purple-400">{team.invite_code}</span> to add athletes.</p>
                     </div>
                   )}
+
+                  {/* Add Athlete to Team */}
+                  <div className="px-5 py-3 border-t border-slate-700/50 bg-slate-800/30">
+                    {addingToTeamId === team.id ? (
+                      <div className="flex items-center gap-2">
+                        <select
+                          onChange={e => { if (e.target.value) handleAddToTeam(team.id, e.target.value) }}
+                          className="flex-1 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Select an athlete to add...</option>
+                          {athletes
+                            .filter(a => !memberIds.includes(a.id))
+                            .map(a => {
+                              const p = profiles.find(pr => pr.id === a.profile_id)
+                              return p ? <option key={a.id} value={a.id}>{p.full_name} ({p.email})</option> : null
+                            })}
+                        </select>
+                        <button
+                          onClick={() => setAddingToTeamId(null)}
+                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setAddingToTeamId(team.id)}
+                          className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                        >
+                          + Add Athlete to Team
+                        </button>
+                        {memberIds.length > 0 && (
+                          <p className="text-slate-500 text-xs">Click an athlete's name to view their full profile</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )
             })}
 
+            {/* Unassigned Athletes */}
             {unassignedAthletes.length > 0 && (
-              <div className="bg-slate-800/50 border border-orange-500/30 rounded-xl overflow-hidden">
+              <div className="bg-slate-800/50 border border-amber-500/30 rounded-xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-700">
-                  <h3 className="text-orange-400 font-semibold text-lg">Unassigned Athletes</h3>
+                  <h3 className="text-amber-400 font-semibold text-lg">Unassigned Athletes</h3>
                   <p className="text-slate-400 text-sm mt-0.5">{unassignedAthletes.length} athlete{unassignedAthletes.length !== 1 ? 's' : ''} not on any team</p>
                 </div>
                 <div className="overflow-x-auto">
@@ -929,11 +1306,11 @@ export default function AdminDashboard() {
                       <tr className="border-b border-slate-700 text-left">
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Athlete</th>
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Sport / Position</th>
-                        <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Today&#39;s Log</th>
+                        <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Today's Log</th>
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Target</th>
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Wellness</th>
                         <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Coach</th>
-                        <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
+                        <th className="px-4 py-2.5 text-xs font-medium text-slate-400 uppercase tracking-wider">Add to Team</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -944,9 +1321,19 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {teams.length === 0 && unassignedAthletes.length === 0 && (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center">
-                <p className="text-slate-400">No teams or athletes found.</p>
+            {teams.length === 0 && unassignedAthletes.length === 0 && !showCreateTeam && (
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-12 text-center">
+                <div className="w-16 h-16 bg-purple-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">No Teams Yet</h2>
+                <p className="text-slate-400 mb-6 max-w-md mx-auto">Create your first team and share the invite code with your athletes.</p>
+                <button
+                  onClick={() => setShowCreateTeam(true)}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors"
+                >
+                  Create Your First Team
+                </button>
               </div>
             )}
           </div>
@@ -994,7 +1381,7 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-3">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
                               ['admin', 'super_admin'].includes(user.role) ? 'bg-red-500/20 text-red-400' :
-                              user.role === 'coach' ? 'bg-orange-500/20 text-orange-400' :
+                              user.role === 'coach' ? 'bg-purple-500/20 text-purple-400' :
                               'bg-purple-600/20 text-purple-400'
                             }`}>
                               {user.full_name.charAt(0).toUpperCase()}
@@ -1009,7 +1396,7 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-1 rounded capitalize ${
                             ['admin', 'super_admin'].includes(user.role) ? 'bg-red-500/20 text-red-400' :
-                            user.role === 'coach' ? 'bg-orange-500/20 text-orange-400' :
+                            user.role === 'coach' ? 'bg-purple-500/20 text-purple-400' :
                             'bg-purple-600/20 text-purple-400'
                           }`}>
                             {user.role.replace('_', ' ')}
@@ -1060,7 +1447,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-4 pb-4 border-b border-slate-700">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${
                         ['admin', 'super_admin'].includes(editingUser.role) ? 'bg-red-500/20 text-red-400' :
-                        editingUser.role === 'coach' ? 'bg-orange-500/20 text-orange-400' :
+                        editingUser.role === 'coach' ? 'bg-purple-500/20 text-purple-400' :
                         'bg-purple-600/20 text-purple-400'
                       }`}>
                         {editingUser.full_name.charAt(0).toUpperCase()}
@@ -1257,7 +1644,7 @@ export default function AdminDashboard() {
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
                 <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Without Plans</p>
                 <p className="text-2xl font-bold mt-1">
-                  <span className={athletes.length - nutritionRecs.length > 0 ? 'text-orange-400' : 'text-green-400'}>
+                  <span className={athletes.length - nutritionRecs.length > 0 ? 'text-amber-400' : 'text-green-400'}>
                     {athletes.length - nutritionRecs.length}
                   </span>
                   <span className="text-slate-500 text-sm font-normal"> athletes</span>
@@ -1300,7 +1687,7 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-slate-300 text-sm font-mono">
-                            {rec ? `${rec.daily_calories}` : <span className="text-orange-400">No plan</span>}
+                            {rec ? `${rec.daily_calories}` : <span className="text-amber-400">No plan</span>}
                           </td>
                           <td className="px-4 py-3 text-slate-300 text-sm font-mono">
                             {rec ? `${rec.daily_protein_g}g` : '\u2014'}
@@ -1320,7 +1707,7 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-4 py-3">
                             {!rec ? (
-                              <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">Needs Plan</span>
+                              <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded">Needs Plan</span>
                             ) : calPct >= 80 ? (
                               <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">On Track ({calPct}%)</span>
                             ) : calPct > 0 ? (
