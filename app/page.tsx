@@ -110,7 +110,7 @@ export default function Home() {
       <section className="py-20 px-4 border-t border-slate-800/60">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-            Your Competition Is <span className="text-red-400">Guessing</span>
+            Your Competition Is <span className="text-purple-400">Guessing</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-3xl mx-auto leading-relaxed mb-10">
             Most athletes train hard but fuel blindly. They don&apos;t know their real calorie needs, they don&apos;t track what they eat, and they have no idea if their supplements are safe or effective. That&apos;s the gap. That&apos;s your opportunity.
