@@ -118,7 +118,7 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-6">
             {[
               { stat: '73%', label: 'of athletes don\'t know their daily calorie needs' },
-              { stat: '2-5%', label: 'performance drop from poor fueling on game day' },
+              { stat: '2x', label: 'more likely to get injured when dehydrated during competition' },
               { stat: '1 in 4', label: 'supplements contain banned or undisclosed substances' },
             ].map((item, i) => (
               <div key={i} className="bg-slate-800/30 border border-slate-700/40 rounded-xl p-6">
