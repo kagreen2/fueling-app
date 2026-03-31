@@ -2,7 +2,7 @@
   "name": "Fuel Different — Evidence-Based Nutrition Coaching",
   "short_name": "Fuel Different",
   "description": "AI-powered nutrition tracking and coaching platform for athletes and fitness enthusiasts.",
-  "start_url": "/login",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0F172A",
   "theme_color": "#0F172A",

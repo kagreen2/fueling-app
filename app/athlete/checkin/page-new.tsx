@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -47,6 +47,22 @@ export default function CheckInPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [userType, setUserType] = useState<'athlete' | 'member'>('athlete')
+
+  // Fetch user type on mount
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: athlete } = await supabase
+          .from('athletes')
+          .select('user_type')
+          .eq('profile_id', user.id)
+          .single()
+        if (athlete?.user_type) setUserType(athlete.user_type as 'athlete' | 'member')
+      }
+    })()
+  }, [])
 
   const [form, setForm] = useState({
     bodyWeight: '',
@@ -203,10 +219,13 @@ export default function CheckInPage() {
 
         {/* Training Today */}
         <Card className="mb-6">
-          <CardHeader title="Training Today" />
+          <CardHeader title={userType === 'member' ? 'Activity Today' : 'Training Today'} />
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
-              {['practice', 'game', 'lift', 'conditioning', 'recovery', 'rest'].map(type => (
+              {(userType === 'member'
+                ? ['gym workout', 'cardio', 'yoga/pilates', 'sports/recreation', 'outdoor activity', 'rest/recovery']
+                : ['practice', 'game', 'lift', 'conditioning', 'recovery', 'rest']
+              ).map(type => (
                 <button
                   key={type}
                   onClick={() => update('trainingType', form.trainingType === type ? '' : type)}
