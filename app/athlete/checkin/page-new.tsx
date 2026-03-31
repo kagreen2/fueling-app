@@ -47,6 +47,7 @@ export default function CheckInPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [userType, setUserType] = useState<'athlete' | 'member'>('athlete')
 
   // Fetch user type on mount
@@ -101,7 +102,7 @@ export default function CheckInPage() {
 
     const today = new Date().toISOString().split('T')[0]
 
-    await supabase.from('daily_checkins').upsert({
+    const { error: upsertError } = await supabase.from('daily_checkins').upsert({
       athlete_id: athlete.id,
       date: today,
       body_weight_lbs: parseFloat(form.bodyWeight) || null,
@@ -114,6 +115,12 @@ export default function CheckInPage() {
       training_type: form.trainingType || null,
       notes: form.notes || null,
     }, { onConflict: 'athlete_id,date' })
+
+    if (upsertError) {
+      setError('Failed to save check-in. Please try again.')
+      setLoading(false)
+      return
+    }
 
     setSaved(true)
     setLoading(false)
@@ -256,9 +263,16 @@ export default function CheckInPage() {
           </CardContent>
         </Card>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
+            <p className="text-red-400 text-sm text-center">{error}</p>
+          </div>
+        )}
+
         {/* Submit Button */}
         <Button
-          onClick={handleSubmit}
+          onClick={() => { setError(null); handleSubmit(); }}
           isLoading={loading}
           size="lg"
           className="bg-green-500 hover:bg-green-600"

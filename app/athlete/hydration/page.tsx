@@ -24,6 +24,7 @@ export default function HydrationPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     waterOz: 0,
@@ -105,7 +106,7 @@ export default function HydrationPage() {
 
     const today = new Date().toISOString().split('T')[0]
 
-    await supabase.from('hydration_logs').upsert({
+    const { error: upsertError } = await supabase.from('hydration_logs').upsert({
       athlete_id: athlete.id,
       date: today,
       water_oz: form.waterOz,
@@ -113,6 +114,12 @@ export default function HydrationPage() {
       urine_color_self_check: form.urineColor || null,
       notes: form.notes || null,
     }, { onConflict: 'athlete_id,date' })
+
+    if (upsertError) {
+      setError('Failed to save hydration log. Please try again.')
+      setLoading(false)
+      return
+    }
 
     setSaved(true)
     setLoading(false)
@@ -280,9 +287,16 @@ export default function HydrationPage() {
           </CardContent>
         </Card>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
+            <p className="text-red-400 text-sm text-center">{error}</p>
+          </div>
+        )}
+
         {/* Submit Button */}
         <Button
-          onClick={handleSubmit}
+          onClick={() => { setError(null); handleSubmit(); }}
           isLoading={loading}
           size="lg"
           className="bg-purple-600 hover:bg-purple-700"

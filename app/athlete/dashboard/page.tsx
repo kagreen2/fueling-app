@@ -102,6 +102,7 @@ export default function AthleteDashboard() {
   const [tutorialStep, setTutorialStep] = useState(0)
   const [userId, setUserId] = useState<string>('')
   const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string } | null>(null)
+  const [loadError, setLoadError] = useState(false)
 
   const TUTORIAL_SLIDES = [
     {
@@ -353,6 +354,7 @@ export default function AthleteDashboard() {
       setLoading(false)
     } catch (error) {
       console.error('Error loading data:', error)
+      setLoadError(true)
       setLoading(false)
     }
   }
@@ -361,6 +363,24 @@ export default function AthleteDashboard() {
     setRefreshing(true)
     await loadData()
     setRefreshing(false)
+  }
+
+  if (loadError) {
+    return (
+      <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-white mb-2">Failed to load dashboard</h2>
+          <p className="text-slate-400 text-sm mb-6">Check your connection and try again.</p>
+          <button
+            onClick={() => { setLoadError(false); setLoading(true); loadData(); }}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </main>
+    )
   }
 
   if (loading) {
