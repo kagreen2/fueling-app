@@ -1256,7 +1256,7 @@ export default function AdminDashboard() {
                     {addingToTeamId === team.id ? (
                       <div className="flex items-center gap-2">
                         <select
-                          onChange={e => { if (e.target.value) handleAddToTeam(team.id, e.target.value) }}
+                          id={`add-athlete-select-${team.id}`}
                           className="flex-1 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600"
                           defaultValue=""
                         >
@@ -1268,6 +1268,15 @@ export default function AdminDashboard() {
                               return p ? <option key={a.id} value={a.id}>{p.full_name} ({p.email})</option> : null
                             })}
                         </select>
+                        <button
+                          onClick={() => {
+                            const select = document.getElementById(`add-athlete-select-${team.id}`) as HTMLSelectElement
+                            if (select?.value) handleAddToTeam(team.id, select.value)
+                          }}
+                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                          Add
+                        </button>
                         <button
                           onClick={() => setAddingToTeamId(null)}
                           className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
