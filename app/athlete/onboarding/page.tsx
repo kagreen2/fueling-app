@@ -201,7 +201,7 @@ export default function OnboardingPage() {
       height_inches: heightInches,
       weight_lbs: parseFloat(form.weightLbs) || null,
       goal_phase: form.goalPhase || 'maintain_performance',
-      season_phase: form.userType === 'athlete' ? (form.seasonPhase || 'offseason') : null,
+      season_phase: form.userType === 'athlete' ? (form.seasonPhase || 'offseason') : 'offseason',
       allergies: form.allergies ? form.allergies.split(',').map((s: string) => s.trim()) : [],
       dietary_restrictions: form.dietaryRestrictions ? form.dietaryRestrictions.split(',').map((s: string) => s.trim()) : [],
       training_schedule: form.trainingSchedule,
