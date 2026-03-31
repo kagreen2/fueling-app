@@ -370,20 +370,21 @@ export default function Home() {
                 <span className="text-sm font-medium text-green-400">For Coaches</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-                Build a Team That<br /><span className="text-green-400">Can&apos;t Be Outworked.</span>
+                You Don&apos;t Have to Be a Nutritionist.<br /><span className="text-green-400">The App Does the Heavy Lifting.</span>
               </h2>
               <p className="text-slate-400 mb-8 text-lg leading-relaxed">
-                The best coaches don&apos;t just train harder — they fuel smarter. Monitor every athlete&apos;s nutrition, catch problems before they become injuries, and build a culture of accountability that your competition can&apos;t match.
+                You already have enough on your plate — game plans, practice schedules, player development. Fuel Different handles the nutrition science so you don&apos;t have to. Your role? Hold them accountable. The app gives you the visibility to see who&apos;s committed and who&apos;s falling behind, so you can step in at the right moment.
               </p>
               <div className="space-y-4">
                 {[
-                  'Full team dashboard with real-time nutrition alerts',
-                  'Individual macro management for every athlete',
-                  'InBody scan tracking with body composition trends',
-                  'Direct messaging — coach every meal, every day',
-                  'Supplement approval workflow to protect your athletes',
-                  'One-click team invite codes for instant onboarding',
-                  'Wellness & recovery monitoring across your roster',
+                  'See at a glance who\'s fueling right and who\'s not — no nutrition degree required',
+                  'The app builds personalized plans for each athlete automatically',
+                  'Get alerts when an athlete misses meals, check-ins, or falls off track',
+                  'One dashboard to monitor your entire roster\'s nutrition compliance',
+                  'InBody scan tracking shows you body composition trends over time',
+                  'Message athletes directly when they need a push',
+                  'One-click invite codes — onboard your whole team in minutes',
+                  'Supplement screening protects your athletes\' eligibility',
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-5 h-5 rounded-full bg-green-500/15 flex items-center justify-center flex-shrink-0">
