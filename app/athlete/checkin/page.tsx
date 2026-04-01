@@ -108,6 +108,7 @@ export default function CheckInPage() {
       .single()
 
     if (!athlete) {
+      setError('No athlete profile found. Please complete onboarding first, or contact support at kelly@crossfitironflag.com.')
       setLoading(false)
       return
     }
@@ -129,7 +130,31 @@ export default function CheckInPage() {
     }, { onConflict: 'athlete_id,date' })
 
     if (upsertError) {
-      setError('Failed to save check-in. Please try again.')
+      console.error('[Check-in Error]', upsertError)
+      // Provide more specific error messages based on the error code
+      if (upsertError.code === '42501' || upsertError.message?.includes('policy')) {
+        setError('Permission error: Your account may not be fully set up. Please contact your coach or support at kelly@crossfitironflag.com.')
+      } else if (upsertError.code === '23503') {
+        setError('Account setup incomplete. Please complete onboarding first or contact support.')
+      } else if (upsertError.code === '23514') {
+        setError('Invalid data detected. Please check your entries and try again.')
+      } else {
+        setError(`Failed to save check-in: ${upsertError.message || 'Unknown error'}. Please try again or contact support.`)
+      }
+      // Report the error
+      try {
+        fetch('/api/error-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'critical',
+            message: `Check-in save failed: ${upsertError.message}`,
+            url: '/athlete/checkin',
+            userId: user?.id,
+            stack: JSON.stringify(upsertError),
+          }),
+        }).catch(() => {})
+      } catch {}
       setLoading(false)
       return
     }

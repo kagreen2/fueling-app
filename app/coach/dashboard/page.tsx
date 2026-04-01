@@ -618,6 +618,15 @@ export default function CoachDashboardPage() {
         type: 'warning',
         icon: '💊',
         message: `${pendingSupplements.length} supplement${pendingSupplements.length > 1 ? 's' : ''} pending your review from ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3} more` : ''}`,
+        action: () => {
+          // Navigate to the first athlete with a pending supplement
+          const firstPending = pendingSupplements[0]
+          if (firstPending?.athlete_id) {
+            router.push(`/coach/athlete/${firstPending.athlete_id}`)
+            return
+          }
+          setView('alerts')
+        },
       })
     }
 

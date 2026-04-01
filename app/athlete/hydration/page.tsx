@@ -75,6 +75,10 @@ export default function HydrationPage() {
     setForm(prev => ({ ...prev, waterOz: Math.max(0, prev.waterOz + oz) }))
   }
 
+  function addElectrolyte(oz: number) {
+    setForm(prev => ({ ...prev, electrolyteOz: Math.max(0, prev.electrolyteOz + oz) }))
+  }
+
   const hydrationStatus = () => {
     const oz = form.waterOz
     if (oz >= 100) return { label: 'Excellent', color: 'text-green-400', emoji: '💧' }
@@ -191,7 +195,8 @@ export default function HydrationPage() {
             </p>
 
             {/* Quick add buttons */}
-            <div className="grid grid-cols-4 gap-2 mb-4">
+            <p className="text-xs text-slate-500 mb-2">Add</p>
+            <div className="grid grid-cols-4 gap-2 mb-3">
               {[8, 16, 20, 32].map(oz => (
                 <button
                   key={oz}
@@ -199,6 +204,24 @@ export default function HydrationPage() {
                   className="bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/50 text-purple-400 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
                 >
                   +{oz}oz
+                </button>
+              ))}
+            </div>
+            {/* Quick subtract buttons */}
+            <p className="text-xs text-slate-500 mb-2">Remove</p>
+            <div className="grid grid-cols-4 gap-2 mb-4">
+              {[8, 16, 20, 32].map(oz => (
+                <button
+                  key={oz}
+                  onClick={() => addWater(-oz)}
+                  disabled={form.waterOz < oz}
+                  className={`py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                    form.waterOz >= oz
+                      ? 'bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400'
+                      : 'bg-slate-800/50 border border-slate-700/50 text-slate-600 cursor-not-allowed'
+                  }`}
+                >
+                  -{oz}oz
                 </button>
               ))}
             </div>
@@ -218,14 +241,32 @@ export default function HydrationPage() {
         <Card className="mb-6">
           <CardHeader title="Electrolytes" />
           <CardContent>
+            <p className="text-xs text-slate-500 mb-2">Add</p>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {[8, 12, 16, 20].map(oz => (
+                <button
+                  key={oz}
+                  onClick={() => addElectrolyte(oz)}
+                  className="bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-300 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                >
+                  +{oz}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mb-2">Remove</p>
             <div className="grid grid-cols-4 gap-2 mb-4">
               {[8, 12, 16, 20].map(oz => (
                 <button
                   key={oz}
-                  onClick={() => update('electrolyteOz', form.electrolyteOz + oz)}
-                  className="bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 text-yellow-300 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
+                  onClick={() => addElectrolyte(-oz)}
+                  disabled={form.electrolyteOz < oz}
+                  className={`py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                    form.electrolyteOz >= oz
+                      ? 'bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400'
+                      : 'bg-slate-800/50 border border-slate-700/50 text-slate-600 cursor-not-allowed'
+                  }`}
                 >
-                  +{oz}
+                  -{oz}
                 </button>
               ))}
             </div>
