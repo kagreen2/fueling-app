@@ -47,6 +47,8 @@ export default function MealHistoryPage() {
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set())
   const [loggingAgain, setLoggingAgain] = useState<string | null>(null)
   const [loggedSuccess, setLoggedSuccess] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     loadMeals()
@@ -217,6 +219,24 @@ export default function MealHistoryPage() {
       console.error('Error logging meal again:', err)
     }
     setLoggingAgain(null)
+  }
+
+  async function deleteMeal(mealId: string) {
+    setDeleting(mealId)
+    try {
+      const { error } = await supabase
+        .from('meal_logs')
+        .delete()
+        .eq('id', mealId)
+
+      if (!error) {
+        setMeals(prev => prev.filter(m => m.id !== mealId))
+        setConfirmDelete(null)
+      }
+    } catch (err) {
+      console.error('Error deleting meal:', err)
+    }
+    setDeleting(null)
   }
 
   const totalMealsCount = meals.length
@@ -478,27 +498,62 @@ export default function MealHistoryPage() {
                                   </div>
                                 )}
 
-                                {/* Log Again Button */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    logAgain(meal)
-                                  }}
-                                  disabled={loggingAgain === meal.id || loggedSuccess === meal.id}
-                                  className={`w-full mt-2 py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-[0.97] ${
-                                    loggedSuccess === meal.id
-                                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 mt-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      logAgain(meal)
+                                    }}
+                                    disabled={loggingAgain === meal.id || loggedSuccess === meal.id}
+                                    className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-[0.97] ${
+                                      loggedSuccess === meal.id
+                                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                        : loggingAgain === meal.id
+                                        ? 'bg-slate-700 text-slate-400 cursor-wait'
+                                        : 'bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600/30 hover:border-purple-500/50'
+                                    }`}
+                                  >
+                                    {loggedSuccess === meal.id
+                                      ? '✅ Logged!'
                                       : loggingAgain === meal.id
-                                      ? 'bg-slate-700 text-slate-400 cursor-wait'
-                                      : 'bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600/30 hover:border-purple-500/50'
-                                  }`}
-                                >
-                                  {loggedSuccess === meal.id
-                                    ? '✅ Logged to Today!'
-                                    : loggingAgain === meal.id
-                                    ? '⏳ Logging...'
-                                    : '🔄 Log Again Today'}
-                                </button>
+                                      ? '⏳ Logging...'
+                                      : '🔄 Log Again'}
+                                  </button>
+                                  {confirmDelete === meal.id ? (
+                                    <div className="flex gap-1.5">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          deleteMeal(meal.id)
+                                        }}
+                                        disabled={deleting === meal.id}
+                                        className="px-4 py-2.5 rounded-lg font-semibold text-sm bg-red-600 hover:bg-red-700 text-white transition-colors"
+                                      >
+                                        {deleting === meal.id ? '...' : 'Yes, Delete'}
+                                      </button>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setConfirmDelete(null)
+                                        }}
+                                        className="px-4 py-2.5 rounded-lg font-semibold text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setConfirmDelete(meal.id)
+                                      }}
+                                      className="px-4 py-2.5 rounded-lg text-sm text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 transition-all"
+                                    >
+                                      🗑️
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </CardContent>
