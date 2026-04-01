@@ -93,6 +93,11 @@ export async function POST(request: NextRequest) {
         age--
       }
     }
+    // Sanity clamp: age must be between 10 and 100
+    if (age < 10 || age > 100) {
+      console.warn(`Invalid age calculated: ${age} from DOB ${athlete.dob}. Clamping to 25.`)
+      age = 25
+    }
 
     // Prepare athlete profile for calculation
     const athleteProfile = {

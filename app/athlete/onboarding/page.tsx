@@ -203,6 +203,16 @@ export default function OnboardingPage() {
     setLoading(true)
     setError('')
 
+    // Validate DOB is reasonable (between 1920 and current year)
+    if (form.dob) {
+      const dobYear = parseInt(form.dob.split('-')[0])
+      if (isNaN(dobYear) || dobYear < 1920 || dobYear > new Date().getFullYear()) {
+        setError('Please enter a valid date of birth.')
+        setLoading(false)
+        return
+      }
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
@@ -474,7 +484,7 @@ export default function OnboardingPage() {
               
               <div>
                 <label className="text-slate-300 text-sm font-medium mb-2 block">Date of birth</label>
-                <input type="date" value={form.dob} onChange={e => update('dob', e.target.value)} className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors" required />
+                <input type="date" value={form.dob} onChange={e => update('dob', e.target.value)} min="1920-01-01" max="2020-12-31" className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors" required />
               </div>
 
               <div>
