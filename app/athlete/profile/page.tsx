@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
+import { PushNotificationToggle } from '@/components/PushNotificationManager'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 
 interface ProfileData {
@@ -830,6 +831,14 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Notification Settings */}
+        {!editing && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 mb-4">
+            <h3 className="text-sm font-semibold text-slate-400 mb-1">Notifications</h3>
+            <PushNotificationToggle />
+          </div>
         )}
 
         {/* Sign Out */}

@@ -32,6 +32,47 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Push notification event
+self.addEventListener('push', function (event) {
+  if (event.data) {
+    const data = event.data.json()
+    const options = {
+      body: data.body,
+      icon: data.icon || '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
+      vibrate: [100, 50, 100],
+      tag: data.tag || 'fuel-different-reminder',
+      renotify: true,
+      data: {
+        url: data.url || '/',
+        dateOfArrival: Date.now(),
+      },
+    }
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'Fuel Different', options)
+    )
+  }
+})
+
+// Notification click - open the app to the relevant page
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close()
+  const url = event.notification.data?.url || '/'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // If the app is already open, focus it
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url)
+          return client.focus()
+        }
+      }
+      // Otherwise open a new window
+      return clients.openWindow(url)
+    })
+  )
+})
+
 // Fetch event - network first, fall back to cache
 self.addEventListener('fetch', (event) => {
   const { request } = event;

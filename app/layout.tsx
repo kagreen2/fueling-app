@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import PushNotificationManager from "@/components/PushNotificationManager";
 import { ErrorReporter } from "@/components/ErrorReporter";
 
 const geistSans = Geist({
@@ -63,6 +64,7 @@ export default function RootLayout({
         <ErrorReporter />
         <ServiceWorkerRegistration />
         <InstallPrompt />
+        <PushNotificationManager />
       </body>
     </html>
   );
