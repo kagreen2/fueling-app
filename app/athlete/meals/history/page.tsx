@@ -19,6 +19,7 @@ interface MealLog {
   confidence: 'high' | 'medium' | 'low' | null
   ai_feedback: string | null
   ai_next_step: string | null
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | null
   date: string
   logged_at: string
   created_at: string
@@ -317,6 +318,11 @@ export default function MealHistoryPage() {
                                     <h4 className="font-semibold text-white truncate">
                                       {meal.meal_title}
                                     </h4>
+                                    {meal.meal_type && (
+                                      <span className="text-xs px-1.5 py-0.5 rounded flex-shrink-0 bg-slate-700 text-slate-300 capitalize">
+                                        {meal.meal_type === 'breakfast' ? '🌅' : meal.meal_type === 'lunch' ? '☀️' : meal.meal_type === 'dinner' ? '🌙' : '🍎'} {meal.meal_type}
+                                      </span>
+                                    )}
                                     {meal.confidence && (
                                       <span className={`text-xs px-1.5 py-0.5 rounded flex-shrink-0 ${
                                         meal.confidence === 'high' ? 'bg-green-500/20 text-green-400' :

@@ -32,6 +32,7 @@ export default function MealsPage() {
     mealTitle: '',
     description: '',
     photo: null as File | null,
+    mealType: '' as '' | 'breakfast' | 'lunch' | 'dinner' | 'snack',
   })
 
   const [analysis, setAnalysis] = useState<MealAnalysis | null>(null)
@@ -144,6 +145,7 @@ export default function MealsPage() {
       ai_feedback: analysis.feedback,
       ai_next_step: analysis.nextStep,
       clarifying_question: analysis.clarifyingQuestion || null,
+      meal_type: form.mealType || null,
       date: today,
       logged_at: new Date().toISOString(),
     })
@@ -254,6 +256,35 @@ export default function MealsPage() {
                   </label>
                 </div>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Meal Type */}
+        <Card className="mb-6">
+          <CardHeader title="Meal Type" />
+          <CardContent>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { value: 'breakfast', label: 'Breakfast', icon: '🌅' },
+                { value: 'lunch', label: 'Lunch', icon: '☀️' },
+                { value: 'dinner', label: 'Dinner', icon: '🌙' },
+                { value: 'snack', label: 'Snack', icon: '🍎' },
+              ].map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => update('mealType', form.mealType === option.value ? '' : option.value)}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all active:scale-[0.96] ${
+                    form.mealType === option.value
+                      ? 'border-green-500 bg-green-500/15 text-white'
+                      : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
+                  }`}
+                >
+                  <span className="text-2xl">{option.icon}</span>
+                  <span className="text-xs font-semibold">{option.label}</span>
+                </button>
+              ))}
             </div>
           </CardContent>
         </Card>
