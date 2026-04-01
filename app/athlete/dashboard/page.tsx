@@ -15,12 +15,16 @@ import WellnessSpotlight from '@/components/WellnessSpotlight'
 interface AthleteStats {
   todayCalories: number
   todayProtein: number
+  todayCarbs: number
+  todayFat: number
   todayWater: number
   thisWeekMeals: number
   thisWeekCheckIns: number
   thisWeekHydration: number
   calorieGoal: number
   proteinGoal: number
+  carbsGoal: number
+  fatGoal: number
   waterGoal: number
 }
 
@@ -85,12 +89,16 @@ export default function AthleteDashboard() {
   const [stats, setStats] = useState<AthleteStats>({
     todayCalories: 0,
     todayProtein: 0,
+    todayCarbs: 0,
+    todayFat: 0,
     todayWater: 0,
     thisWeekMeals: 0,
     thisWeekCheckIns: 0,
     thisWeekHydration: 0,
     calorieGoal: 0,
     proteinGoal: 0,
+    carbsGoal: 0,
+    fatGoal: 0,
     waterGoal: 100,
   })
   const [recentMeals, setRecentMeals] = useState<any[]>([])
@@ -302,6 +310,8 @@ export default function AthleteDashboard() {
           ...prev,
           calorieGoal: recsData.daily_calories,
           proteinGoal: recsData.daily_protein_g,
+          carbsGoal: recsData.daily_carbs_g,
+          fatGoal: recsData.daily_fat_g,
         }))
       }
 
@@ -319,12 +329,16 @@ export default function AthleteDashboard() {
         const todayStats = mealsData.reduce((acc, meal) => ({
           calories: acc.calories + (meal.calories || 0),
           protein: acc.protein + (meal.protein || 0),
-        }), { calories: 0, protein: 0 })
+          carbs: acc.carbs + (meal.carbs || 0),
+          fat: acc.fat + (meal.fat || 0),
+        }), { calories: 0, protein: 0, carbs: 0, fat: 0 })
 
         setStats(prev => ({
           ...prev,
           todayCalories: todayStats.calories,
           todayProtein: todayStats.protein,
+          todayCarbs: todayStats.carbs,
+          todayFat: todayStats.fat,
         }))
         setRecentMeals(mealsData.slice(0, 3))
       }
@@ -646,9 +660,23 @@ export default function AthleteDashboard() {
                     <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((stats.todayProtein / recommendations.daily_protein_g) * 100, 100)}%` }} />
                   </div>
                 </div>
-                <div className="flex gap-4 pt-1">
-                  <span className="text-[10px] text-slate-500">Carbs: <span className="text-slate-400 font-medium">{recommendations.daily_carbs_g}g</span></span>
-                  <span className="text-[10px] text-slate-500">Fat: <span className="text-slate-400 font-medium">{recommendations.daily_fat_g}g</span></span>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-slate-400">Carbs</span>
+                    <span className="text-xs text-slate-300 tabular-nums">{Math.round(stats.todayCarbs)}g / {recommendations.daily_carbs_g}g</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                    <div className="bg-amber-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((stats.todayCarbs / recommendations.daily_carbs_g) * 100, 100)}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-slate-400">Fat</span>
+                    <span className="text-xs text-slate-300 tabular-nums">{Math.round(stats.todayFat)}g / {recommendations.daily_fat_g}g</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                    <div className="bg-cyan-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((stats.todayFat / recommendations.daily_fat_g) * 100, 100)}%` }} />
+                  </div>
                 </div>
               </div>
             </div>
