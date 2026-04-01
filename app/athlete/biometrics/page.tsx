@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import InBodyProgressCharts from '@/components/InBodyProgressCharts'
+import { getLocalDateString } from '@/lib/utils/date'
 
 interface BiometricScan {
   id: string
@@ -45,7 +46,7 @@ interface BiometricScan {
 
 // All InBody 580 form fields as strings for input handling
 const emptyForm = {
-  scan_date: new Date().toISOString().split('T')[0],
+  scan_date: getLocalDateString(),
   // Body Composition Analysis
   intracellular_water_lbs: '', extracellular_water_lbs: '', dry_lean_mass_lbs: '', body_fat_mass_lbs: '',
   total_body_water_lbs: '', fat_free_mass_lbs: '', weight_lbs: '',

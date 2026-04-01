@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { Input } from '@/components/ui/Input'
+import { getLocalDateString } from '@/lib/utils/date'
 
 const URINE_COLORS = [
   { level: 1, color: '#FFF9C4', label: 'Clear' },
@@ -48,7 +49,7 @@ export default function HydrationPage() {
 
       if (!athlete) return
 
-      const today = new Date().toISOString().split('T')[0]
+      const today = getLocalDateString()
       const { data } = await supabase
         .from('hydration_logs')
         .select('*')
@@ -108,7 +109,7 @@ export default function HydrationPage() {
       return
     }
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = getLocalDateString()
 
     const { error: upsertError } = await supabase.from('hydration_logs').upsert({
       athlete_id: athlete.id,

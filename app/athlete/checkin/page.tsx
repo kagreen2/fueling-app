@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { getLocalDateString } from '@/lib/utils/date'
 
 interface SliderFieldProps {
   label: string
@@ -111,7 +112,7 @@ export default function CheckInPage() {
       return
     }
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = getLocalDateString()
 
     const { error: upsertError } = await supabase.from('daily_checkins').upsert({
       athlete_id: athlete.id,

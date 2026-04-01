@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { getLocalDateString } from '@/lib/utils/date'
 
 // Steps change based on user type
 const ATHLETE_STEPS = [
@@ -316,7 +317,7 @@ export default function OnboardingPage() {
         const pn = (v: any) => v != null ? parseFloat(v) || null : null
         await supabase.from('biometric_scans').insert({
           athlete_id: athleteId,
-          scan_date: new Date().toISOString().split('T')[0],
+          scan_date: getLocalDateString(),
           weight_lbs: pn(inbodyData.weight_lbs),
           intracellular_water_lbs: pn(inbodyData.intracellular_water_lbs),
           extracellular_water_lbs: pn(inbodyData.extracellular_water_lbs),
