@@ -93,10 +93,20 @@ export default function OnboardingPage() {
     trainingSchedule: '',
     // Member-specific fields
     activityLevel: '',
-    trainingStyle: '',
+    trainingStyle: [] as string[],
   })
 
   const STEPS = form.userType === 'member' ? MEMBER_STEPS : ATHLETE_STEPS
+
+  function toggleTrainingStyle(value: string) {
+    setForm(prev => {
+      const current = prev.trainingStyle as unknown as string[]
+      const updated = current.includes(value)
+        ? current.filter(v => v !== value)
+        : [...current, value]
+      return { ...prev, trainingStyle: updated }
+    })
+  }
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -208,7 +218,7 @@ export default function OnboardingPage() {
       onboarding_complete: true,
       user_type: form.userType || 'athlete',
       activity_level: form.userType === 'member' ? (form.activityLevel || null) : null,
-      training_style: form.userType === 'member' ? (form.trainingStyle || null) : null,
+      training_style: form.userType === 'member' ? ((form.trainingStyle as unknown as string[]).length > 0 ? (form.trainingStyle as unknown as string[]).join(',') : null) : null,
     }
 
     if (existing) {
@@ -766,7 +776,7 @@ export default function OnboardingPage() {
                   </div>
 
                   <div>
-                    <label className="text-slate-300 text-sm font-medium mb-3 block">Training style</label>
+                    <label className="text-slate-300 text-sm font-medium mb-3 block">Training style <span className="text-slate-500 font-normal">(select all that apply)</span></label>
                     <div className="flex flex-col gap-2">
                       {[
                         { value: 'strength', label: 'Strength Training', desc: 'Weightlifting, powerlifting, bodybuilding' },
@@ -779,9 +789,9 @@ export default function OnboardingPage() {
                         <button
                           key={t.value}
                           type="button"
-                          onClick={() => update('trainingStyle', t.value)}
+                          onClick={() => toggleTrainingStyle(t.value)}
                           className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                            form.trainingStyle === t.value
+                            (form.trainingStyle as unknown as string[]).includes(t.value)
                               ? 'border-purple-600 bg-purple-600/10 text-white'
                               : 'border-slate-600 bg-slate-700 text-slate-300 hover:border-slate-500'
                           }`}

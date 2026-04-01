@@ -171,26 +171,21 @@ function getMemberActivityMultiplier(
       else baseMultiplier = 1.2
   }
 
-  // Training style adjustments
-  switch (training_style) {
-    case 'crossfit':
-      baseMultiplier *= 1.05  // HIIT: High EPOC, CrossFit, bootcamps, functional fitness
-      break
-    case 'strength':
-      baseMultiplier *= 1.03  // Elevated post-exercise metabolism
-      break
-    case 'cardio':
-      baseMultiplier *= 1.05  // Sustained caloric burn
-      break
-    case 'mixed':
-      baseMultiplier *= 1.03  // Moderate adjustment
-      break
-    case 'yoga_pilates':
-      // No adjustment — lower metabolic demand
-      break
-    case 'dance':
-      baseMultiplier *= 1.04  // Dance: moderate-to-high cardio demand, sustained movement
-      break
+  // Training style adjustments (supports multiple comma-separated styles)
+  const styles = training_style.split(',').map(s => s.trim()).filter(Boolean)
+  const styleMultipliers: Record<string, number> = {
+    crossfit: 1.05,    // HIIT: High EPOC, CrossFit, bootcamps, functional fitness
+    strength: 1.03,    // Elevated post-exercise metabolism
+    cardio: 1.05,      // Sustained caloric burn
+    mixed: 1.03,       // Moderate adjustment
+    yoga_pilates: 1.0, // Lower metabolic demand
+    dance: 1.04,       // Dance: moderate-to-high cardio demand
+  }
+  if (styles.length > 0) {
+    // Average the multipliers for all selected styles
+    const total = styles.reduce((sum, s) => sum + (styleMultipliers[s] || 1.0), 0)
+    const avgMultiplier = total / styles.length
+    baseMultiplier *= avgMultiplier
   }
 
   return baseMultiplier

@@ -126,8 +126,12 @@ function formatTrainingStyle(style: string | null): string {
     cardio: 'Cardio',
     mixed: 'Mixed',
     yoga_pilates: 'Yoga/Pilates',
+    dance: 'Dance',
   }
-  return map[style] || style.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  // Handle comma-separated multi-select values
+  const styles = style.split(',').map(s => s.trim()).filter(Boolean)
+  const formatted = styles.map(s => map[s] || s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
+  return formatted.join(' + ') || 'General'
 }
 
 function formatUserContext(a: AthleteData): string {
