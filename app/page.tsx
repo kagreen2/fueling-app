@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 
 const LIGHTNING_ICON = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-lightning-icon-B5LtaPwMAWwPkoULwNEbea.png'
@@ -18,9 +20,49 @@ function LightningBolt({ className = 'w-8 h-8' }: { className?: string }) {
 
 export default function Home() {
   const router = useRouter()
+  const [isPWA, setIsPWA] = useState(false)
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    // Detect if running as installed PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone === true
+
+    if (isStandalone) {
+      setIsPWA(true)
+      // PWA users should go straight to their dashboard or login
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          // Check role and redirect
+          supabase.from('profiles').select('role').eq('id', user.id).single().then(({ data }) => {
+            if (data?.role === 'coach') router.replace('/coach/dashboard')
+            else if (data?.role === 'admin') router.replace('/admin')
+            else router.replace('/athlete/dashboard')
+          })
+        } else {
+          router.replace('/login')
+        }
+      })
+      return
+    }
+    setChecking(false)
+  }, [router])
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  // Show a clean loading screen while checking PWA status or redirecting
+  if (checking || isPWA) {
+    return (
+      <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <LightningBolt className="w-12 h-12 mx-auto mb-4 animate-pulse" />
+          <p className="text-slate-400 text-sm">Loading...</p>
+        </div>
+      </main>
+    )
   }
 
   return (
