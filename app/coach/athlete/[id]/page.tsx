@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import InBodyProgressCharts from '@/components/InBodyProgressCharts'
 import ChatPanel from '@/components/ChatPanel'
+import WellnessSpotlight from '@/components/WellnessSpotlight'
 
 function getLocalDateString(date: Date = new Date()): string {
   const year = date.getFullYear()
@@ -56,6 +57,7 @@ export default function CoachAthleteDetailPage() {
   const [profile, setProfile] = useState<any>(null)
   const [recs, setRecs] = useState<any>(null)
   const [dailyData, setDailyData] = useState<DayData[]>([])
+  const [recentCheckins, setRecentCheckins] = useState<Array<{ date: string; wellness_score: number | null }>>([])
   const [timeRange, setTimeRange] = useState<number>(14)
 
   // Coach Notes state
@@ -430,6 +432,18 @@ export default function CoachAthleteDetailPage() {
       days.push({ date: dateStr, label, ...data })
     }
     setDailyData(days)
+
+    // Get last 14 days of check-ins for WellnessSpotlight
+    const wellnessStart = new Date()
+    wellnessStart.setDate(wellnessStart.getDate() - 14)
+    const { data: checkinData } = await supabase
+      .from('coach_wellness_summary')
+      .select('date, wellness_score')
+      .eq('athlete_id', athleteId)
+      .gte('date', getLocalDateString(wellnessStart))
+      .order('date', { ascending: false })
+    setRecentCheckins(checkinData || [])
+
     setLoading(false)
   }
 
@@ -519,6 +533,9 @@ export default function CoachAthleteDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Wellness Spotlight */}
+        <WellnessSpotlight checkins={recentCheckins} role="coach" />
 
         {/* Nutrition Targets */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">

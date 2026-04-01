@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import WellnessSpotlight from '@/components/WellnessSpotlight'
 
 interface Team {
   id: string
@@ -992,6 +993,7 @@ export default function CoachDashboardPage() {
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Athlete</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Today</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Wellness</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">7-Day Avg</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Calories</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Protein</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Streak</th>
@@ -1042,6 +1044,13 @@ export default function CoachDashboardPage() {
                             ) : (
                               <span className="text-slate-600 text-xs">No data</span>
                             )}
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <WellnessSpotlight
+                              checkins={a.recentCheckins.map(c => ({ date: c.date, wellness_score: c.wellness_score }))}
+                              compact
+                              role="coach"
+                            />
                           </td>
                           <td className="px-4 py-3 hidden lg:table-cell">
                             <div className="flex items-center gap-2">

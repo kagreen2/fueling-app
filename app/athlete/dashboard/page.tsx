@@ -11,6 +11,7 @@ import { StatCard } from '@/components/ui/StatCard'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import ChatPanel from '@/components/ChatPanel'
 import LightningBolt from '@/components/ui/LightningBolt'
+import WellnessSpotlight from '@/components/WellnessSpotlight'
 
 interface AthleteStats {
   todayCalories: number
@@ -95,6 +96,7 @@ export default function AthleteDashboard() {
   })
   const [recentMeals, setRecentMeals] = useState<any[]>([])
   const [todayCheckin, setTodayCheckin] = useState<any>(null)
+  const [recentCheckins, setRecentCheckins] = useState<Array<{ date: string; wellness_score: number | null }>>([])
   const [refreshing, setRefreshing] = useState(false)
   const [recommendations, setRecommendations] = useState<any>(null)
   const [athlete, setAthlete] = useState<any>(null)
@@ -320,6 +322,16 @@ export default function AthleteDashboard() {
         .single()
 
       setTodayCheckin(checkinData || null)
+
+      // Get last 14 days of check-ins for WellnessSpotlight
+      const twoWeeksAgo = getLocalDateString(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000))
+      const { data: recentCheckinData } = await supabase
+        .from('daily_checkins')
+        .select('date, wellness_score')
+        .eq('athlete_id', athleteData.id)
+        .gte('date', twoWeeksAgo)
+        .order('date', { ascending: false })
+      setRecentCheckins(recentCheckinData || [])
 
       // Get this week stats
       const weekAgo = getLocalDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
@@ -558,6 +570,11 @@ export default function AthleteDashboard() {
           </div>
         </div>
 
+        {/* Wellness Spotlight */}
+        <div className="mb-8">
+          <WellnessSpotlight checkins={recentCheckins} role="athlete" />
+        </div>
+
         {/* Today's Check-in Status */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Daily Check-in</h3>
@@ -567,14 +584,18 @@ export default function AthleteDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-slate-400 mb-2">✅ Check-in Complete</p>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <p className="text-slate-400">Wellness</p>
-                        <p className={`text-lg font-bold ${todayCheckin.wellness_score >= 80 ? 'text-green-400' : todayCheckin.wellness_score >= 60 ? 'text-yellow-400' : todayCheckin.wellness_score >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{todayCheckin.wellness_score ?? '—'}</p>
+                        <p className="text-slate-400">Energy</p>
+                        <p className="text-lg font-bold text-white">{todayCheckin.energy}/10</p>
                       </div>
                       <div>
                         <p className="text-slate-400">Sleep</p>
                         <p className="text-lg font-bold text-white">{todayCheckin.sleep_hours}h</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400">Stress</p>
+                        <p className={`text-lg font-bold ${todayCheckin.stress <= 3 ? 'text-green-400' : todayCheckin.stress <= 6 ? 'text-yellow-400' : 'text-red-400'}`}>{todayCheckin.stress}/10</p>
                       </div>
                     </div>
                   </div>
