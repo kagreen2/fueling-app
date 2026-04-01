@@ -516,56 +516,32 @@ export default function AthleteDashboard() {
           </div>
         </div>
 
-        {/* Wellness Spotlight */}
-        <div className="mb-6">
-          <WellnessSpotlight checkins={recentCheckins} role="athlete" />
-        </div>
-
-        {/* Today's Check-in Status */}
+        {/* Wellness + Check-in — unified card */}
         <div className="mb-6">
           {todayCheckin ? (
-            <Card className="bg-green-500/5 border-green-500/20">
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-2">✅ Check-in Complete</p>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-slate-400">Energy</p>
-                        <p className="text-lg font-bold text-white">{todayCheckin.energy}/10</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400">Sleep</p>
-                        <p className="text-lg font-bold text-white">{todayCheckin.sleep_hours}h</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400">Stress</p>
-                        <p className={`text-lg font-bold ${todayCheckin.stress <= 3 ? 'text-green-400' : todayCheckin.stress <= 6 ? 'text-yellow-400' : 'text-red-400'}`}>{todayCheckin.stress}/10</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-5xl">🎉</div>
-                </div>
-              </CardContent>
-            </Card>
+            <div>
+              <WellnessSpotlight checkins={recentCheckins} role="athlete" />
+              <div className="mt-2 flex items-center gap-2 px-1">
+                <svg className="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                <span className="text-xs text-slate-500">Today's check-in complete</span>
+              </div>
+            </div>
           ) : (
-            <Card className="bg-yellow-500/5 border-yellow-500/20">
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-2">⏰ Pending</p>
-                    <p className="text-white">Complete your daily check-in to track your progress</p>
-                  </div>
-                  <Button
-                    onClick={() => router.push('/athlete/checkin')}
-                    size="sm"
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    Check-in Now
-                  </Button>
+            <div className="bg-slate-800/50 border border-yellow-500/20 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-1">Daily Check-in</h3>
+                  <p className="text-xs text-slate-400">Check in to update your wellness score</p>
                 </div>
-              </CardContent>
-            </Card>
+                <Button
+                  onClick={() => router.push('/athlete/checkin')}
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  Check-in
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
