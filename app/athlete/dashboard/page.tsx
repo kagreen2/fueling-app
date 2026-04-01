@@ -569,8 +569,8 @@ export default function AthleteDashboard() {
                     <p className="text-sm text-slate-400 mb-2">✅ Check-in Complete</p>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-slate-400">Energy</p>
-                        <p className="text-lg font-bold text-white">{todayCheckin.energy}/10</p>
+                        <p className="text-slate-400">Wellness</p>
+                        <p className={`text-lg font-bold ${todayCheckin.wellness_score >= 80 ? 'text-green-400' : todayCheckin.wellness_score >= 60 ? 'text-yellow-400' : todayCheckin.wellness_score >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{todayCheckin.wellness_score ?? '—'}</p>
                       </div>
                       <div>
                         <p className="text-slate-400">Sleep</p>
