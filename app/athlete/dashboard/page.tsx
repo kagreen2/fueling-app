@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -104,6 +104,37 @@ export default function AthleteDashboard() {
   const [userId, setUserId] = useState<string>('')
   const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string; email: string } | null>(null)
   const [loadError, setLoadError] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
+  const [isPulling, setIsPulling] = useState(false)
+  const touchStartY = useRef(0)
+  const mainRef = useRef<HTMLDivElement>(null)
+
+  const PULL_THRESHOLD = 80
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (mainRef.current && mainRef.current.scrollTop <= 0) {
+      touchStartY.current = e.touches[0].clientY
+      setIsPulling(true)
+    }
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isPulling) return
+    const currentY = e.touches[0].clientY
+    const diff = currentY - touchStartY.current
+    if (diff > 0 && mainRef.current && mainRef.current.scrollTop <= 0) {
+      setPullDistance(Math.min(diff * 0.5, 120))
+    }
+  }, [isPulling])
+
+  const handleTouchEnd = useCallback(async () => {
+    if (pullDistance >= PULL_THRESHOLD && !refreshing) {
+      setPullDistance(PULL_THRESHOLD)
+      await handleRefresh()
+    }
+    setPullDistance(0)
+    setIsPulling(false)
+  }, [pullDistance, refreshing])
 
   const TUTORIAL_SLIDES = [
     {
@@ -410,7 +441,33 @@ export default function AthleteDashboard() {
   const waterPercent = Math.min((stats.todayWater / stats.waterGoal) * 100, 100)
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white pb-20">
+    <main
+      ref={mainRef}
+      className="min-h-screen bg-slate-900 text-white pb-20 overflow-y-auto"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div
+          className="flex items-center justify-center overflow-hidden transition-all"
+          style={{ height: `${pullDistance}px` }}
+        >
+          <div className={`flex items-center gap-2 transition-opacity ${pullDistance >= PULL_THRESHOLD ? 'opacity-100' : 'opacity-50'}`}>
+            <svg
+              className={`w-5 h-5 text-purple-400 transition-transform ${pullDistance >= PULL_THRESHOLD ? 'animate-spin' : ''}`}
+              style={{ transform: `rotate(${Math.min(pullDistance / PULL_THRESHOLD, 1) * 360}deg)` }}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="text-xs text-slate-400">
+              {pullDistance >= PULL_THRESHOLD ? (refreshing ? 'Refreshing...' : 'Release to refresh') : 'Pull to refresh'}
+            </span>
+          </div>
+        </div>
+      )}
       {/* Header — merged greeting + name */}
       <div className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
