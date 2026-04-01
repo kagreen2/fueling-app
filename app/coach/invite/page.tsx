@@ -212,7 +212,7 @@ export default function CoachInvitePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
       </div>
     )
   }
@@ -245,7 +245,7 @@ export default function CoachInvitePage() {
             </p>
             <button
               onClick={() => router.push('/coach/teams')}
-              className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
             >
               Create a Team
             </button>
@@ -260,7 +260,7 @@ export default function CoachInvitePage() {
               <select
                 value={selectedTeam}
                 onChange={e => setSelectedTeam(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {teams.map(team => (
                   <option key={team.id} value={team.id}>
@@ -270,7 +270,7 @@ export default function CoachInvitePage() {
               </select>
               {selectedTeamData && (
                 <p className="text-slate-500 text-sm mt-2">
-                  Team invite code: <span className="text-green-400 font-mono font-bold">{selectedTeamData.invite_code}</span>
+                  Team invite code: <span className="text-purple-400 font-mono font-bold">{selectedTeamData.invite_code}</span>
                 </p>
               )}
             </div>
@@ -281,7 +281,7 @@ export default function CoachInvitePage() {
                 onClick={() => setMode('individual')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   mode === 'individual'
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-purple-600 text-white'
                     : 'bg-slate-800 text-slate-400 hover:text-white'
                 }`}
               >
@@ -291,7 +291,7 @@ export default function CoachInvitePage() {
                 onClick={() => setMode('bulk')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   mode === 'bulk'
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-purple-600 text-white'
                     : 'bg-slate-800 text-slate-400 hover:text-white'
                 }`}
               >
@@ -311,7 +311,7 @@ export default function CoachInvitePage() {
                     value={singleEmail}
                     onChange={e => setSingleEmail(e.target.value)}
                     placeholder="athlete@email.com"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     onKeyDown={e => e.key === 'Enter' && sendInvites()}
                   />
                 </div>
@@ -350,7 +350,7 @@ export default function CoachInvitePage() {
                     onChange={e => setBulkEmails(e.target.value)}
                     placeholder={`athlete1@email.com\nathlete2@email.com\nathlete3@email.com`}
                     rows={8}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
                   />
                   {bulkEmails && (
                     <p className="text-slate-500 text-xs mt-2">
@@ -371,7 +371,7 @@ export default function CoachInvitePage() {
               <button
                 onClick={sendInvites}
                 disabled={sending}
-                className="mt-4 w-full bg-green-600 hover:bg-green-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="mt-4 w-full bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 {sending ? (
                   <>
@@ -395,11 +395,11 @@ export default function CoachInvitePage() {
                 <h3 className="text-lg font-semibold mb-4">Results</h3>
                 <div className="space-y-3">
                   {results.sent.length > 0 && (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
-                      <p className="text-green-400 font-medium text-sm">
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg px-4 py-3">
+                      <p className="text-purple-400 font-medium text-sm">
                         ✓ {results.sent.length} invitation{results.sent.length > 1 ? 's' : ''} sent successfully
                       </p>
-                      <p className="text-green-400/70 text-xs mt-1">{results.sent.join(', ')}</p>
+                      <p className="text-purple-400/70 text-xs mt-1">{results.sent.join(', ')}</p>
                     </div>
                   )}
                   {results.alreadyRegistered.length > 0 && (
@@ -444,7 +444,7 @@ export default function CoachInvitePage() {
                 <h3 className="text-lg font-semibold">Invitation History</h3>
                 <div className="flex gap-3 text-sm">
                   <span className="text-amber-400">{pendingCount} pending</span>
-                  <span className="text-green-400">{acceptedCount} accepted</span>
+                  <span className="text-purple-400">{acceptedCount} accepted</span>
                 </div>
               </div>
 
@@ -472,7 +472,7 @@ export default function CoachInvitePage() {
                       <span
                         className={`text-xs font-medium px-2 py-1 rounded-full ${
                           inv.status === 'accepted'
-                            ? 'bg-green-500/20 text-green-400'
+                            ? 'bg-purple-500/20 text-purple-400'
                             : inv.status === 'expired'
                             ? 'bg-slate-500/20 text-slate-400'
                             : 'bg-amber-500/20 text-amber-400'
