@@ -48,6 +48,8 @@ These items were built and deployed during the current session.
 | 2.7 | Hydration decrement buttons — athletes can now remove accidentally logged water and electrolytes | ✅ Done |
 | 2.8 | Wellness Spotlight component — today's score, 7-day average, trend arrow, sparkline, and contextual insight messages on athlete dashboard, coach overview table, and coach athlete detail page | ✅ Done |
 | 2.9 | Chat notification system — message badge in coach header, Messages tab in coach dashboard, email notification when athlete sends a message | ✅ Done |
+| 2.10 | "Log Again Today" button on meal history — one-tap re-logging of any past meal to today's date | ✅ Done |
+| 2.11 | Recent & Frequent quick-add on meal logging page — shows last 5 unique meals and top 5 most-logged meals for one-tap logging | ✅ Done |
 
 ---
 
@@ -78,6 +80,7 @@ These items were built and deployed during the current session.
 | 4.5 | Check-in streak tracker | P2 | ⬜ Not Started | Visual streak counter on the athlete dashboard showing consecutive check-in days. |
 | 4.6 | Personalized recovery recommendations | P3 | ⬜ Not Started | Based on wellness score trends, suggest specific recovery actions (sleep earlier, reduce training volume, increase hydration). |
 | 4.7 | Dark mode / light mode toggle | P3 | ⬜ Not Started | Allow athletes to switch between dark and light themes. |
+| 4.8 | "My Meals" saved library | P2 | ⬜ Not Started | Personal library where athletes can bookmark favorite meals and re-log them anytime. Includes a dedicated `/athlete/meals/saved` page with search, delete, and one-tap log. Requires new `saved_meals` table + RLS. Save button on meal history cards and after logging. Could integrate as a third section in the Quick Add area. |
 
 ---
 
