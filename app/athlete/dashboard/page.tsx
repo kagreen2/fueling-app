@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
-import { StatCard } from '@/components/ui/StatCard'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import ChatPanel from '@/components/ChatPanel'
 import LightningBolt from '@/components/ui/LightningBolt'
@@ -412,48 +411,34 @@ export default function AthleteDashboard() {
 
   return (
     <main className="min-h-screen bg-slate-900 text-white pb-20">
-      {/* Header */}
+      {/* Header — merged greeting + name */}
       <div className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
-            <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">
+            <p className="text-xs text-slate-500 mb-0.5">
               {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </p>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-purple-600 bg-clip-text text-transparent">
-              {greeting()} 👋
+            <h1 className="text-2xl font-bold text-white">
+              {greeting()}{profile ? `, ${profile.full_name?.split(' ')[0] || ''}` : ''}
             </h1>
           </div>
           <button
             onClick={() => router.push('/athlete/profile')}
-            className="w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center transition-colors"
+            className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center transition-colors"
           >
-            👤
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           </button>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Welcome Card */}
-        {profile && (
-          <Card className="mb-8 bg-gradient-to-br from-purple-600/10 to-purple-600/5 border-purple-600/20">
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-400 mb-1">Welcome back,</p>
-                  <h2 className="text-2xl font-bold text-white">{profile.full_name}</h2>
-                </div>
-                <div className="text-5xl">🎯</div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Today's Progress */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Today's Progress</h3>
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
-            <div className="flex justify-center">
+        {/* Today's Progress — rings with goal labels underneath */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Today's Progress</h3>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="flex flex-col items-center">
               <ProgressRing
                 percentage={caloriePercent}
                 size={90}
@@ -462,8 +447,11 @@ export default function AthleteDashboard() {
                 value={`${Math.round(stats.todayCalories)}`}
                 unit="kcal"
               />
+              <p className="text-[10px] text-slate-500 mt-1.5 tabular-nums">
+                {stats.calorieGoal > 0 ? `of ${stats.calorieGoal}` : 'no goal set'}
+              </p>
             </div>
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center">
               <ProgressRing
                 percentage={proteinPercent}
                 size={90}
@@ -472,8 +460,11 @@ export default function AthleteDashboard() {
                 value={`${Math.round(stats.todayProtein)}`}
                 unit="g"
               />
+              <p className="text-[10px] text-slate-500 mt-1.5 tabular-nums">
+                {stats.proteinGoal > 0 ? `of ${stats.proteinGoal}g` : 'no goal set'}
+              </p>
             </div>
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center">
               <ProgressRing
                 percentage={waterPercent}
                 size={90}
@@ -482,102 +473,56 @@ export default function AthleteDashboard() {
                 value={`${Math.round(stats.todayWater)}`}
                 unit="oz"
               />
+              <p className="text-[10px] text-slate-500 mt-1.5 tabular-nums">
+                of {stats.waterGoal} oz
+              </p>
             </div>
-          </div>
-
-          {/* Macro Stats */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <StatCard
-              label="Calories"
-              value={`${Math.round(stats.todayCalories)} / ${stats.calorieGoal > 0 ? stats.calorieGoal : '—'}`}
-              unit="kcal"
-              icon="🔥"
-              color="red"
-            />
-            <StatCard
-              label="Protein"
-              value={`${Math.round(stats.todayProtein)} / ${stats.proteinGoal > 0 ? stats.proteinGoal : '—'}`}
-              unit="g"
-              icon="💪"
-              color="green"
-            />
-            <StatCard
-              label="Water"
-              value={`${Math.round(stats.todayWater)} / ${stats.waterGoal}`}
-              unit="oz"
-              icon="💧"
-              color="blue"
-            />
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="mb-6">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
             {QUICK_ACTIONS.map(action => (
               <button
                 key={action.id}
                 onClick={() => router.push(action.href)}
-                className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-left transition-all duration-200 active:scale-95 hover:border-purple-600/50 hover:bg-slate-700/50"
+                className="bg-slate-800 border border-slate-700 rounded-xl p-3 text-center transition-all duration-200 active:scale-95 hover:border-purple-600/50 hover:bg-slate-700/50"
               >
-                <div className="text-2xl mb-2">{action.icon}</div>
-                <h4 className="font-semibold text-sm text-white">{action.label}</h4>
-                <p className="text-xs text-slate-400 mt-1">{action.description}</p>
+                <div className="text-xl mb-1">{action.icon}</div>
+                <h4 className="font-medium text-xs text-white leading-tight">{action.label}</h4>
               </button>
             ))}
           </div>
         </div>
 
-        {/* This Week Stats */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">This Week</h3>
-          <div className="grid md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Meals Logged</p>
-                    <p className="text-3xl font-bold text-white">{stats.thisWeekMeals}</p>
-                  </div>
-                  <div className="text-4xl">🍽️</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Check-ins</p>
-                    <p className="text-3xl font-bold text-white">{stats.thisWeekCheckIns}</p>
-                  </div>
-                  <div className="text-4xl">✅</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-400 mb-1">Water Intake</p>
-                    <p className="text-3xl font-bold text-white">{Math.round(stats.thisWeekHydration)}</p>
-                    <p className="text-xs text-slate-400 mt-1">oz</p>
-                  </div>
-                  <div className="text-4xl">💧</div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* This Week — compact single row */}
+        <div className="mb-6">
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 flex items-center justify-around">
+            <div className="text-center">
+              <p className="text-xl font-bold text-white">{stats.thisWeekMeals}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Meals</p>
+            </div>
+            <div className="w-px h-8 bg-slate-700" />
+            <div className="text-center">
+              <p className="text-xl font-bold text-white">{stats.thisWeekCheckIns}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Check-ins</p>
+            </div>
+            <div className="w-px h-8 bg-slate-700" />
+            <div className="text-center">
+              <p className="text-xl font-bold text-white">{Math.round(stats.thisWeekHydration)}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">oz Water</p>
+            </div>
           </div>
         </div>
 
         {/* Wellness Spotlight */}
-        <div className="mb-8">
+        <div className="mb-6">
           <WellnessSpotlight checkins={recentCheckins} role="athlete" />
         </div>
 
         {/* Today's Check-in Status */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Daily Check-in</h3>
+        <div className="mb-6">
           {todayCheckin ? (
             <Card className="bg-green-500/5 border-green-500/20">
               <CardContent>
@@ -624,81 +569,58 @@ export default function AthleteDashboard() {
           )}
         </div>
 
-        {/* Personalized Nutrition Targets */}
+        {/* Personalized Targets — compact inline bar */}
         {recommendations && (
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider mb-4">Your Personalized Targets</h3>
-            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/30">
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Daily Targets */}
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div className="bg-slate-800/50 rounded-lg p-4">
-                      <p className="text-sm text-slate-400 mb-2">Daily Calories</p>
-                      <p className="text-3xl font-bold text-purple-400">{recommendations.daily_calories}</p>
-                      <p className="text-xs text-slate-500 mt-2">Current: {Math.round(stats.todayCalories)}</p>
-                      <div className="w-full bg-slate-700 rounded-full h-2 mt-2">
-                        <div
-                          className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
-                          style={{ width: `${Math.min((stats.todayCalories / recommendations.daily_calories) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-lg p-4">
-                      <p className="text-sm text-slate-400 mb-2">Daily Protein</p>
-                      <p className="text-3xl font-bold text-blue-400">{recommendations.daily_protein_g}g</p>
-                      <p className="text-xs text-slate-500 mt-2">Current: {Math.round(stats.todayProtein)}g</p>
-                      <div className="w-full bg-slate-700 rounded-full h-2 mt-2">
-                        <div
-                          className="bg-blue-500 h-2 rounded-full"
-                          style={{ width: `${Math.min((stats.todayProtein / recommendations.daily_protein_g) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <div className="bg-slate-800/50 rounded-lg p-4">
-                      <p className="text-sm text-slate-400 mb-2">Carbs & Fat</p>
-                      <div className="flex gap-2 mb-2">
-                        <div className="flex-1">
-                          <p className="text-xs text-purple-400 font-medium">{recommendations.daily_carbs_g}g</p>
-                          <p className="text-xs text-slate-500">Carbs</p>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs text-yellow-400 font-medium">{recommendations.daily_fat_g}g</p>
-                          <p className="text-xs text-slate-500">Fat</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-slate-700">
-                        <div className="bg-purple-500 flex-1" />
-                        <div className="bg-yellow-500 flex-1" />
-                      </div>
-                    </div>
+          <div className="mb-6">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-slate-400">Daily Targets</h3>
+                <button
+                  onClick={() => router.push('/athlete/profile')}
+                  className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  View details
+                </button>
+              </div>
+              <div className="space-y-2.5">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-slate-400">Calories</span>
+                    <span className="text-xs text-slate-300 tabular-nums">{Math.round(stats.todayCalories)} / {recommendations.daily_calories}</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                    <div className="bg-purple-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((stats.todayCalories / recommendations.daily_calories) * 100, 100)}%` }} />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-slate-400">Protein</span>
+                    <span className="text-xs text-slate-300 tabular-nums">{Math.round(stats.todayProtein)}g / {recommendations.daily_protein_g}g</span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                    <div className="bg-blue-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((stats.todayProtein / recommendations.daily_protein_g) * 100, 100)}%` }} />
+                  </div>
+                </div>
+                <div className="flex gap-4 pt-1">
+                  <span className="text-[10px] text-slate-500">Carbs: <span className="text-slate-400 font-medium">{recommendations.daily_carbs_g}g</span></span>
+                  <span className="text-[10px] text-slate-500">Fat: <span className="text-slate-400 font-medium">{recommendations.daily_fat_g}g</span></span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Recent Meals */}
         {recentMeals.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-300 uppercase tracking-wider">Recent Meals</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => router.push('/athlete/meals/history')}
-                  className="text-xs px-3 py-1 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors"
-                >
-                  View All
-                </button>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="text-xs px-3 py-1 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {refreshing ? 'Refreshing...' : 'Refresh'}
-                </button>
-              </div>
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-slate-400">Recent Meals</h3>
+              <button
+                onClick={() => router.push('/athlete/meals/history')}
+                className="text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
+              >
+                View All →
+              </button>
             </div>
             <div className="space-y-4">
               {recentMeals.map((meal, i) => {

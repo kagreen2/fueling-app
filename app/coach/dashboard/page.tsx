@@ -198,6 +198,7 @@ export default function CoachDashboardPage() {
     sender_email?: string
   }>>([])
   const [coachUserId, setCoachUserId] = useState<string>('')
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [dismissedCoachAlerts, setDismissedCoachAlerts] = useState<Set<string>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -789,35 +790,26 @@ export default function CoachDashboardPage() {
             <h1 className="text-xl font-bold text-white">Coach Dashboard</h1>
             <p className="text-slate-400 text-sm">Welcome back, {coachName}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Primary: Admin (if admin) */}
             {isAdmin && (
               <button
                 onClick={() => router.push('/admin')}
-                className="px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
+                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors"
               >
                 ← Admin
               </button>
             )}
-            {!isAdmin && (
-              <button
-                onClick={() => router.push('/coach/billing')}
-                className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
-              >
-                <span className="hidden sm:inline">💳 </span>Billing
-              </button>
-            )}
-            <button
-              onClick={() => router.push('/coach/supplements')}
-              className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
-            >
-              <span className="hidden sm:inline">💊 </span>Supplements
-            </button>
+
+            {/* Primary: Invite */}
             <button
               onClick={() => router.push('/coach/invite')}
-              className="px-3 sm:px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
+              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors"
             >
-              <span className="hidden sm:inline">✉️ </span>Invite
+              + Invite
             </button>
+
+            {/* Primary: Messages */}
             <button
               onClick={() => setView('messages')}
               className={`relative p-2 rounded-lg border transition-colors ${
@@ -834,12 +826,8 @@ export default function CoachDashboardPage() {
                 </span>
               )}
             </button>
-            <button
-              onClick={() => router.push('/coach/teams')}
-              className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
-            >
-              <span className="hidden sm:inline">Manage </span>Teams
-            </button>
+
+            {/* Primary: Refresh */}
             <button
               onClick={loadData}
               className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg border border-slate-700 transition-colors"
@@ -847,16 +835,58 @@ export default function CoachDashboardPage() {
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             </button>
-            <button
-              onClick={async () => {
-                await supabase.auth.signOut()
-                router.push('/login')
-              }}
-              className="p-2 bg-slate-800 hover:bg-red-600/80 text-slate-400 hover:text-white rounded-lg border border-slate-700 transition-colors"
-              title="Sign Out"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            </button>
+
+            {/* More dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg border border-slate-700 transition-colors"
+                title="More"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+              </button>
+              {showMoreMenu && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setShowMoreMenu(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-40 overflow-hidden">
+                    <button
+                      onClick={() => { router.push('/coach/teams'); setShowMoreMenu(false) }}
+                      className="w-full px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-3"
+                    >
+                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      Manage Teams
+                    </button>
+                    <button
+                      onClick={() => { router.push('/coach/supplements'); setShowMoreMenu(false) }}
+                      className="w-full px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-3"
+                    >
+                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                      Supplements
+                    </button>
+                    {!isAdmin && (
+                      <button
+                        onClick={() => { router.push('/coach/billing'); setShowMoreMenu(false) }}
+                        className="w-full px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 transition-colors flex items-center gap-3"
+                      >
+                        <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                        Billing
+                      </button>
+                    )}
+                    <div className="border-t border-slate-700" />
+                    <button
+                      onClick={async () => {
+                        await supabase.auth.signOut()
+                        router.push('/login')
+                      }}
+                      className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>

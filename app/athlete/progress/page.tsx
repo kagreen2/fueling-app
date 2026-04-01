@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 interface BodyScan {
   id: string
@@ -50,32 +49,43 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function StatCard({
-  label, value, unit, change, lowerIsBetter = false, accent,
+// Accent color mapping using Tailwind classes
+const ACCENT_CLASSES: Record<string, { border: string; text: string }> = {
+  purple: { border: 'border-l-purple-500', text: 'text-purple-400' },
+  red: { border: 'border-l-red-500', text: 'text-red-400' },
+  green: { border: 'border-l-green-500', text: 'text-green-400' },
+  blue: { border: 'border-l-blue-500', text: 'text-blue-400' },
+  cyan: { border: 'border-l-cyan-500', text: 'text-cyan-400' },
+  slate: { border: 'border-l-slate-500', text: 'text-slate-400' },
+}
+
+function MetricCard({
+  label, value, unit, change, lowerIsBetter = false, accent = 'purple',
 }: {
   label: string; value: string; unit: string
   change: { value: string; dir: 'up' | 'down' | 'flat' } | null
-  lowerIsBetter?: boolean; accent: string
+  lowerIsBetter?: boolean; accent?: string
 }) {
   const isGood =
     !change || change.dir === 'flat' ? null
     : lowerIsBetter ? change.dir === 'down'
     : change.dir === 'up'
-  const changeColor = change?.dir === 'flat' ? '#6b7280' : isGood ? '#22c55e' : '#ef4444'
-  const changePrefix = change?.dir === 'up' ? '▲' : change?.dir === 'down' ? '▼' : '●'
+  const accentClasses = ACCENT_CLASSES[accent] || ACCENT_CLASSES.purple
 
   return (
-    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: accent, borderRadius: '12px 0 0 12px' }} />
-      <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: '10px', paddingLeft: '8px' }}>{label}</div>
-      <div style={{ paddingLeft: '8px' }}>
-        <span style={{ fontSize: '28px', fontWeight: 700, color: '#f1f5f9', fontFamily: 'monospace' }}>{value}</span>
-        <span style={{ fontSize: '13px', color: '#6b7280', marginLeft: '4px' }}>{unit}</span>
+    <div className={`bg-slate-800/60 border border-slate-700 border-l-[3px] ${accentClasses.border} rounded-xl p-4 relative`}>
+      <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">{label}</p>
+      <div className="flex items-baseline gap-1">
+        <span className="text-2xl font-bold text-white tabular-nums">{value}</span>
+        {unit && <span className="text-xs text-slate-500">{unit}</span>}
       </div>
-      {change && (
-        <div style={{ paddingLeft: '8px', marginTop: '6px', fontSize: '12px', color: changeColor }}>
-          {changePrefix} {change.value} {unit} from last scan
-        </div>
+      {change && change.dir !== 'flat' && (
+        <p className={`text-xs mt-1.5 ${isGood ? 'text-green-400' : 'text-red-400'}`}>
+          {change.dir === 'up' ? '▲' : '▼'} {change.value} {unit} from last scan
+        </p>
+      )}
+      {change && change.dir === 'flat' && (
+        <p className="text-xs mt-1.5 text-slate-500">No change</p>
       )}
     </div>
   )
@@ -87,18 +97,27 @@ function TrendBar({ scans, field, label, color }: { scans: BodyScan[]; field: ke
   const min = Math.min(...values)
   const max = Math.max(...values)
   const range = max - min || 1
+
   return (
-    <div style={{ marginBottom: '20px' }}>
-      <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: '8px' }}>{label}</div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '48px' }}>
+    <div className="mb-5">
+      <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-2">{label}</p>
+      <div className="flex items-end gap-1 h-12">
         {values.map((v, i) => (
-          <div key={i} title={`${v.toFixed(1)}`} style={{ flex: 1, height: `${Math.max(4, ((v - min) / range) * 44 + 4)}px`, background: i === values.length - 1 ? color : `${color}55`, borderRadius: '3px 3px 0 0' }} />
+          <div
+            key={i}
+            title={`${v.toFixed(1)}`}
+            className="flex-1 rounded-t transition-all"
+            style={{
+              height: `${Math.max(4, ((v - min) / range) * 44 + 4)}px`,
+              background: i === values.length - 1 ? color : `${color}44`,
+            }}
+          />
         ))}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-        <span style={{ fontSize: '10px', color: '#4b5563' }}>{formatDate(scans[0].scan_date)}</span>
-        <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: 600 }}>{values[values.length - 1].toFixed(1)}</span>
-        <span style={{ fontSize: '10px', color: '#4b5563' }}>{formatDate(scans[scans.length - 1].scan_date)}</span>
+      <div className="flex justify-between mt-1">
+        <span className="text-[10px] text-slate-600">{formatDate(scans[0].scan_date)}</span>
+        <span className="text-[10px] text-slate-400 font-semibold tabular-nums">{values[values.length - 1].toFixed(1)}</span>
+        <span className="text-[10px] text-slate-600">{formatDate(scans[scans.length - 1].scan_date)}</span>
       </div>
     </div>
   )
@@ -106,50 +125,69 @@ function TrendBar({ scans, field, label, color }: { scans: BodyScan[]; field: ke
 
 function ScanRow({ scan, prev, isLatest }: { scan: BodyScan; prev: BodyScan | null; isLatest: boolean }) {
   const [expanded, setExpanded] = useState(false)
+
   return (
-    <div style={{ border: isLatest ? '1px solid rgba(251,146,60,0.3)' : '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', overflow: 'hidden', marginBottom: '8px', background: isLatest ? 'rgba(251,146,60,0.04)' : 'rgba(255,255,255,0.02)' }}>
-      <div onClick={() => setExpanded(!expanded)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', cursor: 'pointer', userSelect: 'none' as const }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {isLatest && <span style={{ fontSize: '10px', background: 'rgba(251,146,60,0.2)', color: '#fb923c', padding: '2px 8px', borderRadius: '20px', fontWeight: 600 }}>Latest</span>}
-          <span style={{ color: '#e2e8f0', fontWeight: 600, fontSize: '15px' }}>{formatDate(scan.scan_date)}</span>
-          {scan.source && <span style={{ fontSize: '11px', color: '#4b5563', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '20px' }}>{scan.source}</span>}
+    <div className={`border rounded-xl overflow-hidden mb-2 transition-all ${
+      isLatest
+        ? 'border-purple-500/30 bg-purple-500/5'
+        : 'border-slate-700 bg-slate-800/40'
+    }`}>
+      <div
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between px-4 py-3.5 cursor-pointer select-none hover:bg-slate-700/20 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          {isLatest && (
+            <span className="text-[10px] font-semibold bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full">
+              Latest
+            </span>
+          )}
+          <span className="text-white font-semibold text-sm">{formatDate(scan.scan_date)}</span>
+          {scan.source && (
+            <span className="text-[11px] text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full">{scan.source}</span>
+          )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div className="flex items-center gap-5">
           {scan.inbody_score !== null && (
-            <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: '10px', color: '#6b7280' }}>InBody Score</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#fb923c', fontFamily: 'monospace' }}>{scan.inbody_score}</div>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-500">Score</p>
+              <p className="text-lg font-bold text-purple-400 tabular-nums">{scan.inbody_score}</p>
             </div>
           )}
           {scan.weight_lbs !== null && (
-            <div style={{ textAlign: 'right' as const }}>
-              <div style={{ fontSize: '10px', color: '#6b7280' }}>Weight</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#f1f5f9', fontFamily: 'monospace' }}>{fmt(scan.weight_lbs)} <span style={{ fontSize: '12px', color: '#6b7280' }}>lbs</span></div>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-500">Weight</p>
+              <p className="text-lg font-bold text-white tabular-nums">
+                {fmt(scan.weight_lbs)} <span className="text-xs text-slate-500">lbs</span>
+              </p>
             </div>
           )}
-          <div style={{ color: '#4b5563', fontSize: '18px', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>↓</div>
+          <span className={`text-slate-500 text-lg transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>
+            ↓
+          </span>
         </div>
       </div>
+
       {expanded && (
-        <div style={{ padding: '0 18px 18px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', marginTop: '14px' }}>
+        <div className="px-4 pb-4 border-t border-slate-700/50">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
             {[
-              { label: 'Body Fat %', value: fmt(scan.body_fat_percent), unit: '%', change: delta(scan.body_fat_percent, prev?.body_fat_percent ?? null), lowerIsBetter: true, accent: '#ef4444' },
-              { label: 'Muscle Mass', value: fmt(scan.skeletal_muscle_mass_lbs), unit: 'lbs', change: delta(scan.skeletal_muscle_mass_lbs, prev?.skeletal_muscle_mass_lbs ?? null), accent: '#22c55e' },
-              { label: 'Body Fat', value: fmt(scan.body_fat_lbs), unit: 'lbs', change: delta(scan.body_fat_lbs, prev?.body_fat_lbs ?? null), lowerIsBetter: true, accent: '#ef4444' },
-              { label: 'Fat-Free Mass', value: fmt(scan.fat_free_mass_lbs), unit: 'lbs', change: delta(scan.fat_free_mass_lbs, prev?.fat_free_mass_lbs ?? null), accent: '#3b82f6' },
-              { label: 'BMR', value: fmt(scan.bmr_calories, 0), unit: 'kcal', change: null, accent: '#a855f7' },
-              { label: 'BMI', value: fmt(scan.bmi), unit: '', change: delta(scan.bmi, prev?.bmi ?? null), lowerIsBetter: true, accent: '#6b7280' },
-              { label: 'Total Body Water', value: fmt(scan.total_body_water_lbs), unit: 'lbs', change: null, accent: '#06b6d4' },
-              { label: 'ECW/TBW Ratio', value: fmt(scan.ecw_tbw_ratio, 3), unit: '', change: null, accent: '#06b6d4' },
-              { label: 'Visceral Fat', value: scan.visceral_fat_level?.toString() ?? '—', unit: '', change: delta(scan.visceral_fat_level, prev?.visceral_fat_level ?? null), lowerIsBetter: true, accent: '#f97316' },
-              { label: 'Bone Mass', value: fmt(scan.bone_mass_lbs), unit: 'lbs', change: null, accent: '#94a3b8' },
-            ].map((s) => <StatCard key={s.label} {...s} />)}
+              { label: 'Body Fat %', value: fmt(scan.body_fat_percent), unit: '%', change: delta(scan.body_fat_percent, prev?.body_fat_percent ?? null), lowerIsBetter: true, accent: 'red' },
+              { label: 'Muscle Mass', value: fmt(scan.skeletal_muscle_mass_lbs), unit: 'lbs', change: delta(scan.skeletal_muscle_mass_lbs, prev?.skeletal_muscle_mass_lbs ?? null), accent: 'green' },
+              { label: 'Body Fat', value: fmt(scan.body_fat_lbs), unit: 'lbs', change: delta(scan.body_fat_lbs, prev?.body_fat_lbs ?? null), lowerIsBetter: true, accent: 'red' },
+              { label: 'Fat-Free Mass', value: fmt(scan.fat_free_mass_lbs), unit: 'lbs', change: delta(scan.fat_free_mass_lbs, prev?.fat_free_mass_lbs ?? null), accent: 'blue' },
+              { label: 'BMR', value: fmt(scan.bmr_calories, 0), unit: 'kcal', change: null, accent: 'purple' },
+              { label: 'BMI', value: fmt(scan.bmi), unit: '', change: delta(scan.bmi, prev?.bmi ?? null), lowerIsBetter: true, accent: 'slate' },
+              { label: 'Total Body Water', value: fmt(scan.total_body_water_lbs), unit: 'lbs', change: null, accent: 'cyan' },
+              { label: 'ECW/TBW Ratio', value: fmt(scan.ecw_tbw_ratio, 3), unit: '', change: null, accent: 'cyan' },
+              { label: 'Visceral Fat', value: scan.visceral_fat_level?.toString() ?? '—', unit: '', change: delta(scan.visceral_fat_level, prev?.visceral_fat_level ?? null), lowerIsBetter: true, accent: 'red' },
+              { label: 'Bone Mass', value: fmt(scan.bone_mass_lbs), unit: 'lbs', change: null, accent: 'slate' },
+            ].map((s) => <MetricCard key={s.label} {...s} />)}
           </div>
           {scan.notes && (
-            <div style={{ marginTop: '14px', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', borderLeft: '3px solid #fb923c' }}>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>Coach Notes</div>
-              <div style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.6 }}>{scan.notes}</div>
+            <div className="mt-4 bg-purple-500/5 border border-purple-500/20 rounded-lg p-3">
+              <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-1">Coach Notes</p>
+              <p className="text-sm text-slate-300 leading-relaxed">{scan.notes}</p>
             </div>
           )}
         </div>
@@ -194,93 +232,127 @@ export default function ProgressPage() {
   const latest = scans[scans.length - 1] ?? null
   const previous = scans[scans.length - 2] ?? null
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fb923c', fontFamily: 'monospace' }}>
-      Loading scan data...
-    </div>
-  )
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-400 text-sm">Loading scan data...</p>
+        </div>
+      </main>
+    )
+  }
 
-  if (error) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
-      Error: {error}
-    </div>
-  )
+  if (error) {
+    return (
+      <main className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Error: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </main>
+    )
+  }
 
   return (
-    <>
-      <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } body { background: #0a0a0f; }`}</style>
-      <div style={{ minHeight: '100vh', background: '#0a0a0f', fontFamily: 'system-ui, sans-serif', color: '#f1f5f9' }}>
-
-        {/* Nav */}
-        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(12px)', zIndex: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link href="/athlete/dashboard" style={{ color: '#4b5563', textDecoration: 'none', fontSize: '13px' }}>← Dashboard</Link>
-            <span style={{ fontSize: '13px', color: '#9ca3af' }}>Body Composition</span>
-          </div>
-          <span style={{ fontSize: '12px', color: '#4b5563', fontFamily: 'monospace' }}>FUEL DIFFERENT</span>
-        </div>
-
-        <div style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px' }}>
-
-          {/* Header */}
-          <div style={{ marginBottom: '36px' }}>
-            <h1 style={{ fontSize: '32px', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '6px' }}>
-              {athleteName ? `${athleteName}'s` : 'Your'} Progress
-            </h1>
-            <p style={{ color: '#6b7280', fontSize: '14px' }}>
-              {scans.length === 0 ? 'No scans recorded yet' : `${scans.length} scan${scans.length > 1 ? 's' : ''} · InBody 580`}
-            </p>
-          </div>
-
-          {scans.length === 0 ? (
-            <div style={{ textAlign: 'center' as const, padding: '80px 20px', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '16px' }}>
-              <div style={{ fontSize: '40px', marginBottom: '16px' }}>📊</div>
-              <div style={{ color: '#6b7280', fontSize: '15px' }}>No body scans on file yet.</div>
-              <div style={{ color: '#4b5563', fontSize: '13px', marginTop: '8px' }}>Your coach will add scans after your InBody assessment.</div>
+    <main className="min-h-screen bg-slate-900 text-white">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/athlete/dashboard')}
+              className="text-slate-400 hover:text-white transition-colors text-xl"
+            >
+              ←
+            </button>
+            <div>
+              <h1 className="text-xl font-bold">Body Composition</h1>
+              <p className="text-xs text-slate-400">
+                {scans.length === 0 ? 'No scans recorded' : `${scans.length} scan${scans.length > 1 ? 's' : ''} · InBody 580`}
+              </p>
             </div>
-          ) : (
-            <>
-              {/* Latest snapshot */}
-              {latest && (
-                <div style={{ marginBottom: '36px' }}>
-                  <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '16px' }}>
-                    Latest Snapshot · {formatDate(latest.scan_date)}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '12px' }}>
-                    <StatCard label="Weight" value={fmt(latest.weight_lbs)} unit="lbs" change={delta(latest.weight_lbs, previous?.weight_lbs ?? null)} accent="#fb923c" />
-                    <StatCard label="Body Fat %" value={fmt(latest.body_fat_percent)} unit="%" change={delta(latest.body_fat_percent, previous?.body_fat_percent ?? null)} lowerIsBetter accent="#ef4444" />
-                    <StatCard label="Muscle Mass" value={fmt(latest.skeletal_muscle_mass_lbs)} unit="lbs" change={delta(latest.skeletal_muscle_mass_lbs, previous?.skeletal_muscle_mass_lbs ?? null)} accent="#22c55e" />
-                    <StatCard label="InBody Score" value={latest.inbody_score?.toString() ?? '—'} unit="" change={delta(latest.inbody_score, previous?.inbody_score ?? null)} accent="#fb923c" />
-                    <StatCard label="BMR" value={fmt(latest.bmr_calories, 0)} unit="kcal" change={null} accent="#a855f7" />
-                    <StatCard label="Visceral Fat" value={latest.visceral_fat_level?.toString() ?? '—'} unit="" change={delta(latest.visceral_fat_level, previous?.visceral_fat_level ?? null)} lowerIsBetter accent="#f97316" />
-                  </div>
-                </div>
-              )}
-
-              {/* Trends */}
-              {scans.length >= 2 && (
-                <div style={{ marginBottom: '36px', padding: '24px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '14px' }}>
-                  <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '20px' }}>Trends Over Time</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 32px' }}>
-                    <TrendBar scans={scans} field="weight_lbs" label="Weight (lbs)" color="#fb923c" />
-                    <TrendBar scans={scans} field="body_fat_percent" label="Body Fat %" color="#ef4444" />
-                    <TrendBar scans={scans} field="skeletal_muscle_mass_lbs" label="Muscle Mass (lbs)" color="#22c55e" />
-                    <TrendBar scans={scans} field="inbody_score" label="InBody Score" color="#fb923c" />
-                  </div>
-                </div>
-              )}
-
-              {/* History */}
-              <div>
-                <div style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: '16px' }}>Scan History</div>
-                {[...scans].reverse().map((scan, i) => (
-                  <ScanRow key={scan.id} scan={scan} prev={scans[scans.length - 2 - i] ?? null} isLatest={i === 0} />
-                ))}
-              </div>
-            </>
-          )}
+          </div>
         </div>
       </div>
-    </>
+
+      <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
+
+        {/* Page Title */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-white mb-1">
+            {athleteName ? `${athleteName}'s` : 'Your'} Progress
+          </h2>
+          {scans.length > 1 && (
+            <p className="text-sm text-slate-400">
+              Tracking since {formatDate(scans[0].scan_date)}
+            </p>
+          )}
+        </div>
+
+        {scans.length === 0 ? (
+          <div className="bg-slate-800/50 border border-slate-700 border-dashed rounded-2xl p-12 text-center">
+            <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <p className="text-white font-semibold mb-1">No body scans on file yet</p>
+            <p className="text-slate-500 text-sm">Your coach will add scans after your InBody assessment.</p>
+          </div>
+        ) : (
+          <>
+            {/* Latest Snapshot */}
+            {latest && (
+              <div className="mb-8">
+                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                  Latest Snapshot · {formatDate(latest.scan_date)}
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <MetricCard label="Weight" value={fmt(latest.weight_lbs)} unit="lbs" change={delta(latest.weight_lbs, previous?.weight_lbs ?? null)} accent="purple" />
+                  <MetricCard label="Body Fat %" value={fmt(latest.body_fat_percent)} unit="%" change={delta(latest.body_fat_percent, previous?.body_fat_percent ?? null)} lowerIsBetter accent="red" />
+                  <MetricCard label="Muscle Mass" value={fmt(latest.skeletal_muscle_mass_lbs)} unit="lbs" change={delta(latest.skeletal_muscle_mass_lbs, previous?.skeletal_muscle_mass_lbs ?? null)} accent="green" />
+                  <MetricCard label="InBody Score" value={latest.inbody_score?.toString() ?? '—'} unit="" change={delta(latest.inbody_score, previous?.inbody_score ?? null)} accent="purple" />
+                  <MetricCard label="BMR" value={fmt(latest.bmr_calories, 0)} unit="kcal" change={null} accent="blue" />
+                  <MetricCard label="Visceral Fat" value={latest.visceral_fat_level?.toString() ?? '—'} unit="" change={delta(latest.visceral_fat_level, previous?.visceral_fat_level ?? null)} lowerIsBetter accent="red" />
+                </div>
+              </div>
+            )}
+
+            {/* Trends */}
+            {scans.length >= 2 && (
+              <div className="mb-8">
+                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                  Trends Over Time
+                </h3>
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8">
+                    <TrendBar scans={scans} field="weight_lbs" label="Weight (lbs)" color="#9333EA" />
+                    <TrendBar scans={scans} field="body_fat_percent" label="Body Fat %" color="#ef4444" />
+                    <TrendBar scans={scans} field="skeletal_muscle_mass_lbs" label="Muscle Mass (lbs)" color="#22c55e" />
+                    <TrendBar scans={scans} field="inbody_score" label="InBody Score" color="#9333EA" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Scan History */}
+            <div>
+              <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                Scan History
+              </h3>
+              {[...scans].reverse().map((scan, i) => (
+                <ScanRow key={scan.id} scan={scan} prev={scans[scans.length - 2 - i] ?? null} isLatest={i === 0} />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </main>
   )
 }
