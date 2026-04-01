@@ -2010,7 +2010,7 @@ export default function AdminDashboard() {
                       <h5 className="text-sm font-semibold text-white mb-2">Coaches Can See</h5>
                       <ul className="text-xs text-slate-400 space-y-1">
                         <li>&bull; Aggregated daily macros (calories, protein, carbs, fat)</li>
-                        <li>&bull; Wellness scores (energy, stress, soreness, sleep, hydration)</li>
+                        <li>&bull; Fuel Scores (energy, stress, soreness, sleep, hydration)</li>
                         <li>&bull; Compliance rates and streaks</li>
                       </ul>
                     </div>
@@ -2028,7 +2028,7 @@ export default function AdminDashboard() {
                       <ul className="text-xs text-slate-400 space-y-1">
                         <li>&bull; All user profiles and roles</li>
                         <li>&bull; All meal logs and nutrition plans</li>
-                        <li>&bull; All check-in data and wellness scores</li>
+                        <li>&bull; All check-in data and Fuel Scores</li>
                         <li>&bull; Team memberships and assignments</li>
                       </ul>
                     </div>

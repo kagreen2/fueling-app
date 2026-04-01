@@ -200,7 +200,7 @@ function buildEmailHtml(
         <thead>
           <tr>
             <th style="padding: 10px 16px; text-align: left; color: #64748b; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #334155;">Athlete</th>
-            <th style="padding: 10px 16px; text-align: center; color: #64748b; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #334155;">Wellness</th>
+            <th style="padding: 10px 16px; text-align: center; color: #64748b; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #334155;">Fuel Score</th>
             <th style="padding: 10px 16px; text-align: center; color: #64748b; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #334155;">Meals</th>
           </tr>
         </thead>
@@ -412,10 +412,10 @@ Deno.serve(async (req) => {
             redFlags.push({ athleteName: name, message: `Slept under 5 hours for ${lowSleepStreak} nights in a row` })
           }
 
-          // Wellness score in concern zone (below 40) for 3+ days
+          // Fuel Score in concern zone (below 40) for 3+ days
           const concernDays = recent.filter(c => c.wellness_score !== null && c.wellness_score < 40).length
           if (concernDays >= 3) {
-            redFlags.push({ athleteName: name, message: `Wellness score has been in the concern zone (below 40) for ${concernDays} days` })
+            redFlags.push({ athleteName: name, message: `Fuel Score has been in the concern zone (below 40) for ${concernDays} days` })
           }
 
           // Missed check-in for 2+ days

@@ -46,7 +46,7 @@ function getAthleteInsight(avg: number | null, trend: 'up' | 'down' | 'stable'):
     return 'Your recovery needs attention. Better sleep and nutrition will help you bounce back faster.'
   }
   if (trend === 'down') {
-    return 'Your wellness is critically low. Talk to your coach — rest and recovery should be the priority right now.'
+    return 'Your Fuel Score is critically low. Talk to your coach — rest and recovery should be the priority right now.'
   }
   return 'Your body is under a lot of stress. Focus on rest, nutrition, and hydration before pushing hard in training.'
 }
@@ -118,9 +118,9 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
   if (avg7 === null && todayScore === null) {
     return (
       <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-        <h4 className="text-sm font-semibold text-white mb-2">Wellness Score</h4>
-        <p className="text-slate-400 text-sm">Complete your daily check-in to see your wellness score.</p>
-        <p className="text-slate-500 text-xs mt-2">Your score is based on energy, stress, soreness, and hydration — it helps you and your coach track recovery and readiness.</p>
+        <h4 className="text-sm font-semibold text-white mb-2">⚡ Fuel Score</h4>
+        <p className="text-slate-400 text-sm">Complete your daily check-in to see your Fuel Score.</p>
+        <p className="text-slate-500 text-xs mt-2">Your Fuel Score reflects how well you're fueling your body — energy, stress, soreness, and hydration combined into one number that drives your performance.</p>
       </div>
     )
   }
@@ -136,7 +136,7 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
     <div className={`bg-slate-800/50 border rounded-xl p-5 ${zone.border}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-sm font-semibold text-white">Wellness Score</h4>
+        <h4 className="text-sm font-semibold text-white">⚡ Fuel Score</h4>
         {avg7 !== null && todayScore !== null && avg7 !== todayScore && (
           <span className="text-xs text-slate-500">7-day avg: {avg7}</span>
         )}

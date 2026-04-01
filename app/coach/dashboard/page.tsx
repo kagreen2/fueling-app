@@ -627,7 +627,7 @@ export default function CoachDashboardPage() {
         }
       }
 
-      // Composite decline: wellness score below 40 for 2+ days
+      // Composite decline: Fuel Score below 40 for 2+ days
       if (checkins.length >= 2) {
         const last2 = checkins.slice(0, 2)
         if (last2.every(c => c.wellness_score < 40)) {
@@ -635,7 +635,7 @@ export default function CoachDashboardPage() {
             athlete: a,
             type: 'composite_decline',
             severity: 'high',
-            message: `${a.name}'s overall wellness score has been in the concern zone (below 40) for multiple days`,
+            message: `${a.name}'s Fuel Score has been in the concern zone (below 40) for multiple days`,
           })
         }
       }
@@ -1264,7 +1264,7 @@ export default function CoachDashboardPage() {
                                 <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${getWellnessBgColor(alert.athlete.wellnessLabel)} ${getWellnessColor(alert.athlete.wellnessLabel)}`}>
                                   {alert.athlete.wellnessScore}
                                 </span>
-                                <span className="text-slate-500 text-xs">Wellness Score</span>
+                                <span className="text-slate-500 text-xs">Fuel Score</span>
                               </div>
                             )}
                           </div>

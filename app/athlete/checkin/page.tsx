@@ -115,7 +115,7 @@ export default function CheckInPage() {
 
     const today = getLocalDateString()
 
-    // Calculate wellness score: average of energy, inverse stress, inverse soreness, hydration — scaled to 0-100
+    // Calculate Fuel Score: average of energy, inverse stress, inverse soreness, hydration — scaled to 0-100
     const wellnessScore = Math.round(
       ((form.energy + (10 - form.stress) + (10 - form.soreness) + form.hydration) / 4) * 10
     )
@@ -268,7 +268,7 @@ export default function CheckInPage() {
               />
             </div>
             <p className="text-slate-500 text-xs mt-4 leading-relaxed">
-              Your wellness scores (energy, stress, soreness, sleep, hydration) are shared with your coach to help them support you.
+              Your Fuel Score is calculated from these inputs and shared with your coach to help them support you.
             </p>
           </CardContent>
         </Card>

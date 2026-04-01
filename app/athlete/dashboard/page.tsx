@@ -600,7 +600,7 @@ export default function AthleteDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-white mb-1">Daily Check-in</h3>
-                  <p className="text-xs text-slate-400">Check in to update your wellness score</p>
+                  <p className="text-xs text-slate-400">Check in to update your Fuel Score</p>
                 </div>
                 <Button
                   onClick={() => router.push('/athlete/checkin')}

@@ -303,7 +303,7 @@ export default function Home() {
                   'Macros tailored to your sport, position & training phase',
                   'AI meal tracking — snap a photo, get instant feedback',
                   'InBody-powered precision BMR (no more guessing)',
-                  'Daily wellness tracking your coach actually sees',
+                  'Daily Fuel Score tracking your coach actually sees',
                   'Direct messaging with your nutrition coach',
                   'Supplement screening to protect your eligibility',
                   'Body composition trends that prove you\'re improving',
