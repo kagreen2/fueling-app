@@ -807,6 +807,12 @@ export default function CoachDashboardPage() {
               </button>
             )}
             <button
+              onClick={() => router.push('/coach/supplements')}
+              className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
+            >
+              <span className="hidden sm:inline">💊 </span>Supplements
+            </button>
+            <button
               onClick={() => router.push('/coach/invite')}
               className="px-3 sm:px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors"
             >

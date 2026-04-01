@@ -50,6 +50,7 @@ These items were built and deployed during the current session.
 | 2.9 | Chat notification system — message badge in coach header, Messages tab in coach dashboard, email notification when athlete sends a message | ✅ Done |
 | 2.10 | "Log Again Today" button on meal history — one-tap re-logging of any past meal to today's date | ✅ Done |
 | 2.11 | Recent & Frequent quick-add on meal logging page — shows last 5 unique meals and top 5 most-logged meals for one-tap logging | ✅ Done |
+| 2.12 | Supplement Recommendation System — coach supplement library (19 Thorne products seeded), recommend to athlete/team, priority/timing tags, athlete Taking/Not Taking toggle, Thorne dispensary integration (IronFlagAthlete), coach visibility dashboard | ✅ Done |
 
 ---
 
