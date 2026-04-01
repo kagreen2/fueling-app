@@ -34,6 +34,9 @@ interface AthleteData {
   dietary_restrictions: string[]
   training_schedule: string | null
   onboarding_complete: boolean
+  user_type: string | null
+  activity_level: string | null
+  training_style: string | null
 }
 
 interface NutritionRecs {
@@ -396,7 +399,7 @@ export default function ProfilePage() {
           </button>
           <div className="flex-1">
             <h1 className="text-2xl font-bold">My Profile</h1>
-            <p className="text-xs text-slate-400">Manage your athlete profile</p>
+            <p className="text-xs text-slate-400">Manage your {athlete?.user_type === 'member' ? 'fitness' : 'athlete'} profile</p>
           </div>
           {!editing && (
             <button
@@ -515,7 +518,9 @@ export default function ProfilePage() {
         )}
 
         {/* Athlete Details */}
-        {athlete && (
+        {athlete && (() => {
+          const isAthlete = athlete.user_type !== 'member'
+          return (
           <Card className="mb-6 border-slate-700/50">
             <CardContent>
               <div className="space-y-4">
@@ -535,10 +540,18 @@ export default function ProfilePage() {
                     <p className="text-xs text-slate-400 font-medium mb-1">Sex</p>
                     <p className="text-sm text-white capitalize">{athlete.sex || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-400 font-medium mb-1">Grade</p>
-                    <p className="text-sm text-white">{athlete.grade || '—'}</p>
-                  </div>
+                  {isAthlete && (
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium mb-1">Grade</p>
+                      <p className="text-sm text-white">{athlete.grade || '—'}</p>
+                    </div>
+                  )}
+                  {!isAthlete && (
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium mb-1">Activity Level</p>
+                      <p className="text-sm text-white capitalize">{athlete.activity_level?.replace(/_/g, ' ') || '—'}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -561,44 +574,63 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-400 font-medium mb-1">Sport</p>
-                    <p className="text-sm text-white">{SPORT_LABELS[athlete.sport || ''] || athlete.sport || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400 font-medium mb-1">Position</p>
-                    <p className="text-sm text-white capitalize">{athlete.position || '—'}</p>
-                  </div>
-                </div>
+                {/* Athlete-only fields */}
+                {isAthlete && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium mb-1">Sport</p>
+                        <p className="text-sm text-white">{SPORT_LABELS[athlete.sport || ''] || athlete.sport || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium mb-1">Position</p>
+                        <p className="text-sm text-white capitalize">{athlete.position || '—'}</p>
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-slate-400 font-medium mb-1">School</p>
-                    <p className="text-sm text-white">{athlete.school || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400 font-medium mb-1">Team Level</p>
-                    <p className="text-sm text-white capitalize">{athlete.team_level || '—'}</p>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium mb-1">School</p>
+                        <p className="text-sm text-white">{athlete.school || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 font-medium mb-1">Team Level</p>
+                        <p className="text-sm text-white capitalize">{athlete.team_level || '—'}</p>
+                      </div>
+                    </div>
 
-                <div>
-                  <p className="text-xs text-slate-400 font-medium mb-1">Season Phase</p>
-                  {editing ? (
-                    <select
-                      value={editForm.season_phase}
-                      onChange={e => setEditForm(prev => ({ ...prev, season_phase: e.target.value }))}
-                      className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors"
-                    >
-                      {Object.entries(SEASON_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium mb-1">Season Phase</p>
+                      {editing ? (
+                        <select
+                          value={editForm.season_phase}
+                          onChange={e => setEditForm(prev => ({ ...prev, season_phase: e.target.value }))}
+                          className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors"
+                        >
+                          {Object.entries(SEASON_LABELS).map(([value, label]) => (
+                            <option key={value} value={value}>{label}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="text-sm text-white">{SEASON_LABELS[athlete.season_phase || ''] || athlete.season_phase || '—'}</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Member-only fields */}
+                {!isAthlete && athlete.training_style && (
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium mb-1">Training Style</p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {athlete.training_style.split(',').map((style, i) => (
+                        <span key={i} className="text-xs px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/20 capitalize">
+                          {style.trim()}
+                        </span>
                       ))}
-                    </select>
-                  ) : (
-                    <p className="text-sm text-white">{SEASON_LABELS[athlete.season_phase || ''] || athlete.season_phase || '—'}</p>
-                  )}
-                </div>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <p className="text-xs text-slate-400 font-medium mb-1">Training Schedule</p>
@@ -698,7 +730,8 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
-        )}
+          )
+        })()}
 
         {/* Edit Action Buttons */}
         {editing && (
