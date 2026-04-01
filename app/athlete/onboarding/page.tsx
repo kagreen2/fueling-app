@@ -58,6 +58,23 @@ export default function OnboardingPage() {
       lookupTeam()
     }
 
+    // Pick up invite code from localStorage (set during signup)
+    const storedInvite = localStorage.getItem('fuel_invite_code')
+    if (storedInvite && !invite) {
+      setForm(prev => ({ ...prev, inviteCode: storedInvite.toUpperCase() }))
+      // Auto-lookup the team
+      const lookupStoredTeam = async () => {
+        const { data: team } = await supabase
+          .from('teams')
+          .select('name, sport')
+          .eq('invite_code', storedInvite.toUpperCase())
+          .single()
+        if (team) setTeamLookup(team)
+      }
+      lookupStoredTeam()
+      localStorage.removeItem('fuel_invite_code')
+    }
+
     // Pick up user type from signup page selection
     const storedUserType = localStorage.getItem('fuel_user_type')
     if (storedUserType === 'athlete' || storedUserType === 'member') {
@@ -334,6 +351,18 @@ export default function OnboardingPage() {
       })
     } catch (e) {
       console.error('Error generating recommendations:', e)
+    }
+
+    // Mark any pending invitations as accepted
+    try {
+      await fetch('/api/coach/invitation-accepted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: '' }), // API will use auth user's email
+      })
+    } catch (e) {
+      // Non-critical — don't block onboarding
+      console.error('Error marking invitation accepted:', e)
     }
 
     router.push('/athlete/dashboard')

@@ -26,11 +26,16 @@ export default function SignupPage( ) {
     role: 'athlete' as 'athlete' | 'member' | 'coach',
   })
 
-  // Pre-fill invite code from URL params (e.g., from QR code scan)
+  // Pre-fill invite code and email from URL params (e.g., from coach invite or QR code scan)
   useEffect(() => {
     const invite = searchParams.get('invite')
-    if (invite) {
-      setForm(prev => ({ ...prev, inviteCode: invite.toUpperCase(), role: 'athlete' }))
+    const email = searchParams.get('email')
+    if (invite || email) {
+      setForm(prev => ({
+        ...prev,
+        ...(invite ? { inviteCode: invite.toUpperCase(), role: 'athlete' as const } : {}),
+        ...(email ? { email: email.toLowerCase() } : {}),
+      }))
     }
   }, [searchParams])
 
