@@ -26,6 +26,12 @@ interface ChatPanelProps {
   otherUserRole?: string
   /** If true, renders in a compact card style */
   compact?: boolean
+  /** Current user's display name (used for email notifications) */
+  senderName?: string
+  /** Current user's role — if 'athlete' or 'member', will notify the coach by email */
+  senderRole?: string
+  /** The other user's email (used for email notifications to coach) */
+  otherUserEmail?: string
 }
 
 function formatTime(dateStr: string): string {
@@ -52,6 +58,9 @@ export default function ChatPanel({
   otherUserName,
   otherUserRole = 'Coach',
   compact = false,
+  senderName,
+  senderRole,
+  otherUserEmail,
 }: ChatPanelProps) {
   const supabase = createClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -138,6 +147,27 @@ export default function ChatPanel({
       setNewMessage('')
       await loadMessages()
       inputRef.current?.focus()
+
+      // Send email notification to the other user (coach or athlete)
+      // Only send if the sender is an athlete/member messaging their coach
+      const isAthleteMessagingCoach = senderRole === 'athlete' || senderRole === 'member'
+      if (isAthleteMessagingCoach && otherUserEmail && senderName) {
+        try {
+          fetch('/api/chat/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              coachEmail: otherUserEmail,
+              coachName: otherUserName,
+              athleteName: senderName,
+              messagePreview: text,
+              athleteId: athleteId,
+            }),
+          }).catch(() => {}) // Fire and forget — don't block UI
+        } catch {
+          // Silently fail — email notification is best-effort
+        }
+      }
     }
     setSending(false)
   }

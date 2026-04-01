@@ -181,10 +181,22 @@ export default function CoachDashboardPage() {
   const [athletes, setAthletes] = useState<AthleteData[]>([])
   const [selectedTeam, setSelectedTeam] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<number>(7)
-  const [view, setView] = useState<'overview' | 'leaderboard' | 'alerts'>('overview')
+  const [view, setView] = useState<'overview' | 'leaderboard' | 'alerts' | 'messages'>('overview')
   const [coachName, setCoachName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [pendingSupplements, setPendingSupplements] = useState<any[]>([])
+  const [unreadMessages, setUnreadMessages] = useState<Array<{
+    id: string
+    sender_id: string
+    receiver_id: string
+    athlete_id: string
+    message: string
+    read: boolean
+    created_at: string
+    sender_name?: string
+    sender_email?: string
+  }>>([])
+  const [coachUserId, setCoachUserId] = useState<string>('')
   const [dismissedCoachAlerts, setDismissedCoachAlerts] = useState<Set<string>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -218,6 +230,7 @@ export default function CoachDashboardPage() {
     const adminAccess = profile.role === 'super_admin' || profile.role === 'admin'
     setIsAdmin(adminAccess)
     setCoachName(profile.full_name || 'Coach')
+    setCoachUserId(user.id)
 
     // Get teams — admins see ALL teams, coaches see only their own
     let teamsQuery = supabase.from('teams').select('id, name, sport, invite_code')
@@ -465,6 +478,34 @@ export default function CoachDashboardPage() {
       setPendingSupplements(pendingSupps || [])
     }
 
+    // Load unread chat messages for this coach
+    try {
+      const { data: unreadMsgs } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('receiver_id', user.id)
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+
+      if (unreadMsgs && unreadMsgs.length > 0) {
+        // Enrich with sender names from athletes list
+        const enriched = unreadMsgs.map(msg => {
+          const athlete = athleteDataList.find(a => a.id === msg.athlete_id)
+          return {
+            ...msg,
+            sender_name: athlete?.name || 'Unknown',
+            sender_email: athlete?.email || '',
+          }
+        })
+        setUnreadMessages(enriched)
+      } else {
+        setUnreadMessages([])
+      }
+    } catch {
+      // chat_messages table might not exist yet
+      setUnreadMessages([])
+    }
+
     setLoading(false)
   }
 
@@ -667,8 +708,20 @@ export default function CoachDashboardPage() {
       })
     }
 
+    // Unread chat messages
+    if (unreadMessages.length > 0) {
+      const senderNames = [...new Set(unreadMessages.map(m => m.sender_name || 'Unknown'))]
+      items.push({
+        id: 'unread_messages',
+        type: 'info',
+        icon: '💬',
+        message: `${unreadMessages.length} unread message${unreadMessages.length > 1 ? 's' : ''} from ${senderNames.slice(0, 3).join(', ')}${senderNames.length > 3 ? ` +${senderNames.length - 3} more` : ''}`,
+        action: () => setView('messages'),
+      })
+    }
+
     return items.filter(a => !dismissedCoachAlerts.has(a.id))
-  }, [pendingSupplements, athletes, dismissedCoachAlerts])
+  }, [pendingSupplements, athletes, dismissedCoachAlerts, unreadMessages])
 
   function dismissCoachAlert(id: string) {
     setDismissedCoachAlerts(prev => {
@@ -759,6 +812,22 @@ export default function CoachDashboardPage() {
               <span className="hidden sm:inline">✉️ </span>Invite
             </button>
             <button
+              onClick={() => setView('messages')}
+              className={`relative p-2 rounded-lg border transition-colors ${
+                view === 'messages'
+                  ? 'bg-purple-600 text-white border-purple-500'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border-slate-700'
+              }`}
+              title="Messages"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              {unreadMessages.length > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
+                  {unreadMessages.length > 99 ? '99+' : unreadMessages.length}
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => router.push('/coach/teams')}
               className="px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-medium rounded-lg border border-slate-700 transition-colors"
             >
@@ -843,6 +912,7 @@ export default function CoachDashboardPage() {
               { key: 'overview', label: 'Overview' },
               { key: 'leaderboard', label: 'Leaderboard' },
               { key: 'alerts', label: `Alerts${(redFlags.length + wellnessAlerts.length) > 0 ? ` (${redFlags.length + wellnessAlerts.length})` : ''}` },
+              { key: 'messages', label: `Messages${unreadMessages.length > 0 ? ` (${unreadMessages.length})` : ''}` },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -1206,6 +1276,96 @@ export default function CoachDashboardPage() {
                 )}
               </>
             )}
+          </div>
+        )}
+
+        {/* Messages View */}
+        {view === 'messages' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-semibold text-lg">Messages</h3>
+              {unreadMessages.length > 0 && (
+                <span className="text-sm text-slate-400">{unreadMessages.length} unread</span>
+              )}
+            </div>
+
+            {(() => {
+              // Group messages by athlete
+              const grouped = unreadMessages.reduce((acc, msg) => {
+                if (!acc[msg.athlete_id]) {
+                  acc[msg.athlete_id] = {
+                    athlete_id: msg.athlete_id,
+                    sender_name: msg.sender_name || 'Unknown',
+                    messages: [],
+                  }
+                }
+                acc[msg.athlete_id].messages.push(msg)
+                return acc
+              }, {} as Record<string, { athlete_id: string; sender_name: string; messages: typeof unreadMessages }>)
+
+              const conversations = Object.values(grouped).sort(
+                (a, b) => new Date(b.messages[0].created_at).getTime() - new Date(a.messages[0].created_at).getTime()
+              )
+
+              if (conversations.length === 0) {
+                return (
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center">
+                    <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                    </div>
+                    <h3 className="text-white font-semibold mb-1">All Caught Up!</h3>
+                    <p className="text-slate-400 text-sm">No unread messages from your athletes. Messages will appear here when athletes send you a chat.</p>
+                  </div>
+                )
+              }
+
+              return conversations.map(conv => {
+                const latestMsg = conv.messages[0]
+                const athlete = athletes.find(a => a.id === conv.athlete_id)
+                const timeAgo = (() => {
+                  const diff = Date.now() - new Date(latestMsg.created_at).getTime()
+                  const mins = Math.floor(diff / 60000)
+                  if (mins < 1) return 'Just now'
+                  if (mins < 60) return `${mins}m ago`
+                  const hrs = Math.floor(mins / 60)
+                  if (hrs < 24) return `${hrs}h ago`
+                  const days = Math.floor(hrs / 24)
+                  return `${days}d ago`
+                })()
+
+                return (
+                  <div
+                    key={conv.athlete_id}
+                    className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-purple-500/50 transition-all cursor-pointer group"
+                    onClick={() => router.push(`/coach/athlete/${conv.athlete_id}`)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold flex-shrink-0">
+                        {conv.sender_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <p className="text-white font-medium">{conv.sender_name}</p>
+                            <span className="bg-red-500/20 text-red-400 text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                              {conv.messages.length} new
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-500 text-xs">{timeAgo}</span>
+                            <span className="text-purple-400 text-sm group-hover:text-purple-300">Open →</span>
+                          </div>
+                        </div>
+                        {athlete && (
+                          <p className="text-slate-500 text-xs mb-1.5">{athlete.teamName} · {formatUserContext(athlete)}</p>
+                        )}
+                        <p className="text-slate-300 text-sm truncate">{latestMsg.message}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            })()}
           </div>
         )}
       </div>

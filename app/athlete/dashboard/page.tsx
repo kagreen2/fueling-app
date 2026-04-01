@@ -101,7 +101,7 @@ export default function AthleteDashboard() {
   const [showTutorial, setShowTutorial] = useState(false)
   const [tutorialStep, setTutorialStep] = useState(0)
   const [userId, setUserId] = useState<string>('')
-  const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string } | null>(null)
+  const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string; email: string } | null>(null)
   const [loadError, setLoadError] = useState(false)
 
   const TUTORIAL_SLIDES = [
@@ -224,7 +224,7 @@ export default function AthleteDashboard() {
       if (coachAssignment) {
         const { data: coachProf } = await supabase
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, email')
           .eq('id', coachAssignment.coach_id)
           .single()
         if (coachProf) setCoachProfile(coachProf)
@@ -247,7 +247,7 @@ export default function AthleteDashboard() {
           if (team?.coach_id) {
             const { data: coachProf } = await supabase
               .from('profiles')
-              .select('id, full_name')
+              .select('id, full_name, email')
               .eq('id', team.coach_id)
               .single()
             if (coachProf) setCoachProfile(coachProf)
@@ -783,6 +783,9 @@ export default function AthleteDashboard() {
             otherUserId={coachProfile.id}
             otherUserName={coachProfile.full_name || 'Your Coach'}
             otherUserRole="Coach"
+            senderName={profile?.full_name || 'Athlete'}
+            senderRole={profile?.role || 'athlete'}
+            otherUserEmail={coachProfile.email}
             compact
           />
         </div>
