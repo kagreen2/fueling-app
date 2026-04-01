@@ -230,72 +230,49 @@ export default function BiometricsPage() {
           <InBodyProgressCharts scans={scans} />
         )}
 
-        {/* Latest Scan Summary */}
+        {/* Latest Scan — Additional Details (only data NOT in summary cards above) */}
         {latestScan && (
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Latest Scan</h2>
-                  <p className="text-slate-400 text-sm">{new Date(latestScan.scan_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                  <h2 className="text-base font-semibold text-white">Latest Scan Details</h2>
+                  <p className="text-slate-400 text-xs">
+                    {new Date(latestScan.scan_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    {' · '}{latestScan.source === 'coach' ? 'Coach entered' : 'Self-reported'}
+                  </p>
                 </div>
-                <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">
-                  {latestScan.source === 'coach' ? '👨‍🏫 Coach entered' : '🏃 Self-reported'}
-                </span>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Body Composition Analysis */}
+              {/* Additional Body Comp metrics not in summary cards */}
               <div>
-                <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">Body Composition Analysis</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <MetricCard label="Weight" value={latestScan.weight_lbs} unit="lbs" prev={previousScan} prevVal={previousScan?.weight_lbs} />
-                  <MetricCard label="Body Fat Mass" value={latestScan.body_fat_mass_lbs} unit="lbs" color="text-red-400" prev={previousScan} prevVal={previousScan?.body_fat_mass_lbs} invert />
-                  <MetricCard label="Fat Free Mass" value={latestScan.fat_free_mass_lbs} unit="lbs" color="text-green-400" prev={previousScan} prevVal={previousScan?.fat_free_mass_lbs} />
-                  <MetricCard label="Total Body Water" value={latestScan.total_body_water_lbs} unit="lbs" color="text-cyan-400" />
-                  <MetricCard label="Intracellular Water" value={latestScan.intracellular_water_lbs} unit="lbs" color="text-cyan-300" />
-                  <MetricCard label="Extracellular Water" value={latestScan.extracellular_water_lbs} unit="lbs" color="text-cyan-500" />
-                  <MetricCard label="Dry Lean Mass" value={latestScan.dry_lean_mass_lbs} unit="lbs" color="text-blue-400" />
-                  <MetricCard label="SMM" value={latestScan.skeletal_muscle_mass_lbs} unit="lbs" color="text-blue-300" prev={previousScan} prevVal={previousScan?.skeletal_muscle_mass_lbs} />
-                </div>
-              </div>
-
-              {/* Obesity Analysis */}
-              <div>
-                <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">Obesity Analysis</p>
-                <div className="grid grid-cols-2 gap-3">
+                <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">Additional Metrics</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <MetricCard label="BMI" value={latestScan.bmi} color="text-yellow-400" />
-                  <MetricCard label="Percent Body Fat" value={latestScan.percent_body_fat} unit="%" color="text-purple-400" prev={previousScan} prevVal={previousScan?.percent_body_fat} invert />
+                  <MetricCard label="TBW" value={latestScan.total_body_water_lbs} unit="lbs" color="text-cyan-400" />
+                  <MetricCard label="ICW" value={latestScan.intracellular_water_lbs} unit="lbs" color="text-cyan-300" />
+                  <MetricCard label="ECW" value={latestScan.extracellular_water_lbs} unit="lbs" color="text-cyan-500" />
+                  <MetricCard label="Dry Lean" value={latestScan.dry_lean_mass_lbs} unit="lbs" color="text-blue-400" />
+                  {latestScan.ecw_tbw_ratio != null && (
+                    <MetricCard label="ECW/TBW" value={latestScan.ecw_tbw_ratio} color={latestScan.ecw_tbw_ratio <= 0.39 ? 'text-green-400' : 'text-yellow-400'} />
+                  )}
+                  {latestScan.visceral_fat_area_cm2 != null && (
+                    <MetricCard label="VFA" value={latestScan.visceral_fat_area_cm2} unit="cm²" color={latestScan.visceral_fat_area_cm2 <= 100 ? 'text-green-400' : latestScan.visceral_fat_area_cm2 <= 150 ? 'text-yellow-400' : 'text-red-400'} />
+                  )}
                 </div>
               </div>
 
               {/* Segmental Lean Analysis */}
               {(latestScan.seg_lean_right_arm_lbs || latestScan.seg_lean_trunk_lbs || latestScan.seg_lean_right_leg_lbs) && (
                 <div>
-                  <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">Segmental Lean Analysis (lbs)</p>
-                  <div className="grid grid-cols-5 gap-2 text-center text-xs">
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R. Arm</p><p className="text-white font-medium">{latestScan.seg_lean_right_arm_lbs ?? '—'}</p></div>
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L. Arm</p><p className="text-white font-medium">{latestScan.seg_lean_left_arm_lbs ?? '—'}</p></div>
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">Trunk</p><p className="text-white font-medium">{latestScan.seg_lean_trunk_lbs ?? '—'}</p></div>
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">R. Leg</p><p className="text-white font-medium">{latestScan.seg_lean_right_leg_lbs ?? '—'}</p></div>
-                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500">L. Leg</p><p className="text-white font-medium">{latestScan.seg_lean_left_leg_lbs ?? '—'}</p></div>
-                  </div>
-                </div>
-              )}
-
-              {/* ECW/TBW & Visceral Fat */}
-              {(latestScan.ecw_tbw_ratio != null || latestScan.visceral_fat_area_cm2 != null) && (
-                <div>
-                  <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">ECW/TBW & Visceral Fat</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <MetricCard label="ECW/TBW Ratio" value={latestScan.ecw_tbw_ratio} color={latestScan.ecw_tbw_ratio != null && latestScan.ecw_tbw_ratio <= 0.39 ? 'text-green-400' : 'text-yellow-400'} />
-                    {latestScan.visceral_fat_area_cm2 != null && (
-                      <div className="bg-slate-700/50 rounded-lg p-3 text-center">
-                        <p className="text-xs text-slate-400 mb-1">Visceral Fat Area</p>
-                        <p className={`text-xl font-bold ${latestScan.visceral_fat_area_cm2 <= 100 ? 'text-green-400' : latestScan.visceral_fat_area_cm2 <= 150 ? 'text-yellow-400' : 'text-red-400'}`}>{latestScan.visceral_fat_area_cm2}</p>
-                        <p className="text-xs text-slate-500">cm²</p>
-                      </div>
-                    )}
+                  <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wider">Segmental Lean (lbs)</p>
+                  <div className="grid grid-cols-5 gap-1.5 text-center text-xs">
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500 text-[10px]">R.Arm</p><p className="text-white font-medium">{latestScan.seg_lean_right_arm_lbs ?? '—'}</p></div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500 text-[10px]">L.Arm</p><p className="text-white font-medium">{latestScan.seg_lean_left_arm_lbs ?? '—'}</p></div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500 text-[10px]">Trunk</p><p className="text-white font-medium">{latestScan.seg_lean_trunk_lbs ?? '—'}</p></div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500 text-[10px]">R.Leg</p><p className="text-white font-medium">{latestScan.seg_lean_right_leg_lbs ?? '—'}</p></div>
+                    <div className="bg-slate-700/30 rounded-lg p-2"><p className="text-slate-500 text-[10px]">L.Leg</p><p className="text-white font-medium">{latestScan.seg_lean_left_leg_lbs ?? '—'}</p></div>
                   </div>
                 </div>
               )}
