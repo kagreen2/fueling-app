@@ -297,7 +297,7 @@ export default function AdminDashboard() {
 
   // Compute alerts
   const alerts = useMemo(() => {
-    const items: Array<{ id: string; type: 'danger' | 'warning' | 'info'; icon: string; message: string; action?: string; tab?: string }> = []
+    const items: Array<{ id: string; type: 'danger' | 'warning' | 'info'; icon: string; message: string; action?: string; tab?: string; scrollTo?: string }> = []
 
     // Payment declines
     pastDueSubscriptions.forEach(sub => {
@@ -331,6 +331,7 @@ export default function AdminDashboard() {
         icon: '👤',
         message: `${uncoached.length} athlete${uncoached.length > 1 ? 's' : ''} without a coach assigned`,
         tab: 'teams',
+        scrollTo: 'unassigned-athletes-section',
       })
     }
 
@@ -907,7 +908,14 @@ export default function AdminDashboard() {
                   <p className={`text-sm flex-1 ${textColor}`}>{alert.message}</p>
                   {alert.tab && (
                     <button
-                      onClick={() => setActiveTab(alert.tab as any)}
+                      onClick={() => {
+                        setActiveTab(alert.tab as any)
+                        if (alert.scrollTo) {
+                          setTimeout(() => {
+                            document.getElementById(alert.scrollTo!)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                          }, 100)
+                        }
+                      }}
                       className={`text-xs font-medium px-3 py-1 rounded-lg transition-colors flex-shrink-0 ${
                         alert.type === 'danger' ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' :
                         alert.type === 'warning' ? 'bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30' :
@@ -1342,7 +1350,7 @@ export default function AdminDashboard() {
 
             {/* Unassigned Athletes */}
             {unassignedAthletes.length > 0 && (
-              <div className="bg-slate-800/50 border border-amber-500/30 rounded-xl overflow-hidden">
+              <div id="unassigned-athletes-section" className="bg-slate-800/50 border border-amber-500/30 rounded-xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-700">
                   <h3 className="text-amber-400 font-semibold text-lg">Unassigned Athletes</h3>
                   <p className="text-slate-400 text-sm mt-0.5">{unassignedAthletes.length} athlete{unassignedAthletes.length !== 1 ? 's' : ''} not on any team</p>
