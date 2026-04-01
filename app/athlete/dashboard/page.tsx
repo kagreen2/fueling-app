@@ -492,9 +492,9 @@ export default function AthleteDashboard() {
             )}
             <button
               onClick={() => router.push('/athlete/profile')}
-              className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center transition-colors"
+              className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center transition-colors text-white font-bold text-sm"
             >
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
             </button>
           </div>
         </div>
