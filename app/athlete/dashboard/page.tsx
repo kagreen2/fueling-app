@@ -103,6 +103,7 @@ export default function AthleteDashboard() {
   const [tutorialStep, setTutorialStep] = useState(0)
   const [userId, setUserId] = useState<string>('')
   const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string; email: string } | null>(null)
+  const [showChat, setShowChat] = useState(false)
   const [loadError, setLoadError] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const [isPulling, setIsPulling] = useState(false)
@@ -479,12 +480,23 @@ export default function AthleteDashboard() {
               {greeting()}{profile ? `, ${profile.full_name?.split(' ')[0] || ''}` : ''}
             </h1>
           </div>
-          <button
-            onClick={() => router.push('/athlete/profile')}
-            className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center transition-colors"
-          >
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-          </button>
+          <div className="flex items-center gap-2">
+            {coachProfile && (
+              <button
+                onClick={() => setShowChat(true)}
+                className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors relative"
+                title={`Chat with ${coachProfile.full_name?.split(' ')[0] || 'Coach'}`}
+              >
+                <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              </button>
+            )}
+            <button
+              onClick={() => router.push('/athlete/profile')}
+              className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center transition-colors"
+            >
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -750,20 +762,30 @@ export default function AthleteDashboard() {
           </div>
         )}
       </div>
-      {/* Coach Chat */}
-      {athlete && userId && coachProfile && (
-        <div className="mt-6">
-          <ChatPanel
-            athleteId={athlete.id}
-            currentUserId={userId}
-            otherUserId={coachProfile.id}
-            otherUserName={coachProfile.full_name || 'Your Coach'}
-            otherUserRole="Coach"
-            senderName={profile?.full_name || 'Athlete'}
-            senderRole={profile?.role || 'athlete'}
-            otherUserEmail={coachProfile.email}
-            compact
-          />
+      {/* Chat Modal */}
+      {showChat && athlete && userId && coachProfile && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/95 backdrop-blur-sm">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+            <h2 className="text-lg font-semibold text-white">Chat with {coachProfile.full_name?.split(' ')[0] || 'Coach'}</h2>
+            <button
+              onClick={() => setShowChat(false)}
+              className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors"
+            >
+              <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <ChatPanel
+              athleteId={athlete.id}
+              currentUserId={userId}
+              otherUserId={coachProfile.id}
+              otherUserName={coachProfile.full_name || 'Your Coach'}
+              otherUserRole="Coach"
+              senderName={profile?.full_name || 'Athlete'}
+              senderRole={profile?.role || 'athlete'}
+              otherUserEmail={coachProfile.email}
+            />
+          </div>
         </div>
       )}
 

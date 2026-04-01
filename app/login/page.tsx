@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -11,6 +11,24 @@ import LightningBolt from '@/components/ui/LightningBolt'
 export default function LoginPage( ) {
   const router = useRouter()
   const supabase = createClient()
+
+  // Listen for auth state changes and mirror session to localStorage for PWA persistence
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        try {
+          window.localStorage.setItem('fuel-different-auth', JSON.stringify({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+          }))
+        } catch {}
+      } else if (event === 'SIGNED_OUT') {
+        window.localStorage.removeItem('fuel-different-auth')
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)

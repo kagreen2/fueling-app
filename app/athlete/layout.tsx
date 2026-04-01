@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, restorePwaSession } from '@/lib/supabase/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +23,9 @@ export default function AthleteLayout({
 
   useEffect(() => {
     async function checkAccess() {
+      // Restore PWA session from localStorage if cookies are gone
+      await restorePwaSession()
+
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {

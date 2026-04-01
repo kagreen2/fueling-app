@@ -103,6 +103,11 @@ export default function CheckInPage() {
 
     const today = getLocalDateString()
 
+    // Calculate wellness score: average of energy, inverse stress, inverse soreness, hydration — scaled to 0-100
+    const wellnessScore = Math.round(
+      ((form.energy + (10 - form.stress) + (10 - form.soreness) + form.hydration) / 4) * 10
+    )
+
     const { error: upsertError } = await supabase.from('daily_checkins').upsert({
       athlete_id: athlete.id,
       date: today,
@@ -115,6 +120,7 @@ export default function CheckInPage() {
       hydration_status: form.hydration,
       training_type: form.trainingType || null,
       notes: form.notes || null,
+      wellness_score: wellnessScore,
     }, { onConflict: 'athlete_id,date' })
 
     if (upsertError) {
