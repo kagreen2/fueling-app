@@ -3,11 +3,10 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.fueldifferent.app'
-
 export async function POST(req: NextRequest) {
   try {
+    const RESEND_API_KEY = process.env.RESEND_API_KEY
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.fueldifferent.app'
     // Auth check — must be a coach, admin, or super_admin
     const cookieStore = await cookies()
     const supabase = createServerClient(
