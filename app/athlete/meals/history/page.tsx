@@ -45,6 +45,8 @@ export default function MealHistoryPage() {
   const [search, setSearch] = useState('')
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set())
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set())
+  const [loggingAgain, setLoggingAgain] = useState<string | null>(null)
+  const [loggedSuccess, setLoggedSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     loadMeals()
@@ -169,6 +171,52 @@ export default function MealHistoryPage() {
     } catch {
       return ''
     }
+  }
+
+  async function logAgain(meal: MealLog) {
+    setLoggingAgain(meal.id)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: athlete } = await supabase
+        .from('athletes')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single()
+
+      if (!athlete) return
+
+      const { getLocalDateString } = await import('@/lib/utils/date')
+      const today = getLocalDateString()
+
+      const { error } = await supabase.from('meal_logs').insert({
+        athlete_id: athlete.id,
+        meal_title: meal.meal_title,
+        description: meal.description,
+        photo_url: meal.photo_url,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        confidence: meal.confidence,
+        ai_feedback: meal.ai_feedback,
+        ai_next_step: meal.ai_next_step,
+        meal_type: meal.meal_type,
+        date: today,
+        logged_at: new Date().toISOString(),
+      })
+
+      if (!error) {
+        setLoggedSuccess(meal.id)
+        // Refresh the meals list
+        loadMeals()
+        setTimeout(() => setLoggedSuccess(null), 2000)
+      }
+    } catch (err) {
+      console.error('Error logging meal again:', err)
+    }
+    setLoggingAgain(null)
   }
 
   const totalMealsCount = meals.length
@@ -429,6 +477,28 @@ export default function MealHistoryPage() {
                                     </span>
                                   </div>
                                 )}
+
+                                {/* Log Again Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    logAgain(meal)
+                                  }}
+                                  disabled={loggingAgain === meal.id || loggedSuccess === meal.id}
+                                  className={`w-full mt-2 py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-[0.97] ${
+                                    loggedSuccess === meal.id
+                                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                      : loggingAgain === meal.id
+                                      ? 'bg-slate-700 text-slate-400 cursor-wait'
+                                      : 'bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600/30 hover:border-purple-500/50'
+                                  }`}
+                                >
+                                  {loggedSuccess === meal.id
+                                    ? '✅ Logged to Today!'
+                                    : loggingAgain === meal.id
+                                    ? '⏳ Logging...'
+                                    : '🔄 Log Again Today'}
+                                </button>
                               </div>
                             )}
                           </CardContent>

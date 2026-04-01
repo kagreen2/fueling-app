@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -20,6 +20,22 @@ interface MealAnalysis {
   clarifyingQuestion?: string
 }
 
+interface PastMeal {
+  meal_title: string
+  description: string | null
+  photo_url: string | null
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  confidence: 'high' | 'medium' | 'low' | null
+  ai_feedback: string | null
+  ai_next_step: string | null
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | null
+  count: number
+  last_logged: string
+}
+
 export default function MealsPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -27,6 +43,11 @@ export default function MealsPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [saved, setSaved] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [pastMeals, setPastMeals] = useState<PastMeal[]>([])
+  const [quickLogging, setQuickLogging] = useState<string | null>(null)
+  const [quickLogSuccess, setQuickLogSuccess] = useState<string | null>(null)
+  const [athleteId, setAthleteId] = useState<string | null>(null)
+  const [showQuickAdd, setShowQuickAdd] = useState(true)
 
   const [form, setForm] = useState({
     mealTitle: '',
@@ -37,6 +58,116 @@ export default function MealsPage() {
 
   const [analysis, setAnalysis] = useState<MealAnalysis | null>(null)
   const [error, setError] = useState('')
+
+  // Load past meals for Recent & Frequent sections
+  useEffect(() => {
+    loadPastMeals()
+  }, [])
+
+  async function loadPastMeals() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data: athlete } = await supabase
+      .from('athletes')
+      .select('id')
+      .eq('profile_id', user.id)
+      .single()
+
+    if (!athlete) return
+    setAthleteId(athlete.id)
+
+    // Get last 30 days of meals
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const { data: meals } = await supabase
+      .from('meal_logs')
+      .select('meal_title, description, photo_url, calories, protein, carbs, fat, confidence, ai_feedback, ai_next_step, meal_type, date, logged_at')
+      .eq('athlete_id', athlete.id)
+      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+      .order('logged_at', { ascending: false })
+
+    if (meals) {
+      // Deduplicate by meal_title and count frequency
+      const mealMap = new Map<string, PastMeal>()
+      for (const m of meals) {
+        const key = m.meal_title.toLowerCase().trim()
+        if (mealMap.has(key)) {
+          const existing = mealMap.get(key)!
+          existing.count++
+        } else {
+          mealMap.set(key, {
+            meal_title: m.meal_title,
+            description: m.description,
+            photo_url: m.photo_url,
+            calories: m.calories,
+            protein: m.protein,
+            carbs: m.carbs,
+            fat: m.fat,
+            confidence: m.confidence,
+            ai_feedback: m.ai_feedback,
+            ai_next_step: m.ai_next_step,
+            meal_type: m.meal_type,
+            count: 1,
+            last_logged: m.logged_at || m.date,
+          })
+        }
+      }
+      setPastMeals(Array.from(mealMap.values()))
+    }
+  }
+
+  // Recent = last 5 unique meals by date
+  const recentMeals = useMemo(() => pastMeals.slice(0, 5), [pastMeals])
+
+  // Frequent = top 5 most logged meals (at least 2 times)
+  const frequentMeals = useMemo(() =>
+    [...pastMeals]
+      .filter(m => m.count >= 2)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5),
+    [pastMeals]
+  )
+
+  async function quickLog(meal: PastMeal) {
+    if (!athleteId) return
+    setQuickLogging(meal.meal_title)
+
+    try {
+      const { getLocalDateString } = await import('@/lib/utils/date')
+      const today = getLocalDateString()
+
+      const { error } = await supabase.from('meal_logs').insert({
+        athlete_id: athleteId,
+        meal_title: meal.meal_title,
+        description: meal.description,
+        photo_url: meal.photo_url,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        confidence: meal.confidence,
+        ai_feedback: meal.ai_feedback,
+        ai_next_step: meal.ai_next_step,
+        meal_type: meal.meal_type,
+        date: today,
+        logged_at: new Date().toISOString(),
+      })
+
+      if (!error) {
+        setQuickLogSuccess(meal.meal_title)
+        setTimeout(() => {
+          setQuickLogSuccess(null)
+          setSaved(true)
+          setTimeout(() => router.push('/athlete/dashboard'), 1500)
+        }, 1000)
+      }
+    } catch (err) {
+      console.error('Quick log error:', err)
+    }
+    setQuickLogging(null)
+  }
 
   function update(field: string, value: any) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -200,7 +331,133 @@ export default function MealsPage() {
 
       {/* Content */}
       <div className="max-w-lg mx-auto px-4 py-6 pb-20">
-        
+
+        {/* Recent & Frequent Meals Quick-Add */}
+        {(recentMeals.length > 0 || frequentMeals.length > 0) && showQuickAdd && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Quick Add</h3>
+              <button
+                onClick={() => setShowQuickAdd(false)}
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                Hide
+              </button>
+            </div>
+
+            {/* Recent Meals */}
+            {recentMeals.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs text-slate-500 mb-2 font-medium">Recent</p>
+                <div className="space-y-2">
+                  {recentMeals.map((meal, i) => (
+                    <button
+                      key={`recent-${i}`}
+                      onClick={() => quickLog(meal)}
+                      disabled={quickLogging === meal.meal_title || quickLogSuccess === meal.meal_title}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all active:scale-[0.98] ${
+                        quickLogSuccess === meal.meal_title
+                          ? 'bg-green-500/15 border-green-500/30'
+                          : quickLogging === meal.meal_title
+                          ? 'bg-slate-800 border-slate-700 opacity-60'
+                          : 'bg-slate-800/80 border-slate-700 hover:border-purple-500/40 hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white truncate">
+                            {quickLogSuccess === meal.meal_title ? '\u2705 ' : ''}{meal.meal_title}
+                          </span>
+                          {meal.meal_type && (
+                            <span className="text-xs text-slate-500 flex-shrink-0">
+                              {meal.meal_type === 'breakfast' ? '\ud83c\udf05' : meal.meal_type === 'lunch' ? '\u2600\ufe0f' : meal.meal_type === 'dinner' ? '\ud83c\udf19' : '\ud83c\udf4e'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {meal.calories} kcal \u00b7 {meal.protein}g P \u00b7 {meal.carbs}g C \u00b7 {meal.fat}g F
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0 ml-3">
+                        {quickLogging === meal.meal_title ? (
+                          <span className="text-xs text-slate-400">\u23f3</span>
+                        ) : quickLogSuccess === meal.meal_title ? (
+                          <span className="text-xs text-green-400">Logged!</span>
+                        ) : (
+                          <span className="text-xs text-purple-400 font-medium px-2 py-1 bg-purple-500/10 rounded-lg">+ Log</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Frequent Meals */}
+            {frequentMeals.length > 0 && (
+              <div>
+                <p className="text-xs text-slate-500 mb-2 font-medium">Frequently Logged</p>
+                <div className="space-y-2">
+                  {frequentMeals.map((meal, i) => (
+                    <button
+                      key={`freq-${i}`}
+                      onClick={() => quickLog(meal)}
+                      disabled={quickLogging === meal.meal_title || quickLogSuccess === meal.meal_title}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all active:scale-[0.98] ${
+                        quickLogSuccess === meal.meal_title
+                          ? 'bg-green-500/15 border-green-500/30'
+                          : quickLogging === meal.meal_title
+                          ? 'bg-slate-800 border-slate-700 opacity-60'
+                          : 'bg-slate-800/80 border-slate-700 hover:border-purple-500/40 hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="flex-1 text-left min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white truncate">
+                            {quickLogSuccess === meal.meal_title ? '\u2705 ' : ''}{meal.meal_title}
+                          </span>
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
+                            {meal.count}x
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {meal.calories} kcal \u00b7 {meal.protein}g P \u00b7 {meal.carbs}g C \u00b7 {meal.fat}g F
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0 ml-3">
+                        {quickLogging === meal.meal_title ? (
+                          <span className="text-xs text-slate-400">\u23f3</span>
+                        ) : quickLogSuccess === meal.meal_title ? (
+                          <span className="text-xs text-green-400">Logged!</span>
+                        ) : (
+                          <span className="text-xs text-purple-400 font-medium px-2 py-1 bg-purple-500/10 rounded-lg">+ Log</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 mt-5 mb-2">
+              <div className="flex-1 border-t border-slate-700" />
+              <span className="text-xs text-slate-500 font-medium">or log a new meal</span>
+              <div className="flex-1 border-t border-slate-700" />
+            </div>
+          </div>
+        )}
+
+        {/* Show Quick Add toggle if hidden */}
+        {(recentMeals.length > 0 || frequentMeals.length > 0) && !showQuickAdd && (
+          <button
+            onClick={() => setShowQuickAdd(true)}
+            className="w-full mb-4 text-xs text-purple-400 hover:text-purple-300 transition-colors py-2"
+          >
+            Show Quick Add (Recent & Frequent Meals)
+          </button>
+        )}
+
         {/* Photo Upload */}
         <Card className="mb-6">
           <CardHeader title="Meal Photo" />
