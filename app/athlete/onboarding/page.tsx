@@ -91,8 +91,10 @@ export default function OnboardingPage() {
     // Step 1 — Personal
     dob: '',
     sex: '',
+    phone: '',
     school: '',
     grade: '',
+    smsEmailConsent: false,
     // Step 2 (athlete) — Sport
     sport: '',
     position: '',
@@ -243,6 +245,9 @@ export default function OnboardingPage() {
       allergies: form.allergies ? form.allergies.split(',').map((s: string) => s.trim()) : [],
       dietary_restrictions: form.dietaryRestrictions ? form.dietaryRestrictions.split(',').map((s: string) => s.trim()) : [],
       training_schedule: form.trainingSchedule,
+      phone: form.phone || null,
+      sms_email_consent: form.smsEmailConsent,
+      sms_email_consent_date: form.smsEmailConsent ? new Date().toISOString() : null,
       onboarding_complete: true,
       user_type: form.userType || 'athlete',
       activity_level: form.userType === 'member' ? (form.activityLevel || null) : null,
@@ -498,6 +503,12 @@ export default function OnboardingPage() {
                 </select>
               </div>
 
+              <div>
+                <label className="text-slate-300 text-sm font-medium mb-2 block">Phone number</label>
+                <input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(555) 123-4567" className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500" />
+                <p className="text-slate-500 text-xs mt-1">Used for account recovery and optional reminders</p>
+              </div>
+
               {form.userType === 'athlete' && (
                 <>
                   <div>
@@ -516,6 +527,21 @@ export default function OnboardingPage() {
                   </div>
                 </>
               )}
+
+              {/* SMS & Email Consent */}
+              <div className="mt-2 bg-slate-700/50 border border-slate-600 rounded-lg p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.smsEmailConsent}
+                    onChange={e => setForm(prev => ({ ...prev, smsEmailConsent: e.target.checked }))}
+                    className="mt-1 h-4 w-4 rounded border-slate-500 bg-slate-600 text-purple-600 focus:ring-purple-500 focus:ring-offset-0 flex-shrink-0"
+                  />
+                  <span className="text-xs text-slate-400 leading-relaxed">
+                    I agree to receive text (SMS) and email messages from Fuel Different, including nutrition reminders, check-in nudges, and program updates. Message frequency varies. Message & data rates may apply. Reply STOP to unsubscribe at any time.
+                  </span>
+                </label>
+              </div>
             </div>
           )}
 
