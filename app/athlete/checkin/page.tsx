@@ -25,7 +25,7 @@ function SliderField({ label, field, value, onChange, invertColors = false }: Sl
     emoji = value <= 3 ? '🟢' : value <= 6 ? '🟡' : '🔴'
     color = value <= 3 ? 'text-green-400' : value <= 6 ? 'text-yellow-400' : 'text-red-400'
   } else {
-    // Normal: low = red (bad), high = green (good) — for energy, hydration
+    // Normal: low = red (bad), high = green (good) — for energy, hydration, sleep
     emoji = value <= 3 ? '🔴' : value <= 6 ? '🟡' : '🟢'
     color = value <= 3 ? 'text-red-400' : value <= 6 ? 'text-yellow-400' : 'text-green-400'
   }
@@ -79,7 +79,7 @@ export default function CheckInPage() {
 
   const [form, setForm] = useState({
     bodyWeight: '',
-    sleepHours: '',
+    sleep: 5,
     soreness: 5,
     energy: 5,
     hunger: 5,
@@ -115,16 +115,40 @@ export default function CheckInPage() {
 
     const today = getLocalDateString()
 
-    // Calculate Fuel Score: average of energy, inverse stress, inverse soreness, hydration — scaled to 0-100
-    const wellnessScore = Math.round(
-      ((form.energy + (10 - form.stress) + (10 - form.soreness) + form.hydration) / 4) * 10
+    // Fuel Score v2 — Weighted formula using all inputs
+    // Sleep: 20%, Stress: 20%, Energy: 15%, Soreness: 15%, Hydration: 10%, Hunger: 5%
+    // + 15% reserved for nutrition compliance (added server-side when meal data exists)
+    // Each input normalized to 0-1 range, then weighted, then scaled to 0-100
+    const sleepNorm = (form.sleep - 1) / 9          // 1-10 → 0-1 (higher = better)
+    const stressNorm = (10 - form.stress) / 9        // inverted: 1-10 → 0-1 (lower stress = better)
+    const energyNorm = (form.energy - 1) / 9         // 1-10 → 0-1 (higher = better)
+    const sorenessNorm = (10 - form.soreness) / 9    // inverted: 1-10 → 0-1 (lower soreness = better)
+    const hydrationNorm = (form.hydration - 1) / 9   // 1-10 → 0-1 (higher = better)
+    const hungerNorm = (10 - form.hunger) / 9         // inverted: 1-10 → 0-1 (lower hunger = better fueled)
+
+    // Without nutrition data, scale check-in portion to fill 100%
+    // When nutrition is added later, these weights will be adjusted
+    const rawScore = (
+      sleepNorm * 0.235 +
+      stressNorm * 0.235 +
+      energyNorm * 0.175 +
+      sorenessNorm * 0.175 +
+      hydrationNorm * 0.12 +
+      hungerNorm * 0.06
     )
+
+    const wellnessScore = Math.round(rawScore * 100)
+
+    // Convert sleep slider (1-10) to approximate hours for backward compatibility
+    // 1-2 = ~4hrs, 3-4 = ~5hrs, 5-6 = ~6.5hrs, 7-8 = ~7.5hrs, 9-10 = ~9hrs
+    const sleepHoursApprox = 3 + (form.sleep - 1) * 0.67
 
     const { error: upsertError } = await supabase.from('daily_checkins').upsert({
       athlete_id: athlete.id,
       date: today,
       body_weight_lbs: parseFloat(form.bodyWeight) || null,
-      sleep_hours: parseFloat(form.sleepHours) || null,
+      sleep_hours: Math.round(sleepHoursApprox * 10) / 10,
+      sleep_quality: form.sleep,
       soreness: form.soreness,
       energy: form.energy,
       hunger: form.hunger,
@@ -205,34 +229,17 @@ export default function CheckInPage() {
       {/* Content */}
       <div className="max-w-lg mx-auto px-4 py-6 pb-20">
         
-        {/* Body Stats */}
-        <Card className="mb-6">
-          <CardHeader title="Body Stats" />
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="number"
-                value={form.bodyWeight}
-                onChange={e => update('bodyWeight', e.target.value)}
-                placeholder="185"
-                label="Weight (lbs)"
-              />
-              <Input
-                type="number"
-                value={form.sleepHours}
-                onChange={e => update('sleepHours', e.target.value)}
-                placeholder="8"
-                label="Sleep (hours)"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* How Do You Feel */}
+        {/* How Do You Feel — Now the first section */}
         <Card className="mb-6">
           <CardHeader title="How Do You Feel?" />
           <CardContent>
             <div className="space-y-6">
+              <SliderField
+                label="How Rested Do You Feel?"
+                field="sleep"
+                value={form.sleep}
+                onChange={update}
+              />
               <SliderField
                 label="Energy"
                 field="energy"
@@ -305,6 +312,25 @@ export default function CheckInPage() {
                   </button>
                 )
               })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Body Stats — Moved to bottom, optional */}
+        <Card className="mb-6">
+          <CardHeader title="Body Stats" />
+          <div className="px-4 -mt-2 mb-2">
+            <p className="text-slate-500 text-xs">Optional</p>
+          </div>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-4">
+              <Input
+                type="number"
+                value={form.bodyWeight}
+                onChange={e => update('bodyWeight', e.target.value)}
+                placeholder="185"
+                label="Weight (lbs)"
+              />
             </div>
           </CardContent>
         </Card>
