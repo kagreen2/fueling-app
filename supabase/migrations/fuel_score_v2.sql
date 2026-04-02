@@ -19,6 +19,8 @@ END
 WHERE sleep_quality IS NULL OR sleep_quality = 5;
 
 -- 3. Drop and recreate coach_wellness_summary view with Fuel Score v2 formula
+-- The wellness_score column is the LIVE score (updated by the app to include nutrition).
+-- The checkin_only_score is the baseline from check-in inputs only (no nutrition).
 DROP VIEW IF EXISTS coach_wellness_summary;
 
 CREATE VIEW coach_wellness_summary AS
@@ -33,9 +35,9 @@ SELECT
   sleep_quality,
   hunger,
   training_type,
-  -- Fuel Score v2: Weighted formula
-  -- Sleep: 23.5%, Stress: 23.5%, Energy: 17.5%, Soreness: 17.5%, Hydration: 12%, Hunger: 6%
-  -- Each component normalized to 0-1, then weighted, then scaled to 0-100
+  -- Live Fuel Score (updated by app when meals are logged, includes nutrition component)
+  wellness_score,
+  -- Check-in only baseline (no nutrition data)
   round(
     (
       ((COALESCE(sleep_quality, 5) - 1) / 9.0) * 0.235 +
@@ -45,5 +47,5 @@ SELECT
       ((COALESCE(hydration_status, 5) - 1) / 9.0) * 0.12 +
       ((10 - COALESCE(hunger, 5)) / 9.0) * 0.06
     ) * 100
-  ) AS wellness_score
+  ) AS checkin_only_score
 FROM daily_checkins dc;

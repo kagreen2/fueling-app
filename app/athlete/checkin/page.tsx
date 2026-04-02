@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { getLocalDateString } from '@/lib/utils/date'
+import { calculateCheckinScore } from '@/lib/fuel-score'
 
 interface SliderFieldProps {
   label: string
@@ -117,29 +118,15 @@ export default function CheckInPage() {
 
     const today = getLocalDateString()
 
-    // Fuel Score v2 — Weighted formula using all inputs
-    // Sleep: 20%, Stress: 20%, Energy: 15%, Soreness: 15%, Hydration: 10%, Hunger: 5%
-    // + 15% reserved for nutrition compliance (added server-side when meal data exists)
-    // Each input normalized to 0-1 range, then weighted, then scaled to 0-100
-    const sleepNorm = (form.sleep - 1) / 9          // 1-10 → 0-1 (higher = better)
-    const stressNorm = (10 - form.stress) / 9        // inverted: 1-10 → 0-1 (lower stress = better)
-    const energyNorm = (form.energy - 1) / 9         // 1-10 → 0-1 (higher = better)
-    const sorenessNorm = (10 - form.soreness) / 9    // inverted: 1-10 → 0-1 (lower soreness = better)
-    const hydrationNorm = (form.hydration - 1) / 9   // 1-10 → 0-1 (higher = better)
-    const hungerNorm = (10 - form.hunger) / 9         // inverted: 1-10 → 0-1 (lower hunger = better fueled)
-
-    // Without nutrition data, scale check-in portion to fill 100%
-    // When nutrition is added later, these weights will be adjusted
-    const rawScore = (
-      sleepNorm * 0.235 +
-      stressNorm * 0.235 +
-      energyNorm * 0.175 +
-      sorenessNorm * 0.175 +
-      hydrationNorm * 0.12 +
-      hungerNorm * 0.06
-    )
-
-    const wellnessScore = Math.round(rawScore * 100)
+    // Fuel Score v2 — check-in portion (nutrition component added live on dashboard)
+    const wellnessScore = calculateCheckinScore({
+      sleep: form.sleep,
+      stress: form.stress,
+      energy: form.energy,
+      soreness: form.soreness,
+      hydration: form.hydration,
+      hunger: form.hunger,
+    })
 
     // Convert sleep slider (1-10) to approximate hours for backward compatibility
     // 1-2 = ~4hrs, 3-4 = ~5hrs, 5-6 = ~6.5hrs, 7-8 = ~7.5hrs, 9-10 = ~9hrs
@@ -289,7 +276,7 @@ export default function CheckInPage() {
               />
             </div>
             <p className="text-slate-500 text-xs mt-4 leading-relaxed">
-              Your Fuel Score is calculated from these inputs and shared with your coach to help them support you.
+              Your Fuel Score is calculated from these inputs and your consistency in tracking nutrition. It is shared with your coach to help them support you.
             </p>
           </CardContent>
         </Card>

@@ -11,6 +11,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing'
 import ChatPanel from '@/components/ChatPanel'
 import LightningBolt from '@/components/ui/LightningBolt'
 import WellnessSpotlight from '@/components/WellnessSpotlight'
+import { calculateFuelScore } from '@/lib/fuel-score'
 
 interface AthleteStats {
   todayCalories: number
@@ -377,6 +378,43 @@ export default function AthleteDashboard() {
         }
       } else {
         setShowCheckinReminder(false)
+      }
+
+      // Live Fuel Score recalculation with nutrition data
+      // If we have a check-in today, recalculate the score including nutrition compliance
+      if (checkinData && mealsData) {
+        const todayMealStats = mealsData.reduce((acc: any, meal: any) => ({
+          calories: acc.calories + (meal.calories || 0),
+          protein: acc.protein + (meal.protein || 0),
+        }), { calories: 0, protein: 0 })
+
+        const liveFuelScore = calculateFuelScore(
+          {
+            sleep: checkinData.sleep_quality || 5,
+            stress: checkinData.stress || 5,
+            energy: checkinData.energy || 5,
+            soreness: checkinData.soreness || 5,
+            hydration: checkinData.hydration_status || 5,
+            hunger: checkinData.hunger || 5,
+          },
+          recsData ? {
+            mealsLogged: mealsData.length,
+            todayCalories: todayMealStats.calories,
+            todayProtein: todayMealStats.protein,
+            calorieGoal: recsData.daily_calories || 0,
+            proteinGoal: recsData.daily_protein_g || 0,
+          } : null
+        )
+
+        // Update the stored wellness_score if it changed (so coaches see the live score too)
+        if (liveFuelScore !== checkinData.wellness_score) {
+          await supabase
+            .from('daily_checkins')
+            .update({ wellness_score: liveFuelScore })
+            .eq('athlete_id', athleteData.id)
+            .eq('date', today)
+          checkinData.wellness_score = liveFuelScore
+        }
       }
 
       // Get last 14 days of check-ins for WellnessSpotlight
