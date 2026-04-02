@@ -754,7 +754,16 @@ export default function CoachDashboardPage() {
     const avgWellness = total > 0
       ? Math.round(filteredAthletes.filter(a => a.wellnessScore !== null).reduce((sum, a) => sum + (a.wellnessScore || 0), 0) / Math.max(filteredAthletes.filter(a => a.wellnessScore !== null).length, 1))
       : null
-    return { total, loggedToday, avgCompliance, avgStreak, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgWellness }
+
+    // Zone distribution for Fuel Score chart
+    const withScores = filteredAthletes.filter(a => a.wellnessScore !== null)
+    const lockedIn = withScores.filter(a => (a.wellnessScore || 0) >= 85).length
+    const onTrack = withScores.filter(a => (a.wellnessScore || 0) >= 70 && (a.wellnessScore || 0) < 85).length
+    const dialItIn = withScores.filter(a => (a.wellnessScore || 0) >= 50 && (a.wellnessScore || 0) < 70).length
+    const redFlag = withScores.filter(a => (a.wellnessScore || 0) < 50).length
+    const noCheckin = filteredAthletes.filter(a => a.wellnessScore === null).length
+
+    return { total, loggedToday, avgCompliance, avgStreak, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgWellness, lockedIn, onTrack, dialItIn, redFlag, noCheckin }
   }, [filteredAthletes, redFlags, wellnessAlerts])
 
   if (loading) {
@@ -1016,6 +1025,100 @@ export default function CoachDashboardPage() {
             </p>
           </div>
         </div>
+
+        {/* Team Fuel Score Distribution */}
+        {view === 'overview' && stats.total > 0 && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold text-sm">Team Fuel Score Distribution</h3>
+              <span className="text-slate-500 text-xs">{stats.total - stats.noCheckin} of {stats.total} checked in</span>
+            </div>
+
+            {/* Horizontal stacked bar */}
+            {(stats.total - stats.noCheckin) > 0 ? (
+              <>
+                <div className="flex rounded-lg overflow-hidden h-10 mb-4">
+                  {stats.lockedIn > 0 && (
+                    <div
+                      className="bg-green-500 flex items-center justify-center transition-all"
+                      style={{ width: `${(stats.lockedIn / (stats.total - stats.noCheckin)) * 100}%` }}
+                    >
+                      {stats.lockedIn > 0 && <span className="text-white text-xs font-bold">{stats.lockedIn}</span>}
+                    </div>
+                  )}
+                  {stats.onTrack > 0 && (
+                    <div
+                      className="bg-blue-500 flex items-center justify-center transition-all"
+                      style={{ width: `${(stats.onTrack / (stats.total - stats.noCheckin)) * 100}%` }}
+                    >
+                      {stats.onTrack > 0 && <span className="text-white text-xs font-bold">{stats.onTrack}</span>}
+                    </div>
+                  )}
+                  {stats.dialItIn > 0 && (
+                    <div
+                      className="bg-amber-500 flex items-center justify-center transition-all"
+                      style={{ width: `${(stats.dialItIn / (stats.total - stats.noCheckin)) * 100}%` }}
+                    >
+                      {stats.dialItIn > 0 && <span className="text-white text-xs font-bold">{stats.dialItIn}</span>}
+                    </div>
+                  )}
+                  {stats.redFlag > 0 && (
+                    <div
+                      className="bg-red-500 flex items-center justify-center transition-all"
+                      style={{ width: `${(stats.redFlag / (stats.total - stats.noCheckin)) * 100}%` }}
+                    >
+                      {stats.redFlag > 0 && <span className="text-white text-xs font-bold">{stats.redFlag}</span>}
+                    </div>
+                  )}
+                </div>
+
+                {/* Zone legend */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-sm bg-green-500 flex-shrink-0" />
+                    <div>
+                      <span className="text-green-400 text-sm font-semibold">{stats.lockedIn}</span>
+                      <span className="text-slate-400 text-xs ml-1">🔥 Locked In</span>
+                      <span className="text-slate-600 text-xs ml-1">(85+)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-sm bg-blue-500 flex-shrink-0" />
+                    <div>
+                      <span className="text-blue-400 text-sm font-semibold">{stats.onTrack}</span>
+                      <span className="text-slate-400 text-xs ml-1">💪 On Track</span>
+                      <span className="text-slate-600 text-xs ml-1">(70-84)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-sm bg-amber-500 flex-shrink-0" />
+                    <div>
+                      <span className="text-amber-400 text-sm font-semibold">{stats.dialItIn}</span>
+                      <span className="text-slate-400 text-xs ml-1">⚡ Dial It In</span>
+                      <span className="text-slate-600 text-xs ml-1">(50-69)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-sm bg-red-500 flex-shrink-0" />
+                    <div>
+                      <span className="text-red-400 text-sm font-semibold">{stats.redFlag}</span>
+                      <span className="text-slate-400 text-xs ml-1">🚩 Red Flag</span>
+                      <span className="text-slate-600 text-xs ml-1">(&lt;50)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {stats.noCheckin > 0 && (
+                  <p className="text-slate-500 text-xs mt-3">
+                    {stats.noCheckin} athlete{stats.noCheckin !== 1 ? 's' : ''} ha{stats.noCheckin !== 1 ? 've' : 's'}n't checked in yet
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-slate-500 text-sm">No check-in data yet today. Athletes need to complete their daily check-in.</p>
+            )}
+          </div>
+        )}
 
         {/* Overview View */}
         {view === 'overview' && (

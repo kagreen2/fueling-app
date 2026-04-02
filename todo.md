@@ -24,3 +24,15 @@
 - [ ] Thorne affiliate dispensary link (prominent button)
 - [ ] Product-specific deep links where available
 - [ ] Notification when coach assigns new supplement (in-app)
+
+## Coach Dashboard — Fuel Score Enhancements
+
+### Completed
+- [x] Team Fuel Score Distribution Chart (stacked bar showing zone breakdown)
+- [x] Enhanced 7-day trend sparklines per athlete in overview table
+- [x] New zone names: Locked In / On Track / Dial It In / Red Flag
+- [x] Consistency Streak Bonus (+2 to +5 points for 5+ day streaks)
+- [x] Day-over-day Trend Indicator (↑ ↓ → with magnitude)
+
+### Roadmap
+- [ ] Team Average Fuel Score Over Time — line chart showing team avg score over 7/14/30 days, useful for correlating with training load cycles
