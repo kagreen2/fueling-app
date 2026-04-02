@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { getLocalDateString } from '@/lib/utils/date'
-import { calculateCheckinScore } from '@/lib/fuel-score'
+import { calculateCheckinScore, getZoneInfo } from '@/lib/fuel-score'
 
 interface SliderFieldProps {
   label: string
@@ -189,7 +189,7 @@ export default function CheckInPage() {
         <div className="text-center">
           <div className="text-6xl mb-4 animate-bounce">✅</div>
           <h2 className="text-2xl font-bold text-white">Check-in saved!</h2>
-          <p className="text-slate-400 text-sm mt-2">Great job staying on top of your health!</p>
+          <p className="text-slate-400 text-sm mt-2">Great job staying on top of your health! Keep your streak going.</p>
         </div>
       </main>
     )
@@ -275,7 +275,33 @@ export default function CheckInPage() {
                 highLabel="Well hydrated"
               />
             </div>
-            <p className="text-slate-500 text-xs mt-4 leading-relaxed">
+            {/* Live Fuel Score Preview */}
+            {(() => {
+              const previewScore = calculateCheckinScore({
+                sleep: form.sleep,
+                stress: form.stress,
+                energy: form.energy,
+                soreness: form.soreness,
+                hydration: form.hydration,
+                hunger: form.hunger,
+              })
+              const zone = getZoneInfo(previewScore)
+              return (
+                <div className={`mt-5 p-3 rounded-lg border ${zone.border} bg-slate-800/50`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{zone.emoji}</span>
+                      <div>
+                        <span className={`text-xl font-bold ${zone.color}`}>{previewScore}</span>
+                        <span className={`text-sm font-semibold ml-2 ${zone.color}`}>{zone.label}</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-slate-500">Check-in score preview</span>
+                  </div>
+                </div>
+              )
+            })()}
+            <p className="text-slate-500 text-xs mt-3 leading-relaxed">
               Your Fuel Score is calculated from these inputs and your consistency in tracking nutrition. It is shared with your coach to help them support you.
             </p>
           </CardContent>

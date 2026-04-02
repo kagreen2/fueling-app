@@ -104,30 +104,48 @@ function getProximityScore(ratio: number): number {
 }
 
 /**
+ * Calculate the consistency streak bonus (0-5 points)
+ * 
+ * 5+ consecutive check-in days = bonus:
+ *   5 days = +2, 6 days = +3, 7+ days = +4, 14+ days = +5
+ */
+export function calculateStreakBonus(consecutiveDays: number): number {
+  if (consecutiveDays >= 14) return 5
+  if (consecutiveDays >= 7) return 4
+  if (consecutiveDays >= 6) return 3
+  if (consecutiveDays >= 5) return 2
+  return 0
+}
+
+/**
  * Calculate the full Fuel Score (0-100)
  * 
  * If nutrition data is available and athlete has goals:
- *   Score = (wellness × 0.85 + nutrition × 0.15) × 100
+ *   Score = (wellness × 0.85 + nutrition × 0.15) × 100 + streak bonus
  * 
  * If no nutrition data or no goals:
- *   Score = wellness × 100 (check-in only)
+ *   Score = wellness × 100 + streak bonus
+ * 
+ * Capped at 100.
  */
 export function calculateFuelScore(
   checkin: CheckinInputs,
-  nutrition?: NutritionData | null
+  nutrition?: NutritionData | null,
+  consecutiveCheckinDays?: number
 ): number {
   const wellnessComponent = calculateWellnessComponent(checkin)
+  const streakBonus = calculateStreakBonus(consecutiveCheckinDays || 0)
 
   // If no nutrition data or no goals set, use check-in only
   if (!nutrition || (nutrition.calorieGoal === 0 && nutrition.proteinGoal === 0)) {
-    return Math.round(wellnessComponent * 100)
+    return Math.min(100, Math.round(wellnessComponent * 100) + streakBonus)
   }
 
   const nutritionComponent = calculateNutritionComponent(nutrition)
 
-  // Blend: 85% wellness, 15% nutrition
+  // Blend: 85% wellness, 15% nutrition + streak bonus
   const finalScore = wellnessComponent * 0.85 + nutritionComponent * 0.15
-  return Math.round(finalScore * 100)
+  return Math.min(100, Math.round(finalScore * 100) + streakBonus)
 }
 
 /**
@@ -144,4 +162,19 @@ export function calculateCheckinScore(checkin: CheckinInputs): number {
  */
 export function getNutritionScore(nutrition: NutritionData): number {
   return Math.round(calculateNutritionComponent(nutrition) * 100)
+}
+
+/**
+ * Get the zone info for a given Fuel Score
+ * 
+ * 85-100: "Locked In" 🟢
+ * 70-84: "On Track" 🔵
+ * 50-69: "Check Yourself" 🟡
+ * Below 50: "Red Flag" 🔴
+ */
+export function getZoneInfo(score: number) {
+  if (score >= 85) return { label: 'Locked In', emoji: '🔥', color: 'text-green-400', bg: 'bg-green-400', border: 'border-green-500/30', barColor: 'bg-green-400' }
+  if (score >= 70) return { label: 'On Track', emoji: '💪', color: 'text-blue-400', bg: 'bg-blue-400', border: 'border-blue-500/30', barColor: 'bg-blue-400' }
+  if (score >= 50) return { label: 'Check Yourself', emoji: '⚠️', color: 'text-amber-400', bg: 'bg-amber-400', border: 'border-amber-500/30', barColor: 'bg-amber-400' }
+  return { label: 'Red Flag', emoji: '🚨', color: 'text-red-400', bg: 'bg-red-400', border: 'border-red-500/30', barColor: 'bg-red-400' }
 }

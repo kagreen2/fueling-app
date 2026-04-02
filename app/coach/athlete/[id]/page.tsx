@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import InBodyProgressCharts from '@/components/InBodyProgressCharts'
 import ChatPanel from '@/components/ChatPanel'
 import WellnessSpotlight from '@/components/WellnessSpotlight'
+import { getZoneInfo } from '@/lib/fuel-score'
 
 function getLocalDateString(date: Date = new Date()): string {
   const year = date.getFullYear()
@@ -547,11 +548,10 @@ export default function CoachAthleteDetailPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-500 w-16">{new Date(checkin.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-sm font-bold ${
-                        (checkin.wellness_score || 0) >= 80 ? 'text-green-400' :
-                        (checkin.wellness_score || 0) >= 60 ? 'text-blue-400' :
-                        (checkin.wellness_score || 0) >= 40 ? 'text-amber-400' : 'text-red-400'
-                      }`}>{checkin.wellness_score || '—'}</span>
+                      <span className={`text-sm font-bold ${checkin.wellness_score ? getZoneInfo(checkin.wellness_score).color : 'text-slate-500'}`}>{checkin.wellness_score || '—'}</span>
+                      {checkin.wellness_score && (
+                        <span className={`text-[10px] ${getZoneInfo(checkin.wellness_score).color}`}>{getZoneInfo(checkin.wellness_score).label}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

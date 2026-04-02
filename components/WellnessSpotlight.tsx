@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo } from 'react'
+import { getZoneInfo } from '@/lib/fuel-score'
 
 interface CheckinData {
   date: string
@@ -11,71 +12,65 @@ interface WellnessSpotlightProps {
   checkins: CheckinData[]
   compact?: boolean
   role?: 'athlete' | 'coach'
-}
-
-// Score zones with emoji, color, and label
-function getZone(score: number) {
-  if (score >= 80) return { emoji: '🔥', label: 'Excellent', color: 'text-green-400', bg: 'bg-green-400', border: 'border-green-500/30', barColor: 'bg-green-400' }
-  if (score >= 60) return { emoji: '💪', label: 'Good', color: 'text-blue-400', bg: 'bg-blue-400', border: 'border-blue-500/30', barColor: 'bg-blue-400' }
-  if (score >= 40) return { emoji: '⚠️', label: 'Fair', color: 'text-amber-400', bg: 'bg-amber-400', border: 'border-amber-500/30', barColor: 'bg-amber-400' }
-  return { emoji: '🚨', label: 'Low', color: 'text-red-400', bg: 'bg-red-400', border: 'border-red-500/30', barColor: 'bg-red-400' }
+  streak?: number
 }
 
 function getAthleteInsight(avg: number | null, trend: 'up' | 'down' | 'stable'): string {
   if (avg === null) return ''
 
-  if (avg >= 80 && trend === 'up') {
-    return 'You\'re in the zone. Your body is primed for peak performance — keep doing what you\'re doing.'
+  if (avg >= 85 && trend === 'up') {
+    return 'You\'re Locked In. Your body is primed for peak performance — keep doing what you\'re doing.'
   }
-  if (avg >= 80) {
-    return 'Great recovery. You\'re in the optimal zone for training hard and making gains.'
+  if (avg >= 85) {
+    return 'Locked In. You\'re in the optimal zone for training hard and making gains.'
   }
-  if (avg >= 60 && trend === 'up') {
-    return 'Trending up — you\'re building momentum. Keep prioritizing sleep and nutrition to break into the 80+ zone.'
+  if (avg >= 70 && trend === 'up') {
+    return 'Trending up — you\'re building momentum. Keep prioritizing sleep and nutrition to get Locked In.'
   }
-  if (avg >= 60 && trend === 'down') {
-    return 'Your score is slipping. Focus on sleep, hydration, and recovery to get back on track.'
+  if (avg >= 70 && trend === 'down') {
+    return 'Your score is slipping. Focus on sleep, hydration, and recovery to stay On Track.'
   }
-  if (avg >= 60) {
-    return 'Solid foundation. Dialing in sleep and hydration can push you into the optimal 80+ zone.'
+  if (avg >= 70) {
+    return 'You\'re On Track. Dialing in sleep and hydration can push you into the Locked In zone.'
   }
-  if (avg >= 40 && trend === 'down') {
-    return 'Your body is showing signs of stress. Prioritize rest and recovery to avoid setbacks.'
+  if (avg >= 50 && trend === 'down') {
+    return 'Check Yourself — your body is showing signs of stress. Prioritize rest and recovery to avoid setbacks.'
   }
-  if (avg >= 40) {
-    return 'Your recovery needs attention. Better sleep and nutrition will help you bounce back faster.'
+  if (avg >= 50) {
+    return 'Check Yourself. Your recovery needs attention. Better sleep and nutrition will help you bounce back.'
   }
   if (trend === 'down') {
-    return 'Your Fuel Score is critically low. Talk to your coach — rest and recovery should be the priority right now.'
+    return 'Red Flag — your Fuel Score is critically low. Talk to your coach. Rest and recovery should be the priority right now.'
   }
-  return 'Your body is under a lot of stress. Focus on rest, nutrition, and hydration before pushing hard in training.'
+  return 'Red Flag. Your body is under a lot of stress. Focus on rest, nutrition, and hydration before pushing hard in training.'
 }
 
 function getCoachInsight(avg: number | null, trend: 'up' | 'down' | 'stable'): string {
   if (avg === null) return ''
 
-  if (avg >= 80) {
-    return 'Optimal recovery state. Low injury risk — good window for progressive overload.'
+  if (avg >= 85) {
+    return 'Locked In — optimal recovery state. Low injury risk. Good window for progressive overload.'
   }
-  if (avg >= 60 && trend === 'down') {
-    return 'Wellness declining. Monitor training load — continued decline increases injury risk.'
+  if (avg >= 70 && trend === 'down') {
+    return 'On Track but declining. Monitor training load — continued decline increases injury risk.'
   }
-  if (avg >= 60) {
-    return 'Adequate recovery. Sleep and nutrition improvements could push into optimal zone.'
+  if (avg >= 70) {
+    return 'On Track. Sleep and nutrition improvements could push into the Locked In zone.'
   }
-  if (avg >= 40) {
-    return 'Elevated risk zone. Consider reducing training intensity and reviewing nutrition plan.'
+  if (avg >= 50) {
+    return 'Check Yourself zone. Consider reducing training intensity and reviewing nutrition plan.'
   }
-  return 'Critical wellness level. High injury risk. Recommend reduced volume and direct check-in.'
+  return 'Red Flag — critical wellness level. High injury risk. Recommend reduced volume and direct check-in.'
 }
 
-export default function WellnessSpotlight({ checkins, compact = false, role = 'athlete' }: WellnessSpotlightProps) {
-  const { todayScore, avg7, trend, last7Scores } = useMemo(() => {
+export default function WellnessSpotlight({ checkins, compact = false, role = 'athlete', streak = 0 }: WellnessSpotlightProps) {
+  const { todayScore, avg7, trend, last7Scores, yesterdayScore } = useMemo(() => {
     const sorted = [...checkins]
       .filter(c => c.wellness_score !== null && c.wellness_score !== undefined)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
     const today = sorted[0]?.wellness_score ?? null
+    const yesterday = sorted[1]?.wellness_score ?? null
 
     const last7 = sorted.slice(0, 7)
     const last7Scores = last7.map(c => c.wellness_score as number).reverse()
@@ -97,13 +92,13 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
       else trend = 'stable'
     }
 
-    return { todayScore: today, avg7, trend, last7Scores }
+    return { todayScore: today, avg7, trend, last7Scores, yesterdayScore: yesterday }
   }, [checkins])
 
   // Compact mode for coach table
   if (compact) {
     if (avg7 === null) return <span className="text-slate-500 text-sm">—</span>
-    const zone = getZone(avg7)
+    const zone = getZoneInfo(avg7)
     return (
       <div className="flex items-center gap-1.5">
         <span className={`font-bold text-sm ${zone.color}`}>{avg7}</span>
@@ -126,8 +121,11 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
   }
 
   const displayScore = todayScore ?? avg7 ?? 0
-  const zone = getZone(displayScore)
+  const zone = getZoneInfo(displayScore)
   const insight = role === 'coach' ? getCoachInsight(avg7, trend) : getAthleteInsight(avg7, trend)
+
+  // Day-over-day change
+  const dayChange = (todayScore !== null && yesterdayScore !== null) ? todayScore - yesterdayScore : null
 
   // Gauge bar position (0-100 mapped to percentage)
   const gaugePercent = Math.min(100, Math.max(0, displayScore))
@@ -137,9 +135,16 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-sm font-semibold text-white">⚡ Fuel Score</h4>
-        {avg7 !== null && todayScore !== null && avg7 !== todayScore && (
-          <span className="text-xs text-slate-500">7-day avg: {avg7}</span>
-        )}
+        <div className="flex items-center gap-3">
+          {streak >= 5 && (
+            <span className="text-xs text-orange-400 flex items-center gap-1">
+              🔥 {streak}-day streak {streak >= 14 ? '(+5)' : streak >= 7 ? '(+4)' : streak >= 6 ? '(+3)' : '(+2)'}
+            </span>
+          )}
+          {avg7 !== null && todayScore !== null && avg7 !== todayScore && (
+            <span className="text-xs text-slate-500">7-day avg: {avg7}</span>
+          )}
+        </div>
       </div>
 
       {/* Score + Emoji + Label */}
@@ -150,8 +155,8 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
             <span className={`text-4xl font-bold ${zone.color}`}>{displayScore}</span>
             <span className={`text-lg font-semibold ${zone.color}`}>{zone.label}</span>
           </div>
-          {/* Trend indicator */}
-          <div className="flex items-center gap-1 mt-0.5">
+          {/* Trend indicator with day-over-day change */}
+          <div className="flex items-center gap-2 mt-0.5">
             {trend === 'up' && (
               <span className="text-xs text-green-400 flex items-center gap-0.5">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" /></svg>
@@ -167,6 +172,11 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
             {trend === 'stable' && (
               <span className="text-xs text-slate-400">Stable</span>
             )}
+            {dayChange !== null && dayChange !== 0 && (
+              <span className={`text-xs ${dayChange > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {dayChange > 0 ? '+' : ''}{dayChange} from yesterday
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -176,10 +186,10 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
         <div className="relative h-3 rounded-full overflow-hidden bg-slate-700">
           {/* Zone backgrounds */}
           <div className="absolute inset-0 flex">
-            <div className="w-[40%] bg-red-500/20" />
+            <div className="w-[50%] bg-red-500/20" />
             <div className="w-[20%] bg-amber-500/20" />
-            <div className="w-[20%] bg-blue-500/20" />
-            <div className="w-[20%] bg-green-500/20" />
+            <div className="w-[15%] bg-blue-500/20" />
+            <div className="w-[15%] bg-green-500/20" />
           </div>
           {/* Score position indicator */}
           <div
@@ -188,17 +198,17 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
           />
         </div>
         {/* Zone labels */}
-        <div className="flex justify-between mt-1.5 px-0.5">
-          <span className="text-[10px] text-red-400/60">Low</span>
-          <span className="text-[10px] text-amber-400/60">Fair</span>
-          <span className="text-[10px] text-blue-400/60">Good</span>
-          <span className="text-[10px] text-green-400/60">Optimal</span>
+        <div className="flex mt-1.5 px-0.5">
+          <span className="w-[50%] text-[10px] text-red-400/60">Red Flag</span>
+          <span className="w-[20%] text-[10px] text-amber-400/60">Check Yourself</span>
+          <span className="w-[15%] text-[10px] text-blue-400/60">On Track</span>
+          <span className="w-[15%] text-[10px] text-green-400/60 text-right">Locked In</span>
         </div>
       </div>
 
       {/* Target callout */}
       <p className="text-[11px] text-slate-500 mt-2 mb-3">
-        🎯 <span className="text-green-400/80 font-medium">80+</span> is the target zone — where recovery, performance, and body comp gains are maximized.
+        🎯 <span className="text-green-400/80 font-medium">85+</span> is the Locked In zone — where recovery, performance, and body comp gains are maximized.
       </p>
 
       {/* Sparkline (if 2+ days of data) */}
@@ -209,7 +219,7 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
             {last7Scores.map((score, i) => {
               const isToday = i === last7Scores.length - 1
               const barH = Math.max(4, (score / 100) * 32)
-              const barZone = getZone(score)
+              const barZone = getZoneInfo(score)
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
                   <div
@@ -236,7 +246,7 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
 // Compact inline component for use in table headers or small spaces
 export function WellnessAvgBadge({ avg, trend }: { avg: number | null; trend?: 'up' | 'down' | 'stable' }) {
   if (avg === null) return <span className="text-slate-500">—</span>
-  const zone = getZone(avg)
+  const zone = getZoneInfo(avg)
   return (
     <span className={`inline-flex items-center gap-1 font-semibold ${zone.color}`}>
       {avg}

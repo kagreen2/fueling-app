@@ -114,6 +114,7 @@ export default function AthleteDashboard() {
   const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string; email: string } | null>(null)
   const [showChat, setShowChat] = useState(false)
   const [showCheckinReminder, setShowCheckinReminder] = useState(false)
+  const [checkinStreak, setCheckinStreak] = useState(0)
   const [loadError, setLoadError] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const [isPulling, setIsPulling] = useState(false)
@@ -380,6 +381,32 @@ export default function AthleteDashboard() {
         setShowCheckinReminder(false)
       }
 
+      // Calculate check-in streak (consecutive days with a check-in)
+      const { data: streakCheckins } = await supabase
+        .from('daily_checkins')
+        .select('date')
+        .eq('athlete_id', athleteData.id)
+        .order('date', { ascending: false })
+        .limit(60)
+
+      if (streakCheckins && streakCheckins.length > 0) {
+        let streak = 0
+        const todayDate = new Date(today)
+        for (let i = 0; i < streakCheckins.length; i++) {
+          const expectedDate = new Date(todayDate)
+          expectedDate.setDate(todayDate.getDate() - i)
+          const expectedStr = expectedDate.toISOString().split('T')[0]
+          if (streakCheckins[i].date === expectedStr) {
+            streak++
+          } else {
+            break
+          }
+        }
+        setCheckinStreak(streak)
+      } else {
+        setCheckinStreak(0)
+      }
+
       // Live Fuel Score recalculation with nutrition data
       // If we have a check-in today, recalculate the score including nutrition compliance
       if (checkinData && mealsData) {
@@ -387,6 +414,22 @@ export default function AthleteDashboard() {
           calories: acc.calories + (meal.calories || 0),
           protein: acc.protein + (meal.protein || 0),
         }), { calories: 0, protein: 0 })
+
+        // Calculate streak for bonus (use streakCheckins if available)
+        let currentStreak = 0
+        if (streakCheckins && streakCheckins.length > 0) {
+          const todayDate2 = new Date(today)
+          for (let i = 0; i < streakCheckins.length; i++) {
+            const expectedDate = new Date(todayDate2)
+            expectedDate.setDate(todayDate2.getDate() - i)
+            const expectedStr = expectedDate.toISOString().split('T')[0]
+            if (streakCheckins[i].date === expectedStr) {
+              currentStreak++
+            } else {
+              break
+            }
+          }
+        }
 
         const liveFuelScore = calculateFuelScore(
           {
@@ -403,7 +446,8 @@ export default function AthleteDashboard() {
             todayProtein: todayMealStats.protein,
             calorieGoal: recsData.daily_calories || 0,
             proteinGoal: recsData.daily_protein_g || 0,
-          } : null
+          } : null,
+          currentStreak
         )
 
         // Update the stored wellness_score if it changed (so coaches see the live score too)
@@ -652,7 +696,7 @@ export default function AthleteDashboard() {
         <div className="mb-6">
           {todayCheckin ? (
             <div>
-              <WellnessSpotlight checkins={recentCheckins} role="athlete" />
+              <WellnessSpotlight checkins={recentCheckins} role="athlete" streak={checkinStreak} />
               <div className="mt-2 flex items-center gap-2 px-1">
                 <svg className="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                 <span className="text-xs text-slate-500">Today's check-in complete</span>

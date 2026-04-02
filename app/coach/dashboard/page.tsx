@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import WellnessSpotlight from '@/components/WellnessSpotlight'
+import { getZoneInfo } from '@/lib/fuel-score'
 
 interface Team {
   id: string
@@ -90,7 +91,8 @@ interface AthleteData {
   trend: 'up' | 'down' | 'stable'
   // Wellness fields
   wellnessScore: number | null
-  wellnessLabel: 'thriving' | 'okay' | 'watch' | 'concern' | null
+  wellnessLabel: string | null
+  checkinStreak: number
   wellnessDate: string | null
   wellnessDaysAgo: number | null
   recentCheckins: WellnessCheckin[]
@@ -147,31 +149,19 @@ function getUserTypeBadge(userType: string | null): { label: string; color: stri
   return { label: 'Athlete', color: 'bg-purple-500/20 text-purple-400' }
 }
 
-function getWellnessLabel(score: number): 'thriving' | 'okay' | 'watch' | 'concern' {
-  if (score >= 80) return 'thriving'
-  if (score >= 60) return 'okay'
-  if (score >= 40) return 'watch'
-  return 'concern'
+function getWellnessColor(score: number | null): string {
+  if (score === null) return 'text-slate-500'
+  return getZoneInfo(score).color
 }
 
-function getWellnessColor(label: string | null): string {
-  switch (label) {
-    case 'thriving': return 'text-green-400'
-    case 'okay': return 'text-yellow-400'
-    case 'watch': return 'text-amber-400'
-    case 'concern': return 'text-red-400'
-    default: return 'text-slate-500'
-  }
-}
-
-function getWellnessBgColor(label: string | null): string {
-  switch (label) {
-    case 'thriving': return 'bg-green-500/10'
-    case 'okay': return 'bg-yellow-500/10'
-    case 'watch': return 'bg-amber-500/10'
-    case 'concern': return 'bg-red-500/10'
-    default: return 'bg-slate-500/10'
-  }
+function getWellnessBgColor(score: number | null): string {
+  if (score === null) return 'bg-slate-500/10'
+  const zone = getZoneInfo(score)
+  // Convert text color to bg with opacity
+  if (zone.color.includes('green')) return 'bg-green-500/10'
+  if (zone.color.includes('blue')) return 'bg-blue-500/10'
+  if (zone.color.includes('amber')) return 'bg-amber-500/10'
+  return 'bg-red-500/10'
 }
 
 export default function CoachDashboardPage() {
@@ -423,7 +413,24 @@ export default function CoachDashboardPage() {
       const athleteWellness = wellnessMap[m.athlete_id] || []
       const latestCheckin = athleteWellness.length > 0 ? athleteWellness[0] : null
       const wellnessScore = latestCheckin ? latestCheckin.wellness_score : null
-      const wellnessLabel = wellnessScore !== null ? getWellnessLabel(wellnessScore) : null
+      const wellnessLabel = wellnessScore !== null ? getZoneInfo(wellnessScore).label : null
+
+      // Calculate check-in streak from wellness check-in dates
+      let checkinStreak = 0
+      if (athleteWellness.length > 0) {
+        const checkinDates = athleteWellness.map(c => c.date).sort().reverse()
+        const todayD = new Date(today)
+        for (let i = 0; i < checkinDates.length; i++) {
+          const expectedDate = new Date(todayD)
+          expectedDate.setDate(todayD.getDate() - i)
+          const expectedStr = expectedDate.toISOString().split('T')[0]
+          if (checkinDates[i] === expectedStr) {
+            checkinStreak++
+          } else {
+            break
+          }
+        }
+      }
       const wellnessDate = latestCheckin ? latestCheckin.date : null
       let wellnessDaysAgo: number | null = null
       if (wellnessDate) {
@@ -463,6 +470,7 @@ export default function CoachDashboardPage() {
         wellnessLabel,
         wellnessDate,
         wellnessDaysAgo,
+        checkinStreak,
         recentCheckins: athleteWellness,
       }
     })
@@ -627,15 +635,15 @@ export default function CoachDashboardPage() {
         }
       }
 
-      // Composite decline: Fuel Score below 40 for 2+ days
+      // Composite decline: Fuel Score below 50 for 2+ days (Red Flag zone)
       if (checkins.length >= 2) {
         const last2 = checkins.slice(0, 2)
-        if (last2.every(c => c.wellness_score < 40)) {
+        if (last2.every(c => c.wellness_score < 50)) {
           alerts.push({
             athlete: a,
             type: 'composite_decline',
             severity: 'high',
-            message: `${a.name}'s Fuel Score has been in the concern zone (below 40) for multiple days`,
+            message: `${a.name}'s Fuel Score has been in the Red Flag zone (below 50) for multiple days`,
           })
         }
       }
@@ -995,7 +1003,7 @@ export default function CoachDashboardPage() {
             <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Avg Wellness</p>
             <p className="text-2xl font-bold mt-1">
               {stats.avgWellness !== null ? (
-                <span className={getWellnessColor(getWellnessLabel(stats.avgWellness))}>{stats.avgWellness}</span>
+                <span className={getWellnessColor(stats.avgWellness)}>{stats.avgWellness}</span>
               ) : (
                 <span className="text-slate-500">—</span>
               )}
@@ -1070,7 +1078,7 @@ export default function CoachDashboardPage() {
                           <td className="px-4 py-3">
                             {a.wellnessScore !== null ? (
                               <div className="flex items-center gap-1.5">
-                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${getWellnessBgColor(a.wellnessLabel)} ${getWellnessColor(a.wellnessLabel)}`}>
+                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${getWellnessBgColor(a.wellnessScore)} ${getWellnessColor(a.wellnessScore)}`}>
                                   {a.wellnessScore}
                                 </span>
                                 {a.wellnessDaysAgo !== null && a.wellnessDaysAgo > 0 && (
@@ -1261,7 +1269,7 @@ export default function CoachDashboardPage() {
                             </div>
                             {alert.athlete.wellnessScore !== null && (
                               <div className="mt-2 flex items-center gap-2">
-                                <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${getWellnessBgColor(alert.athlete.wellnessLabel)} ${getWellnessColor(alert.athlete.wellnessLabel)}`}>
+                                <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${getWellnessBgColor(alert.athlete.wellnessScore)} ${getWellnessColor(alert.athlete.wellnessScore)}`}>
                                   {alert.athlete.wellnessScore}
                                 </span>
                                 <span className="text-slate-500 text-xs">Fuel Score</span>
