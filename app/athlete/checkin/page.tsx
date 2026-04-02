@@ -14,9 +14,11 @@ interface SliderFieldProps {
   value: number
   onChange: (field: string, value: number) => void
   invertColors?: boolean // true = low is good (green), high is bad (red)
+  lowLabel?: string
+  highLabel?: string
 }
 
-function SliderField({ label, field, value, onChange, invertColors = false }: SliderFieldProps) {
+function SliderField({ label, field, value, onChange, invertColors = false, lowLabel = 'Low', highLabel = 'High' }: SliderFieldProps) {
   let emoji: string
   let color: string
 
@@ -47,8 +49,8 @@ function SliderField({ label, field, value, onChange, invertColors = false }: Sl
         className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
       />
       <div className="flex justify-between text-xs text-slate-500 mt-2">
-        <span>Low</span>
-        <span>High</span>
+        <span>{lowLabel}</span>
+        <span>{highLabel}</span>
       </div>
     </div>
   )
@@ -239,12 +241,16 @@ export default function CheckInPage() {
                 field="sleep"
                 value={form.sleep}
                 onChange={update}
+                lowLabel="Barely slept"
+                highLabel="Fully recharged"
               />
               <SliderField
                 label="Energy"
                 field="energy"
                 value={form.energy}
                 onChange={update}
+                lowLabel="Running on empty"
+                highLabel="Ready to go"
               />
               <SliderField
                 label="Soreness"
@@ -252,6 +258,8 @@ export default function CheckInPage() {
                 value={form.soreness}
                 onChange={update}
                 invertColors
+                lowLabel="No soreness"
+                highLabel="Everything hurts"
               />
               <SliderField
                 label="Hunger"
@@ -259,6 +267,8 @@ export default function CheckInPage() {
                 value={form.hunger}
                 onChange={update}
                 invertColors
+                lowLabel="Not hungry"
+                highLabel="Starving"
               />
               <SliderField
                 label="Stress"
@@ -266,12 +276,16 @@ export default function CheckInPage() {
                 value={form.stress}
                 onChange={update}
                 invertColors
+                lowLabel="Stress-free"
+                highLabel="Maxed out"
               />
               <SliderField
                 label="Hydration"
                 field="hydration"
                 value={form.hydration}
                 onChange={update}
+                lowLabel="Dehydrated"
+                highLabel="Well hydrated"
               />
             </div>
             <p className="text-slate-500 text-xs mt-4 leading-relaxed">
