@@ -57,7 +57,7 @@ export default function CoachAthleteDetailPage() {
   const [profile, setProfile] = useState<any>(null)
   const [recs, setRecs] = useState<any>(null)
   const [dailyData, setDailyData] = useState<DayData[]>([])
-  const [recentCheckins, setRecentCheckins] = useState<Array<{ date: string; wellness_score: number | null }>>([])
+  const [recentCheckins, setRecentCheckins] = useState<Array<{ date: string; wellness_score: number | null; training_type?: string | null; energy?: number; stress?: number; soreness?: number; sleep_quality?: number }>>([])
   const [timeRange, setTimeRange] = useState<number>(14)
 
   // Coach Notes state
@@ -438,7 +438,7 @@ export default function CoachAthleteDetailPage() {
     wellnessStart.setDate(wellnessStart.getDate() - 14)
     const { data: checkinData } = await supabase
       .from('coach_wellness_summary')
-      .select('date, wellness_score')
+      .select('date, wellness_score, training_type, energy, stress, soreness, sleep_quality, hydration, hunger')
       .eq('athlete_id', athleteId)
       .gte('date', getLocalDateString(wellnessStart))
       .order('date', { ascending: false })
@@ -536,6 +536,42 @@ export default function CoachAthleteDetailPage() {
 
         {/* Wellness Spotlight */}
         <WellnessSpotlight checkins={recentCheckins} role="coach" />
+
+        {/* Recent Check-ins with Training Type */}
+        {recentCheckins.length > 0 && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+            <h3 className="text-white font-semibold mb-3">Recent Check-ins</h3>
+            <div className="space-y-2">
+              {recentCheckins.slice(0, 7).map((checkin, i) => (
+                <div key={i} className="flex items-center justify-between py-2 border-b border-slate-700/50 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-500 w-16">{new Date(checkin.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-bold ${
+                        (checkin.wellness_score || 0) >= 80 ? 'text-green-400' :
+                        (checkin.wellness_score || 0) >= 60 ? 'text-blue-400' :
+                        (checkin.wellness_score || 0) >= 40 ? 'text-amber-400' : 'text-red-400'
+                      }`}>{checkin.wellness_score || '—'}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {checkin.training_type ? (
+                      <div className="flex flex-wrap gap-1 justify-end">
+                        {checkin.training_type.split(',').map((type: string, j: number) => (
+                          <span key={j} className="px-2 py-0.5 text-[10px] font-medium bg-slate-700 text-slate-300 rounded-full">
+                            {type.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-slate-600">No activity logged</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Nutrition Targets */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
