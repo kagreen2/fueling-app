@@ -189,6 +189,8 @@ export default function CoachDashboardPage() {
   }>>([])
   const [coachUserId, setCoachUserId] = useState<string>('')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [sortColumn, setSortColumn] = useState<'name' | 'wellness' | 'streak' | 'compliance' | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [dismissedCoachAlerts, setDismissedCoachAlerts] = useState<Set<string>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -524,6 +526,47 @@ export default function CoachDashboardPage() {
     if (selectedTeam === 'all') return athletes
     return athletes.filter(a => a.teamId === selectedTeam)
   }, [athletes, selectedTeam])
+
+  // Sorted athletes for the overview table
+  const sortedAthletes = useMemo(() => {
+    if (!sortColumn) return filteredAthletes
+    const sorted = [...filteredAthletes].sort((a, b) => {
+      let cmp = 0
+      switch (sortColumn) {
+        case 'name':
+          cmp = a.name.localeCompare(b.name)
+          break
+        case 'wellness':
+          cmp = (a.wellnessScore ?? -1) - (b.wellnessScore ?? -1)
+          break
+        case 'streak':
+          cmp = a.streak - b.streak
+          break
+        case 'compliance':
+          cmp = a.complianceRate - b.complianceRate
+          break
+      }
+      return sortDirection === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [filteredAthletes, sortColumn, sortDirection])
+
+  function handleSort(column: 'name' | 'wellness' | 'streak' | 'compliance') {
+    if (sortColumn === column) {
+      // Toggle direction, or clear if already toggled
+      if (sortDirection === 'desc') {
+        setSortDirection('asc')
+      } else {
+        // Clear sort
+        setSortColumn(null)
+        setSortDirection('desc')
+      }
+    } else {
+      setSortColumn(column)
+      // Name defaults to A-Z (asc), others default to high-low (desc)
+      setSortDirection(column === 'name' ? 'asc' : 'desc')
+    }
+  }
 
   // Leaderboard: sorted by compliance rate, then streak
   const leaderboard = useMemo(() => {
@@ -1026,99 +1069,96 @@ export default function CoachDashboardPage() {
           </div>
         </div>
 
-        {/* Team Fuel Score Distribution */}
-        {view === 'overview' && stats.total > 0 && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-sm">Team Fuel Score Distribution</h3>
-              <span className="text-slate-500 text-xs">{stats.total - stats.noCheckin} of {stats.total} checked in</span>
+        {/* Team Fuel Score Distribution — Donut Chart */}
+        {view === 'overview' && stats.total > 0 && (() => {
+          const checkedIn = stats.total - stats.noCheckin
+          const zones = [
+            { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, color: '#22c55e', accent: 'text-green-400', range: '85+' },
+            { label: 'On Track', emoji: '💪', count: stats.onTrack, color: '#3b82f6', accent: 'text-blue-400', range: '70-84' },
+            { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, color: '#f59e0b', accent: 'text-amber-400', range: '50-69' },
+            { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, color: '#ef4444', accent: 'text-red-400', range: '<50' },
+          ].filter(z => z.count > 0)
+
+          // SVG donut math
+          const size = 120
+          const strokeWidth = 16
+          const radius = (size - strokeWidth) / 2
+          const circumference = 2 * Math.PI * radius
+          let cumulativeOffset = 0
+
+          return (
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-semibold text-sm">Team Fuel Score</h3>
+                <span className="text-slate-500 text-xs">{checkedIn} of {stats.total} checked in</span>
+              </div>
+
+              {checkedIn > 0 ? (
+                <div className="flex items-center gap-6">
+                  {/* Donut chart */}
+                  <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+                    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+                      {/* Background ring */}
+                      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#334155" strokeWidth={strokeWidth} />
+                      {/* Zone segments */}
+                      {zones.map((zone, i) => {
+                        const pct = zone.count / checkedIn
+                        const dashLength = pct * circumference
+                        const dashGap = circumference - dashLength
+                        const offset = cumulativeOffset
+                        cumulativeOffset += dashLength
+                        return (
+                          <circle
+                            key={zone.label}
+                            cx={size / 2}
+                            cy={size / 2}
+                            r={radius}
+                            fill="none"
+                            stroke={zone.color}
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={`${dashLength} ${dashGap}`}
+                            strokeDashoffset={-offset}
+                            strokeLinecap="butt"
+                          />
+                        )
+                      })}
+                    </svg>
+                    {/* Center text */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold text-white leading-none">{checkedIn}</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">checked in</span>
+                    </div>
+                  </div>
+
+                  {/* Zone legend */}
+                  <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
+                    {[
+                      { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, accent: 'text-green-400', dotColor: 'bg-green-500', range: '85+' },
+                      { label: 'On Track', emoji: '💪', count: stats.onTrack, accent: 'text-blue-400', dotColor: 'bg-blue-500', range: '70-84' },
+                      { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, accent: 'text-amber-400', dotColor: 'bg-amber-500', range: '50-69' },
+                      { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, accent: 'text-red-400', dotColor: 'bg-red-500', range: '<50' },
+                    ].map(z => (
+                      <div key={z.label} className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${z.dotColor} flex-shrink-0`} />
+                        <div className="flex items-baseline gap-1">
+                          <span className={`text-sm font-bold tabular-nums ${z.accent}`}>{z.count}</span>
+                          <span className="text-slate-400 text-xs">{z.label}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {stats.noCheckin > 0 && (
+                      <div className="col-span-2 mt-1">
+                        <span className="text-slate-600 text-xs">{stats.noCheckin} not checked in</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm">No check-in data yet. Athletes need to complete their daily check-in.</p>
+              )}
             </div>
-
-            {/* Horizontal stacked bar */}
-            {(stats.total - stats.noCheckin) > 0 ? (
-              <>
-                <div className="flex rounded-lg overflow-hidden h-10 mb-4">
-                  {stats.lockedIn > 0 && (
-                    <div
-                      className="bg-green-500 flex items-center justify-center transition-all"
-                      style={{ width: `${(stats.lockedIn / (stats.total - stats.noCheckin)) * 100}%` }}
-                    >
-                      {stats.lockedIn > 0 && <span className="text-white text-xs font-bold">{stats.lockedIn}</span>}
-                    </div>
-                  )}
-                  {stats.onTrack > 0 && (
-                    <div
-                      className="bg-blue-500 flex items-center justify-center transition-all"
-                      style={{ width: `${(stats.onTrack / (stats.total - stats.noCheckin)) * 100}%` }}
-                    >
-                      {stats.onTrack > 0 && <span className="text-white text-xs font-bold">{stats.onTrack}</span>}
-                    </div>
-                  )}
-                  {stats.dialItIn > 0 && (
-                    <div
-                      className="bg-amber-500 flex items-center justify-center transition-all"
-                      style={{ width: `${(stats.dialItIn / (stats.total - stats.noCheckin)) * 100}%` }}
-                    >
-                      {stats.dialItIn > 0 && <span className="text-white text-xs font-bold">{stats.dialItIn}</span>}
-                    </div>
-                  )}
-                  {stats.redFlag > 0 && (
-                    <div
-                      className="bg-red-500 flex items-center justify-center transition-all"
-                      style={{ width: `${(stats.redFlag / (stats.total - stats.noCheckin)) * 100}%` }}
-                    >
-                      {stats.redFlag > 0 && <span className="text-white text-xs font-bold">{stats.redFlag}</span>}
-                    </div>
-                  )}
-                </div>
-
-                {/* Zone legend */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm bg-green-500 flex-shrink-0" />
-                    <div>
-                      <span className="text-green-400 text-sm font-semibold">{stats.lockedIn}</span>
-                      <span className="text-slate-400 text-xs ml-1">🔥 Locked In</span>
-                      <span className="text-slate-600 text-xs ml-1">(85+)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm bg-blue-500 flex-shrink-0" />
-                    <div>
-                      <span className="text-blue-400 text-sm font-semibold">{stats.onTrack}</span>
-                      <span className="text-slate-400 text-xs ml-1">💪 On Track</span>
-                      <span className="text-slate-600 text-xs ml-1">(70-84)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm bg-amber-500 flex-shrink-0" />
-                    <div>
-                      <span className="text-amber-400 text-sm font-semibold">{stats.dialItIn}</span>
-                      <span className="text-slate-400 text-xs ml-1">⚡ Dial It In</span>
-                      <span className="text-slate-600 text-xs ml-1">(50-69)</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-sm bg-red-500 flex-shrink-0" />
-                    <div>
-                      <span className="text-red-400 text-sm font-semibold">{stats.redFlag}</span>
-                      <span className="text-slate-400 text-xs ml-1">🚩 Red Flag</span>
-                      <span className="text-slate-600 text-xs ml-1">(&lt;50)</span>
-                    </div>
-                  </div>
-                </div>
-
-                {stats.noCheckin > 0 && (
-                  <p className="text-slate-500 text-xs mt-3">
-                    {stats.noCheckin} athlete{stats.noCheckin !== 1 ? 's' : ''} ha{stats.noCheckin !== 1 ? 've' : 's'}n't checked in yet
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-slate-500 text-sm">No check-in data yet today. Athletes need to complete their daily check-in.</p>
-            )}
-          </div>
-        )}
+          )
+        })()}
 
         {/* Overview View */}
         {view === 'overview' && (
@@ -1137,19 +1177,47 @@ export default function CoachDashboardPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-700 text-left">
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Athlete</th>
+                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider">
+                        <button onClick={() => handleSort('name')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                          Athlete
+                          {sortColumn === 'name' && (
+                            <span className="text-purple-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </button>
+                      </th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Today</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Wellness</th>
+                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider">
+                        <button onClick={() => handleSort('wellness')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                          Wellness
+                          {sortColumn === 'wellness' && (
+                            <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                          )}
+                        </button>
+                      </th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">7-Day Avg</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Calories</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Protein</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Streak</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Compliance <span className="normal-case text-slate-500">(7d trend)</span></th>
+                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider hidden md:table-cell">
+                        <button onClick={() => handleSort('streak')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                          Streak
+                          {sortColumn === 'streak' && (
+                            <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                          )}
+                        </button>
+                      </th>
+                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider">
+                        <button onClick={() => handleSort('compliance')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                          Compliance <span className="normal-case text-slate-500">(7d trend)</span>
+                          {sortColumn === 'compliance' && (
+                            <span className="text-purple-400 ml-0.5">{sortDirection === 'desc' ? '↓' : '↑'}</span>
+                          )}
+                        </button>
+                      </th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/50">
-                    {filteredAthletes.map(a => {
+                    {sortedAthletes.map(a => {
                       const calPct = a.targetCalories > 0 ? Math.round((a.todayCalories / a.targetCalories) * 100) : 0
                       const proPct = a.targetProtein > 0 ? Math.round((a.todayProtein / a.targetProtein) * 100) : 0
                       return (
