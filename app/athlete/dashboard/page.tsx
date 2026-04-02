@@ -112,6 +112,7 @@ export default function AthleteDashboard() {
   const [userId, setUserId] = useState<string>('')
   const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string; email: string } | null>(null)
   const [showChat, setShowChat] = useState(false)
+  const [showCheckinReminder, setShowCheckinReminder] = useState(false)
   const [loadError, setLoadError] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const [isPulling, setIsPulling] = useState(false)
@@ -367,6 +368,16 @@ export default function AthleteDashboard() {
         .single()
 
       setTodayCheckin(checkinData || null)
+
+      // Show check-in reminder pop-up if no check-in today and tutorial isn't showing
+      if (!checkinData) {
+        const reminderDismissed = sessionStorage.getItem('fuel_checkin_reminder_dismissed')
+        if (!reminderDismissed) {
+          setShowCheckinReminder(true)
+        }
+      } else {
+        setShowCheckinReminder(false)
+      }
 
       // Get last 14 days of check-ins for WellnessSpotlight
       const twoWeeksAgo = getLocalDateString(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000))
@@ -813,6 +824,44 @@ export default function AthleteDashboard() {
               senderRole={profile?.role || 'athlete'}
               otherUserEmail={coachProfile.email}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Check-in Reminder Pop-up */}
+      {showCheckinReminder && !showTutorial && !loading && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-800 border border-purple-500/30 rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="px-6 pt-6 pb-2 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-purple-600/20 rounded-full flex items-center justify-center">
+                <span className="text-3xl">⚡</span>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">You haven't checked in yet!</h2>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Your Fuel Score is waiting. It only takes 60 seconds to check in and let your coach know how you're feeling today.
+              </p>
+            </div>
+            <div className="px-6 pb-6 pt-4 flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  setShowCheckinReminder(false)
+                  sessionStorage.setItem('fuel_checkin_reminder_dismissed', 'true')
+                  router.push('/athlete/checkin')
+                }}
+                className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors active:scale-[0.98]"
+              >
+                Check In Now
+              </button>
+              <button
+                onClick={() => {
+                  setShowCheckinReminder(false)
+                  sessionStorage.setItem('fuel_checkin_reminder_dismissed', 'true')
+                }}
+                className="w-full py-2.5 text-slate-400 hover:text-slate-300 text-sm font-medium transition-colors"
+              >
+                I'll do it later
+              </button>
+            </div>
           </div>
         </div>
       )}
