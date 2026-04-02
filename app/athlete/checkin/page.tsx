@@ -180,7 +180,8 @@ export default function CheckInPage() {
 
     setSaved(true)
     setLoading(false)
-    setTimeout(() => router.push('/athlete/dashboard'), 1500)
+    // Use hard navigation (not client-side) to ensure dashboard fully remounts and fetches fresh data
+    setTimeout(() => { window.location.href = '/athlete/dashboard' }, 1500)
   }
 
   if (saved) {

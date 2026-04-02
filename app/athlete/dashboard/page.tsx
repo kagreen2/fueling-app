@@ -219,9 +219,25 @@ export default function AthleteDashboard() {
         }
       )
       .subscribe()
+
+    // Reload data when tab becomes visible (e.g., returning from check-in)
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') {
+        loadData()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    // Reload data when window regains focus (covers client-side nav back to dashboard)
+    function handleFocus() {
+      loadData()
+    }
+    window.addEventListener('focus', handleFocus)
     
     return () => {
       subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('focus', handleFocus)
     }
   }, [])
 

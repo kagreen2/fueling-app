@@ -34,10 +34,10 @@ function getAthleteInsight(avg: number | null, trend: 'up' | 'down' | 'stable'):
     return 'You\'re On Track. Dialing in sleep and hydration can push you into the Locked In zone.'
   }
   if (avg >= 50 && trend === 'down') {
-    return 'Check Yourself — your body is showing signs of stress. Prioritize rest and recovery to avoid setbacks.'
+    return 'Dial It In — your body is showing signs of stress. Prioritize rest and recovery to avoid setbacks.'
   }
   if (avg >= 50) {
-    return 'Check Yourself. Your recovery needs attention. Better sleep and nutrition will help you bounce back.'
+    return 'Dial It In. Your recovery needs attention. Better sleep and nutrition will help you bounce back.'
   }
   if (trend === 'down') {
     return 'Red Flag — your Fuel Score is critically low. Talk to your coach. Rest and recovery should be the priority right now.'
@@ -58,7 +58,7 @@ function getCoachInsight(avg: number | null, trend: 'up' | 'down' | 'stable'): s
     return 'On Track. Sleep and nutrition improvements could push into the Locked In zone.'
   }
   if (avg >= 50) {
-    return 'Check Yourself zone. Consider reducing training intensity and reviewing nutrition plan.'
+    return 'Dial It In zone. Consider reducing training intensity and reviewing nutrition plan.'
   }
   return 'Red Flag — critical wellness level. High injury risk. Recommend reduced volume and direct check-in.'
 }
@@ -200,7 +200,7 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
         {/* Zone labels */}
         <div className="flex mt-1.5 px-0.5">
           <span className="w-[50%] text-[10px] text-red-400/60">Red Flag</span>
-          <span className="w-[20%] text-[10px] text-amber-400/60">Check Yourself</span>
+          <span className="w-[20%] text-[10px] text-amber-400/60">Dial It In</span>
           <span className="w-[15%] text-[10px] text-blue-400/60">On Track</span>
           <span className="w-[15%] text-[10px] text-green-400/60 text-right">Locked In</span>
         </div>

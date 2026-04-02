@@ -169,12 +169,12 @@ export function getNutritionScore(nutrition: NutritionData): number {
  * 
  * 85-100: "Locked In" 🟢
  * 70-84: "On Track" 🔵
- * 50-69: "Check Yourself" 🟡
+ * 50-69: "Dial It In" 🟡
  * Below 50: "Red Flag" 🔴
  */
 export function getZoneInfo(score: number) {
   if (score >= 85) return { label: 'Locked In', emoji: '🔥', color: 'text-green-400', bg: 'bg-green-400', border: 'border-green-500/30', barColor: 'bg-green-400' }
   if (score >= 70) return { label: 'On Track', emoji: '💪', color: 'text-blue-400', bg: 'bg-blue-400', border: 'border-blue-500/30', barColor: 'bg-blue-400' }
-  if (score >= 50) return { label: 'Check Yourself', emoji: '⚠️', color: 'text-amber-400', bg: 'bg-amber-400', border: 'border-amber-500/30', barColor: 'bg-amber-400' }
+  if (score >= 50) return { label: 'Dial It In', emoji: '⚡', color: 'text-amber-400', bg: 'bg-amber-400', border: 'border-amber-500/30', barColor: 'bg-amber-400' }
   return { label: 'Red Flag', emoji: '🚨', color: 'text-red-400', bg: 'bg-red-400', border: 'border-red-500/30', barColor: 'bg-red-400' }
 }
