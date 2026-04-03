@@ -164,6 +164,81 @@ function getWellnessBgColor(score: number | null): string {
   return 'bg-red-500/10'
 }
 
+interface DonutSegment {
+  label: string
+  emoji: string
+  count: number
+  color: string
+  range: string
+  pct: number
+  dashLength: number
+  dashGap: number
+  offset: number
+}
+
+function FuelDonut({ size, strokeWidth, radius, circumference, segments, checkedIn, noCheckin }: {
+  size: number
+  strokeWidth: number
+  radius: number
+  circumference: number
+  segments: DonutSegment[]
+  checkedIn: number
+  noCheckin: number
+}) {
+  const [hovered, setHovered] = useState<DonutSegment | null>(null)
+
+  return (
+    <div className="flex flex-col items-center">
+      <div
+        className="relative cursor-pointer"
+        style={{ width: size, height: size }}
+        onMouseLeave={() => setHovered(null)}
+      >
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+          {/* Background ring */}
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#334155" strokeWidth={strokeWidth} />
+          {/* Zone segments */}
+          {segments.map((seg) => (
+            <circle
+              key={seg.label}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={hovered?.label === seg.label ? strokeWidth + 4 : strokeWidth}
+              strokeDasharray={`${seg.dashLength} ${seg.dashGap}`}
+              strokeDashoffset={-seg.offset}
+              strokeLinecap="butt"
+              className="transition-all duration-150"
+              style={{ opacity: hovered && hovered.label !== seg.label ? 0.35 : 1 }}
+              onMouseEnter={() => setHovered(seg)}
+            />
+          ))}
+        </svg>
+        {/* Center text — changes on hover */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {hovered ? (
+            <>
+              <span className="text-lg font-bold leading-none" style={{ color: hovered.color }}>{hovered.count}</span>
+              <span className="text-[11px] text-slate-300 mt-0.5 font-medium">{hovered.emoji} {hovered.label}</span>
+              <span className="text-[9px] text-slate-500 mt-0.5">Score {hovered.range}</span>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-bold text-white leading-none">{checkedIn}</span>
+              <span className="text-[10px] text-slate-400 mt-0.5">checked in</span>
+            </>
+          )}
+        </div>
+      </div>
+      {noCheckin > 0 && (
+        <p className="text-slate-600 text-xs mt-2">{noCheckin} not checked in</p>
+      )}
+    </div>
+  )
+}
+
 export default function CoachDashboardPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -1069,92 +1144,43 @@ export default function CoachDashboardPage() {
           </div>
         </div>
 
-        {/* Team Fuel Score Distribution — Donut Chart */}
+        {/* Team Fuel Score — Centered Donut Chart with Hover */}
         {view === 'overview' && stats.total > 0 && (() => {
           const checkedIn = stats.total - stats.noCheckin
-          const zones = [
-            { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, color: '#22c55e', accent: 'text-green-400', range: '85+' },
-            { label: 'On Track', emoji: '💪', count: stats.onTrack, color: '#3b82f6', accent: 'text-blue-400', range: '70-84' },
-            { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, color: '#f59e0b', accent: 'text-amber-400', range: '50-69' },
-            { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, color: '#ef4444', accent: 'text-red-400', range: '<50' },
-          ].filter(z => z.count > 0)
+          const allZones = [
+            { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, color: '#22c55e', range: '85+' },
+            { label: 'On Track', emoji: '💪', count: stats.onTrack, color: '#3b82f6', range: '70-84' },
+            { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, color: '#f59e0b', range: '50-69' },
+            { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, color: '#ef4444', range: '<50' },
+          ]
+          const zones = allZones.filter(z => z.count > 0)
 
-          // SVG donut math
-          const size = 120
-          const strokeWidth = 16
+          const size = 160
+          const strokeWidth = 22
           const radius = (size - strokeWidth) / 2
           const circumference = 2 * Math.PI * radius
-          let cumulativeOffset = 0
+
+          // Build segment data with angles for hit detection
+          let cumOffset = 0
+          const segments = zones.map(zone => {
+            const pct = zone.count / checkedIn
+            const dashLength = pct * circumference
+            const seg = { ...zone, pct, dashLength, dashGap: circumference - dashLength, offset: cumOffset }
+            cumOffset += dashLength
+            return seg
+          })
 
           return (
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 mb-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-white font-semibold text-sm">Team Fuel Score</h3>
                 <span className="text-slate-500 text-xs">{checkedIn} of {stats.total} checked in</span>
               </div>
 
               {checkedIn > 0 ? (
-                <div className="flex items-center gap-6">
-                  {/* Donut chart */}
-                  <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
-                    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-                      {/* Background ring */}
-                      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#334155" strokeWidth={strokeWidth} />
-                      {/* Zone segments */}
-                      {zones.map((zone, i) => {
-                        const pct = zone.count / checkedIn
-                        const dashLength = pct * circumference
-                        const dashGap = circumference - dashLength
-                        const offset = cumulativeOffset
-                        cumulativeOffset += dashLength
-                        return (
-                          <circle
-                            key={zone.label}
-                            cx={size / 2}
-                            cy={size / 2}
-                            r={radius}
-                            fill="none"
-                            stroke={zone.color}
-                            strokeWidth={strokeWidth}
-                            strokeDasharray={`${dashLength} ${dashGap}`}
-                            strokeDashoffset={-offset}
-                            strokeLinecap="butt"
-                          />
-                        )
-                      })}
-                    </svg>
-                    {/* Center text */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-2xl font-bold text-white leading-none">{checkedIn}</span>
-                      <span className="text-[10px] text-slate-400 mt-0.5">checked in</span>
-                    </div>
-                  </div>
-
-                  {/* Zone legend */}
-                  <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-2">
-                    {[
-                      { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, accent: 'text-green-400', dotColor: 'bg-green-500', range: '85+' },
-                      { label: 'On Track', emoji: '💪', count: stats.onTrack, accent: 'text-blue-400', dotColor: 'bg-blue-500', range: '70-84' },
-                      { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, accent: 'text-amber-400', dotColor: 'bg-amber-500', range: '50-69' },
-                      { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, accent: 'text-red-400', dotColor: 'bg-red-500', range: '<50' },
-                    ].map(z => (
-                      <div key={z.label} className="flex items-center gap-2">
-                        <div className={`w-2.5 h-2.5 rounded-full ${z.dotColor} flex-shrink-0`} />
-                        <div className="flex items-baseline gap-1">
-                          <span className={`text-sm font-bold tabular-nums ${z.accent}`}>{z.count}</span>
-                          <span className="text-slate-400 text-xs">{z.label}</span>
-                        </div>
-                      </div>
-                    ))}
-                    {stats.noCheckin > 0 && (
-                      <div className="col-span-2 mt-1">
-                        <span className="text-slate-600 text-xs">{stats.noCheckin} not checked in</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <FuelDonut size={size} strokeWidth={strokeWidth} radius={radius} circumference={circumference} segments={segments} checkedIn={checkedIn} noCheckin={stats.noCheckin} />
               ) : (
-                <p className="text-slate-500 text-sm">No check-in data yet. Athletes need to complete their daily check-in.</p>
+                <p className="text-slate-500 text-sm text-center py-4">No check-in data yet. Athletes need to complete their daily check-in.</p>
               )}
             </div>
           )
