@@ -95,40 +95,17 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
     return { todayScore: today, avg7, trend, last7Scores, yesterdayScore: yesterday }
   }, [checkins])
 
-  // Compact mode for coach table — with inline sparkline
+  // Compact mode for coach table — number + trend arrow only
   if (compact) {
     if (avg7 === null) return <span className="text-slate-500 text-sm">—</span>
     const zone = getZoneInfo(avg7)
 
-    // Build sparkline SVG from last7Scores
-    const sparkline = last7Scores.length >= 2 ? (() => {
-      const w = 56
-      const h = 20
-      const pad = 2
-      const min = Math.min(...last7Scores)
-      const max = Math.max(...last7Scores)
-      const range = max - min || 1
-      const points = last7Scores.map((s, i) => ({
-        x: pad + (i / (last7Scores.length - 1)) * (w - 2 * pad),
-        y: pad + (1 - (s - min) / range) * (h - 2 * pad),
-      }))
-      const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
-      const trendColor = trend === 'up' ? '#4ade80' : trend === 'down' ? '#f87171' : '#94a3b8'
-      return (
-        <svg viewBox={`0 0 ${w} ${h}`} className="w-14 h-5 block flex-shrink-0" preserveAspectRatio="none">
-          <path d={linePath} fill="none" stroke={trendColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="2" fill={trendColor} />
-        </svg>
-      )
-    })() : null
-
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <span className={`font-bold text-sm ${zone.color}`}>{avg7}</span>
         {trend === 'up' && <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" /></svg>}
         {trend === 'down' && <svg className="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>}
         {trend === 'stable' && <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14" /></svg>}
-        {sparkline}
       </div>
     )
   }
