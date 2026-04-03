@@ -1,13 +1,13 @@
 /**
  * Fuel Score v2 Calculator
  * 
- * Calculates a 0-100 wellness + nutrition score from check-in data and meal logs.
+ * Calculates a 0-100 pure wellness/readiness score from check-in data.
  * 
- * Components:
- * - Check-in wellness (85% when nutrition data exists, 100% when it doesn't):
+ * Components (100% from check-in):
  *   Sleep 23.5%, Stress 23.5%, Energy 17.5%, Soreness 17.5%, Hydration 12%, Hunger 6%
- * - Nutrition compliance (15% when data exists):
- *   Logging behavior (40% of nutrition) + Target proximity (60% of nutrition)
+ * 
+ * Nutrition tracking is displayed separately — not factored into the Fuel Score.
+ * This keeps the score predictable: what you see at check-in is what you get on the dashboard.
  */
 
 interface CheckinInputs {
@@ -120,32 +120,18 @@ export function calculateStreakBonus(consecutiveDays: number): number {
 /**
  * Calculate the full Fuel Score (0-100)
  * 
- * If nutrition data is available and athlete has goals:
- *   Score = (wellness × 0.85 + nutrition × 0.15) × 100 + streak bonus
- * 
- * If no nutrition data or no goals:
- *   Score = wellness × 100 + streak bonus
- * 
+ * Pure wellness score from check-in sliders + streak bonus.
+ * Nutrition is tracked separately and not factored in.
  * Capped at 100.
  */
 export function calculateFuelScore(
   checkin: CheckinInputs,
-  nutrition?: NutritionData | null,
+  _nutrition?: NutritionData | null,
   consecutiveCheckinDays?: number
 ): number {
   const wellnessComponent = calculateWellnessComponent(checkin)
   const streakBonus = calculateStreakBonus(consecutiveCheckinDays || 0)
-
-  // If no nutrition data or no goals set, use check-in only
-  if (!nutrition || (nutrition.calorieGoal === 0 && nutrition.proteinGoal === 0)) {
-    return Math.min(100, Math.round(wellnessComponent * 100) + streakBonus)
-  }
-
-  const nutritionComponent = calculateNutritionComponent(nutrition)
-
-  // Blend: 85% wellness, 15% nutrition + streak bonus
-  const finalScore = wellnessComponent * 0.85 + nutritionComponent * 0.15
-  return Math.min(100, Math.round(finalScore * 100) + streakBonus)
+  return Math.min(100, Math.round(wellnessComponent * 100) + streakBonus)
 }
 
 /**

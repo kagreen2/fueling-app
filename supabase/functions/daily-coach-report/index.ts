@@ -41,23 +41,23 @@ interface RedFlag {
 }
 
 function getWellnessLabel(score: number): string {
-  if (score >= 80) return 'Thriving'
-  if (score >= 60) return 'Okay'
-  if (score >= 40) return 'Watch'
-  return 'Concern'
+  if (score >= 85) return 'Locked In'
+  if (score >= 70) return 'On Track'
+  if (score >= 50) return 'Dial It In'
+  return 'Red Flag'
 }
 
 function getWellnessEmoji(score: number): string {
-  if (score >= 80) return '🟢'
-  if (score >= 60) return '🟡'
-  if (score >= 40) return '🟠'
-  return '🔴'
+  if (score >= 85) return '🔥'
+  if (score >= 70) return '💪'
+  if (score >= 50) return '⚡'
+  return '🚨'
 }
 
 function getWellnessColor(score: number): string {
-  if (score >= 80) return '#4ade80'
-  if (score >= 60) return '#facc15'
-  if (score >= 40) return '#fb923c'
+  if (score >= 85) return '#4ade80'
+  if (score >= 70) return '#60a5fa'
+  if (score >= 50) return '#fbbf24'
   return '#f87171'
 }
 
@@ -258,9 +258,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
-    const formattedDate = formatDate(today)
+    // Use Central Time to compute "today" since the cron runs at 11:30 PM CT
+    // new Date().toISOString() would give UTC which is already the next day at that hour
+    const now = new Date()
+    const ctFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' })
+    const todayStr = ctFormatter.format(now) // YYYY-MM-DD in Central Time
+    const formattedDate = formatDate(now)
 
     // 1. Get all coaches
     const { data: coaches, error: coachError } = await supabase
@@ -412,10 +415,10 @@ Deno.serve(async (req) => {
             redFlags.push({ athleteName: name, message: `Slept under 5 hours for ${lowSleepStreak} nights in a row` })
           }
 
-          // Fuel Score in concern zone (below 40) for 3+ days
-          const concernDays = recent.filter(c => c.wellness_score !== null && c.wellness_score < 40).length
+          // Fuel Score in Red Flag zone (below 50) for 3+ days
+          const concernDays = recent.filter(c => c.wellness_score !== null && c.wellness_score < 50).length
           if (concernDays >= 3) {
-            redFlags.push({ athleteName: name, message: `Fuel Score has been in the concern zone (below 40) for ${concernDays} days` })
+            redFlags.push({ athleteName: name, message: `Fuel Score has been in the Red Flag zone (below 50) for ${concernDays} days` })
           }
 
           // Missed check-in for 2+ days

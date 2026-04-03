@@ -224,7 +224,7 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
                   <div
-                    className={`w-full rounded-sm transition-all ${isToday ? barZone.barColor : 'bg-slate-600'} ${isToday ? 'opacity-100' : 'opacity-50'}`}
+                    className={`w-full rounded-sm transition-all ${barZone.barColor} ${isToday ? 'opacity-100' : 'opacity-60'}`}
                     style={{ height: `${barH}px` }}
                   />
                 </div>
