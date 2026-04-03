@@ -176,29 +176,49 @@ interface DonutSegment {
   offset: number
 }
 
-function FuelDonut({ size, strokeWidth, radius, circumference, segments, checkedIn, noCheckin }: {
-  size: number
-  strokeWidth: number
-  radius: number
-  circumference: number
+const ZONE_LEGEND = [
+  { label: 'Locked In', color: 'bg-green-500', dot: '#22c55e' },
+  { label: 'On Track', color: 'bg-blue-500', dot: '#3b82f6' },
+  { label: 'Dial It In', color: 'bg-amber-500', dot: '#f59e0b' },
+  { label: 'Red Flag', color: 'bg-red-500', dot: '#ef4444' },
+  { label: 'No Check-in', color: 'bg-slate-600', dot: '#475569' },
+]
+
+function FuelDonut({ segments, total, checkedIn, noCheckin }: {
   segments: DonutSegment[]
+  total: number
   checkedIn: number
   noCheckin: number
 }) {
   const [hovered, setHovered] = useState<DonutSegment | null>(null)
 
+  const size = 120
+  const strokeWidth = 18
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+
+  // Add gray segment for not-checked-in athletes
+  const allSegments: DonutSegment[] = [...segments]
+  if (noCheckin > 0) {
+    const prevOffset = segments.length > 0 ? segments[segments.length - 1].offset + segments[segments.length - 1].dashLength : 0
+    const pct = noCheckin / total
+    const dashLength = pct * circumference
+    allSegments.push({
+      label: 'No Check-in', emoji: '', count: noCheckin, color: '#475569', range: '—',
+      pct, dashLength, dashGap: circumference - dashLength, offset: prevOffset,
+    })
+  }
+
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center gap-3">
       <div
         className="relative cursor-pointer"
         style={{ width: size, height: size }}
         onMouseLeave={() => setHovered(null)}
       >
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-          {/* Background ring */}
-          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#334155" strokeWidth={strokeWidth} />
-          {/* Zone segments */}
-          {segments.map((seg) => (
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#1e293b" strokeWidth={strokeWidth} />
+          {allSegments.map((seg) => (
             <circle
               key={seg.label}
               cx={size / 2}
@@ -206,35 +226,39 @@ function FuelDonut({ size, strokeWidth, radius, circumference, segments, checked
               r={radius}
               fill="none"
               stroke={seg.color}
-              strokeWidth={hovered?.label === seg.label ? strokeWidth + 4 : strokeWidth}
+              strokeWidth={hovered?.label === seg.label ? strokeWidth + 3 : strokeWidth}
               strokeDasharray={`${seg.dashLength} ${seg.dashGap}`}
               strokeDashoffset={-seg.offset}
               strokeLinecap="butt"
               className="transition-all duration-150"
-              style={{ opacity: hovered && hovered.label !== seg.label ? 0.35 : 1 }}
+              style={{ opacity: hovered && hovered.label !== seg.label ? 0.3 : 1 }}
               onMouseEnter={() => setHovered(seg)}
             />
           ))}
         </svg>
-        {/* Center text — changes on hover */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           {hovered ? (
             <>
-              <span className="text-lg font-bold leading-none" style={{ color: hovered.color }}>{hovered.count}</span>
-              <span className="text-[11px] text-slate-300 mt-0.5 font-medium">{hovered.emoji} {hovered.label}</span>
-              <span className="text-[9px] text-slate-500 mt-0.5">Score {hovered.range}</span>
+              <span className="text-base font-bold leading-none" style={{ color: hovered.color }}>{hovered.count}</span>
+              <span className="text-[10px] text-slate-300 mt-0.5 font-medium leading-tight text-center">{hovered.emoji} {hovered.label}</span>
             </>
           ) : (
             <>
-              <span className="text-2xl font-bold text-white leading-none">{checkedIn}</span>
-              <span className="text-[10px] text-slate-400 mt-0.5">checked in</span>
+              <span className="text-xl font-bold text-white leading-none">{total}</span>
+              <span className="text-[9px] text-slate-500 mt-0.5">athletes</span>
             </>
           )}
         </div>
       </div>
-      {noCheckin > 0 && (
-        <p className="text-slate-600 text-xs mt-2">{noCheckin} not checked in</p>
-      )}
+      {/* Compact inline legend */}
+      <div className="flex items-center gap-3 flex-wrap justify-center">
+        {ZONE_LEGEND.map(z => (
+          <div key={z.label} className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: z.dot }} />
+            <span className="text-[10px] text-slate-500">{z.label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -1144,44 +1168,37 @@ export default function CoachDashboardPage() {
           </div>
         </div>
 
-        {/* Team Fuel Score — Centered Donut Chart with Hover */}
+        {/* Team Fuel Score — Compact Donut */}
         {view === 'overview' && stats.total > 0 && (() => {
           const checkedIn = stats.total - stats.noCheckin
-          const allZones = [
+          const zones = [
             { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, color: '#22c55e', range: '85+' },
             { label: 'On Track', emoji: '💪', count: stats.onTrack, color: '#3b82f6', range: '70-84' },
             { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, color: '#f59e0b', range: '50-69' },
             { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, color: '#ef4444', range: '<50' },
-          ]
-          const zones = allZones.filter(z => z.count > 0)
+          ].filter(z => z.count > 0)
 
-          const size = 160
-          const strokeWidth = 22
-          const radius = (size - strokeWidth) / 2
-          const circumference = 2 * Math.PI * radius
-
-          // Build segment data with angles for hit detection
+          // Compute segments based on total (including no-checkin) for proportional ring
+          const tempSize = 120
+          const tempStroke = 18
+          const tempRadius = (tempSize - tempStroke) / 2
+          const tempCirc = 2 * Math.PI * tempRadius
           let cumOffset = 0
           const segments = zones.map(zone => {
-            const pct = zone.count / checkedIn
-            const dashLength = pct * circumference
-            const seg = { ...zone, pct, dashLength, dashGap: circumference - dashLength, offset: cumOffset }
+            const pct = zone.count / stats.total
+            const dashLength = pct * tempCirc
+            const seg = { ...zone, pct, dashLength, dashGap: tempCirc - dashLength, offset: cumOffset }
             cumOffset += dashLength
             return seg
           })
 
           return (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 mb-6">
-              <div className="flex items-center justify-between mb-3">
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 mb-6">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="text-white font-semibold text-sm">Team Fuel Score</h3>
-                <span className="text-slate-500 text-xs">{checkedIn} of {stats.total} checked in</span>
+                <span className="text-slate-500 text-xs">{checkedIn}/{stats.total} checked in</span>
               </div>
-
-              {checkedIn > 0 ? (
-                <FuelDonut size={size} strokeWidth={strokeWidth} radius={radius} circumference={circumference} segments={segments} checkedIn={checkedIn} noCheckin={stats.noCheckin} />
-              ) : (
-                <p className="text-slate-500 text-sm text-center py-4">No check-in data yet. Athletes need to complete their daily check-in.</p>
-              )}
+              <FuelDonut segments={segments} total={stats.total} checkedIn={checkedIn} noCheckin={stats.noCheckin} />
             </div>
           )
         })()}
