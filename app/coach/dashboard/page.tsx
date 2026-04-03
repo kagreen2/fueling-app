@@ -192,8 +192,8 @@ function FuelDonut({ segments, total, checkedIn, noCheckin }: {
 }) {
   const [hovered, setHovered] = useState<DonutSegment | null>(null)
 
-  const size = 80
-  const strokeWidth = 12
+  const size = 100
+  const strokeWidth = 14
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
 
