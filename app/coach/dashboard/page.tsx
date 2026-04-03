@@ -192,8 +192,8 @@ function FuelDonut({ segments, total, checkedIn, noCheckin }: {
 }) {
   const [hovered, setHovered] = useState<DonutSegment | null>(null)
 
-  const size = 120
-  const strokeWidth = 18
+  const size = 80
+  const strokeWidth = 12
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
 
@@ -210,9 +210,9 @@ function FuelDonut({ segments, total, checkedIn, noCheckin }: {
   }
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex items-center gap-3">
       <div
-        className="relative cursor-pointer"
+        className="relative cursor-pointer flex-shrink-0"
         style={{ width: size, height: size }}
         onMouseLeave={() => setHovered(null)}
       >
@@ -226,7 +226,7 @@ function FuelDonut({ segments, total, checkedIn, noCheckin }: {
               r={radius}
               fill="none"
               stroke={seg.color}
-              strokeWidth={hovered?.label === seg.label ? strokeWidth + 3 : strokeWidth}
+              strokeWidth={hovered?.label === seg.label ? strokeWidth + 2 : strokeWidth}
               strokeDasharray={`${seg.dashLength} ${seg.dashGap}`}
               strokeDashoffset={-seg.offset}
               strokeLinecap="butt"
@@ -239,23 +239,23 @@ function FuelDonut({ segments, total, checkedIn, noCheckin }: {
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           {hovered ? (
             <>
-              <span className="text-base font-bold leading-none" style={{ color: hovered.color }}>{hovered.count}</span>
-              <span className="text-[10px] text-slate-300 mt-0.5 font-medium leading-tight text-center">{hovered.emoji} {hovered.label}</span>
+              <span className="text-xs font-bold leading-none" style={{ color: hovered.color }}>{hovered.count}</span>
+              <span className="text-[8px] text-slate-300 mt-0.5 font-medium leading-tight text-center">{hovered.label}</span>
             </>
           ) : (
             <>
-              <span className="text-xl font-bold text-white leading-none">{total}</span>
-              <span className="text-[9px] text-slate-500 mt-0.5">athletes</span>
+              <span className="text-sm font-bold text-white leading-none">{checkedIn}/{total}</span>
+              <span className="text-[8px] text-slate-500 mt-0.5">checked in</span>
             </>
           )}
         </div>
       </div>
       {/* Compact inline legend */}
-      <div className="flex items-center gap-3 flex-wrap justify-center">
+      <div className="flex flex-col gap-0.5">
         {ZONE_LEGEND.map(z => (
           <div key={z.label} className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: z.dot }} />
-            <span className="text-[10px] text-slate-500">{z.label}</span>
+            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: z.dot }} />
+            <span className="text-[9px] text-slate-500 leading-tight">{z.label}</span>
           </div>
         ))}
       </div>
@@ -1168,47 +1168,44 @@ export default function CoachDashboardPage() {
           </div>
         </div>
 
-        {/* Team Fuel Score — Compact Donut */}
-        {view === 'overview' && stats.total > 0 && (() => {
-          const checkedIn = stats.total - stats.noCheckin
-          const zones = [
-            { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, color: '#22c55e', range: '85+' },
-            { label: 'On Track', emoji: '💪', count: stats.onTrack, color: '#3b82f6', range: '70-84' },
-            { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, color: '#f59e0b', range: '50-69' },
-            { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, color: '#ef4444', range: '<50' },
-          ].filter(z => z.count > 0)
-
-          // Compute segments based on total (including no-checkin) for proportional ring
-          const tempSize = 120
-          const tempStroke = 18
-          const tempRadius = (tempSize - tempStroke) / 2
-          const tempCirc = 2 * Math.PI * tempRadius
-          let cumOffset = 0
-          const segments = zones.map(zone => {
-            const pct = zone.count / stats.total
-            const dashLength = pct * tempCirc
-            const seg = { ...zone, pct, dashLength, dashGap: tempCirc - dashLength, offset: cumOffset }
-            cumOffset += dashLength
-            return seg
-          })
-
-          return (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-white font-semibold text-sm">Team Fuel Score</h3>
-                <span className="text-slate-500 text-xs">{checkedIn}/{stats.total} checked in</span>
-              </div>
-              <FuelDonut segments={segments} total={stats.total} checkedIn={checkedIn} noCheckin={stats.noCheckin} />
-            </div>
-          )
-        })()}
-
         {/* Overview View */}
         {view === 'overview' && (
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-              <h3 className="text-white font-semibold">Team Overview</h3>
-              <p className="text-slate-400 text-sm">{filteredAthletes.length} athletes</p>
+            {/* Header with embedded donut */}
+            <div className="px-4 py-3 border-b border-slate-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <h3 className="text-white font-semibold">Team Overview</h3>
+                  {/* Inline donut */}
+                  {stats.total > 0 && (() => {
+                    const checkedIn = stats.total - stats.noCheckin
+                    const zones = [
+                      { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, color: '#22c55e', range: '85+' },
+                      { label: 'On Track', emoji: '💪', count: stats.onTrack, color: '#3b82f6', range: '70-84' },
+                      { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, color: '#f59e0b', range: '50-69' },
+                      { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, color: '#ef4444', range: '<50' },
+                    ].filter(z => z.count > 0)
+
+                    const tempSize = 120
+                    const tempStroke = 18
+                    const tempRadius = (tempSize - tempStroke) / 2
+                    const tempCirc = 2 * Math.PI * tempRadius
+                    let cumOffset = 0
+                    const segments = zones.map(zone => {
+                      const pct = zone.count / stats.total
+                      const dashLength = pct * tempCirc
+                      const seg = { ...zone, pct, dashLength, dashGap: tempCirc - dashLength, offset: cumOffset }
+                      cumOffset += dashLength
+                      return seg
+                    })
+
+                    return (
+                      <FuelDonut segments={segments} total={stats.total} checkedIn={checkedIn} noCheckin={stats.noCheckin} />
+                    )
+                  })()}
+                </div>
+                <p className="text-slate-400 text-sm">{filteredAthletes.length} athletes</p>
+              </div>
             </div>
 
             {filteredAthletes.length === 0 ? (
