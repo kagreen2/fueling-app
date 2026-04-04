@@ -116,12 +116,34 @@ export default function AthleteDashboard() {
   const [showCheckinReminder, setShowCheckinReminder] = useState(false)
   const [checkinStreak, setCheckinStreak] = useState(0)
   const [loadError, setLoadError] = useState(false)
+  const [confirmDeleteMeal, setConfirmDeleteMeal] = useState<string | null>(null)
+  const [deletingMeal, setDeletingMeal] = useState<string | null>(null)
   const [pullDistance, setPullDistance] = useState(0)
   const [isPulling, setIsPulling] = useState(false)
   const touchStartY = useRef(0)
   const mainRef = useRef<HTMLDivElement>(null)
 
   const PULL_THRESHOLD = 80
+
+  async function handleDeleteMeal(mealId: string) {
+    setDeletingMeal(mealId)
+    try {
+      const { error } = await supabase
+        .from('meal_logs')
+        .delete()
+        .eq('id', mealId)
+
+      if (!error) {
+        setRecentMeals(prev => prev.filter(m => m.id !== mealId))
+        setConfirmDeleteMeal(null)
+        // Reload data to update nutrition totals
+        loadData()
+      }
+    } catch (err) {
+      console.error('Error deleting meal:', err)
+    }
+    setDeletingMeal(null)
+  }
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (mainRef.current && mainRef.current.scrollTop <= 0) {
@@ -812,10 +834,10 @@ export default function AthleteDashboard() {
                 const fatPct = totalMacros > 0 ? ((meal.fat || 0) / totalMacros) * 100 : 0
                 
                 return (
-                  <Card key={i} className="hover:border-purple-600/50 transition-all">
+                  <Card key={meal.id || i} className="hover:border-purple-600/50 transition-all">
                     <CardContent>
                       <div className="space-y-3">
-                        {/* Title and confidence */}
+                        {/* Title, confidence, and delete */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <h4 className="font-semibold text-white text-lg">{meal.meal_title}</h4>
@@ -889,6 +911,36 @@ export default function AthleteDashboard() {
                             <p className="text-xs text-slate-400 font-medium mb-1">Next Step</p>
                             <p className="text-sm text-slate-200">{meal.ai_next_step}</p>
                           </div>
+                        )}
+
+                        {/* Delete meal */}
+                        {confirmDeleteMeal === meal.id ? (
+                          <div className="flex items-center justify-between bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                            <p className="text-sm text-red-300">Remove this meal?</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleDeleteMeal(meal.id)}
+                                disabled={deletingMeal === meal.id}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors"
+                              >
+                                {deletingMeal === meal.id ? '...' : 'Yes, Remove'}
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteMeal(null)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteMeal(meal.id)}
+                            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          >
+                            <span>🗑️</span>
+                            <span>Remove Meal</span>
+                          </button>
                         )}
                       </div>
                     </CardContent>
