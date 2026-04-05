@@ -19,9 +19,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fuel Different — Evidence-Based Nutrition Coaching",
-  description: "AI-powered nutrition tracking and coaching platform for athletes and fitness enthusiasts. Personalized macros, InBody integration, smart meal tracking, and real-time coach communication.",
-  keywords: ["nutrition tracking", "athlete nutrition", "sports nutrition", "meal tracking", "macro calculator", "InBody", "nutrition coaching", "fitness nutrition"],
+  title: "Fuel Different — The Athlete Wellness & Nutrition Platform",
+  description: "Daily wellness check-ins, AI-powered meal tracking, and real-time coach dashboards. One platform to track how your athletes feel, eat, and perform.",
+  keywords: ["athlete wellness", "fuel score", "wellness check-in", "nutrition tracking", "sports nutrition", "meal tracking", "coach dashboard", "athlete monitoring", "InBody", "nutrition coaching"],
   robots: {
     index: true,
     follow: true,
