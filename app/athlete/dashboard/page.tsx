@@ -19,9 +19,9 @@ interface AthleteStats {
   todayCarbs: number
   todayFat: number
   todayWater: number
-  thisWeekMeals: number
   thisWeekCheckIns: number
-  thisWeekHydration: number
+  todayMealsCount: number
+  proteinStreak: number
   calorieGoal: number
   proteinGoal: number
   carbsGoal: number
@@ -93,9 +93,9 @@ export default function AthleteDashboard() {
     todayCarbs: 0,
     todayFat: 0,
     todayWater: 0,
-    thisWeekMeals: 0,
     thisWeekCheckIns: 0,
-    thisWeekHydration: 0,
+    todayMealsCount: 0,
+    proteinStreak: 0,
     calorieGoal: 0,
     proteinGoal: 0,
     carbsGoal: 0,
@@ -382,6 +382,7 @@ export default function AthleteDashboard() {
           todayFat: todayStats.fat,
         }))
         setRecentMeals(mealsData.slice(0, 3))
+        setStats(prev => ({ ...prev, todayMealsCount: mealsData.length }))
       }
 
       // Get today's hydration
@@ -512,31 +513,49 @@ export default function AthleteDashboard() {
       // Get this week stats
       const weekAgo = getLocalDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
       
-      const { data: weekMeals } = await supabase
-        .from('meal_logs')
-        .select('id')
-        .eq('athlete_id', athleteData.id)
-        .gte('date', weekAgo)
-
       const { data: weekCheckins } = await supabase
         .from('daily_checkins')
         .select('id')
         .eq('athlete_id', athleteData.id)
         .gte('date', weekAgo)
 
-      const { data: weekHydration } = await supabase
-        .from('hydration_logs')
-        .select('water_oz')
-        .eq('athlete_id', athleteData.id)
-        .gte('date', weekAgo)
+      // Calculate protein streak: consecutive days (going back) where daily protein >= protein goal
+      let proteinStreakCount = 0
+      if (recsData?.daily_protein_g) {
+        const { data: recentMealDays } = await supabase
+          .from('meal_logs')
+          .select('date, protein')
+          .eq('athlete_id', athleteData.id)
+          .gte('date', getLocalDateString(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)))
+          .order('date', { ascending: false })
 
-      const weekHydrationTotal = weekHydration?.reduce((acc, log) => acc + (log.water_oz || 0), 0) || 0
+        if (recentMealDays && recentMealDays.length > 0) {
+          // Group protein by date
+          const proteinByDate: Record<string, number> = {}
+          for (const meal of recentMealDays) {
+            proteinByDate[meal.date] = (proteinByDate[meal.date] || 0) + (meal.protein || 0)
+          }
+
+          // Count consecutive days hitting protein goal (starting from yesterday, skip today since it's in progress)
+          const checkDate = new Date()
+          checkDate.setDate(checkDate.getDate() - 1)
+          while (true) {
+            const dateStr = getLocalDateString(checkDate)
+            const dayProtein = proteinByDate[dateStr] || 0
+            if (dayProtein >= recsData.daily_protein_g) {
+              proteinStreakCount++
+              checkDate.setDate(checkDate.getDate() - 1)
+            } else {
+              break
+            }
+          }
+        }
+      }
 
       setStats(prev => ({
         ...prev,
-        thisWeekMeals: weekMeals?.length || 0,
         thisWeekCheckIns: weekCheckins?.length || 0,
-        thisWeekHydration: weekHydrationTotal,
+        proteinStreak: proteinStreakCount,
       }))
 
       setLoading(false)
@@ -710,13 +729,16 @@ export default function AthleteDashboard() {
           </div>
         </div>
 
-        {/* This Week — compact single row */}
+        {/* Today's Stats — compact single row */}
         <div className="mb-6">
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 flex items-center justify-around">
-            <div className="text-center">
-              <p className="text-xl font-bold text-white">{stats.thisWeekMeals}</p>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Meals</p>
-            </div>
+            <button
+              onClick={() => router.push('/athlete/meals/history')}
+              className="text-center hover:opacity-80 transition-opacity"
+            >
+              <p className="text-xl font-bold text-white">{stats.todayMealsCount}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Today's Meals</p>
+            </button>
             <div className="w-px h-8 bg-slate-700" />
             <div className="text-center">
               <p className="text-xl font-bold text-white">{stats.thisWeekCheckIns}</p>
@@ -724,8 +746,8 @@ export default function AthleteDashboard() {
             </div>
             <div className="w-px h-8 bg-slate-700" />
             <div className="text-center">
-              <p className="text-xl font-bold text-white">{Math.round(stats.thisWeekHydration)}</p>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">oz Water</p>
+              <p className="text-xl font-bold text-white">{stats.proteinStreak}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">🥩 Protein Streak</p>
             </div>
           </div>
         </div>
