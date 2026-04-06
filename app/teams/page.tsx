@@ -393,6 +393,7 @@ export default function TeamsPage() {
                 { num: '02', title: 'Zone Distribution', desc: 'A donut chart shows how many athletes are Locked In, On Track, Dial It In, or Red Flag — your team\'s health at a glance.' },
                 { num: '03', title: 'Smart Alerts', desc: 'Automatic notifications when athletes hit Red Flag zones, show declining trends over 3+ days, miss check-ins, or report high stress.' },
                 { num: '04', title: 'Daily Recap Email', desc: 'Every night, coaches receive a full summary — who checked in, who didn\'t, red flags, nutrition compliance, and action items.' },
+                { num: '05', title: 'Supplement Visibility', desc: 'See what every athlete is taking. Athletes log their supplements, the system flags anything that needs review, and coaches can recommend approved alternatives — keeping your program\'s supplement protocol clean.' },
               ].map((f) => (
                 <div key={f.num} className="flex gap-4">
                   <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 mt-1">
