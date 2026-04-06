@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
+import Link from 'next/link'
 
 const LIGHTNING_ICON = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-lightning-icon-B5LtaPwMAWwPkoULwNEbea.png'
 const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-hero-bg-MVnKGJNhByQXjBHybbrXBq.webp'
@@ -75,10 +76,10 @@ export default function Home() {
             <span className="text-xl font-bold text-white tracking-tight">Fuel Different</span>
           </div>
           <div className="hidden sm:flex items-center gap-6 text-sm text-slate-400">
+            <Link href="/teams" className="hover:text-white transition-colors">For Teams</Link>
+            <Link href="/gyms" className="hover:text-white transition-colors">For Gyms & Trainers</Link>
             <button onClick={() => scrollToSection('the-edge')} className="hover:text-white transition-colors">The Edge</button>
             <button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">How It Works</button>
-            <button onClick={() => scrollToSection('fitness-enthusiasts')} className="hover:text-white transition-colors">Fitness Enthusiasts</button>
-            <button onClick={() => scrollToSection('for-coaches')} className="hover:text-white transition-colors">For Coaches</button>
           </div>
           <div className="flex gap-2.5">
             <Button
@@ -507,10 +508,10 @@ export default function Home() {
             <div>
               <h4 className="font-semibold text-slate-300 mb-4 text-sm uppercase tracking-wider">Product</h4>
               <ul className="space-y-2.5 text-sm text-slate-500">
+                <li><Link href="/teams" className="hover:text-white transition-colors">For Teams</Link></li>
+                <li><Link href="/gyms" className="hover:text-white transition-colors">For Gyms & Trainers</Link></li>
                 <li><button onClick={() => scrollToSection('the-edge')} className="hover:text-white transition-colors">The Edge</button></li>
                 <li><button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">How It Works</button></li>
-                <li><button onClick={() => scrollToSection('fitness-enthusiasts')} className="hover:text-white transition-colors">Fitness Enthusiasts</button></li>
-                <li><button onClick={() => scrollToSection('for-coaches')} className="hover:text-white transition-colors">For Coaches</button></li>
               </ul>
             </div>
             <div>
