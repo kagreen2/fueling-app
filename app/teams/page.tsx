@@ -34,7 +34,7 @@ export default function TeamsPage() {
             <span className="text-xl font-bold text-white tracking-tight">Fuel Different</span>
           </Link>
           <div className="hidden sm:flex items-center gap-6 text-sm">
-            <span className="text-green-400 font-medium">For Teams</span>
+            <span className="text-purple-400 font-medium">For Teams</span>
             <Link href="/gyms" className="text-slate-400 hover:text-white transition-colors">For Gyms & Trainers</Link>
             <button onClick={() => scrollToSection('fuel-score')} className="text-slate-400 hover:text-white transition-colors">Fuel Score</button>
             <button onClick={() => scrollToSection('features')} className="text-slate-400 hover:text-white transition-colors">Features</button>
@@ -66,15 +66,15 @@ export default function TeamsPage() {
         <div className="relative z-10 max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/25 mb-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-xs font-semibold text-green-300 uppercase tracking-wider">Athlete Wellness Platform</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 mb-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Athlete Wellness Platform</span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[0.95] tracking-tight mb-6">
                 <span className="text-white">Know Your</span>
                 <br />
-                <span className="text-green-400">Fuel Score</span>
+                <span className="text-purple-400">Fuel Score</span>
               </h1>
 
               <p className="text-lg text-slate-400 max-w-lg leading-relaxed mb-8">
@@ -114,7 +114,7 @@ export default function TeamsPage() {
 
             {/* Right: Fuel Score preview card */}
             <div className="relative">
-              <div className="absolute -inset-8 bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -inset-8 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
               <img src={FUEL_SCORE_IMG} alt="Fuel Score Dashboard" className="relative w-full max-w-md mx-auto rounded-2xl shadow-2xl shadow-black/30 border border-slate-700/40" />
             </div>
           </div>
@@ -125,9 +125,9 @@ export default function TeamsPage() {
       <section id="fuel-score" className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-green-400 uppercase tracking-widest mb-3">The Fuel Score</p>
+            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">The Fuel Score</p>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              One Number. <span className="text-green-400">Complete Clarity.</span>
+              One Number. <span className="text-purple-400">Complete Clarity.</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
               Every morning, athletes rate their sleep, stress, energy, soreness, and hydration on simple sliders. The Fuel Score calculates instantly — a 0-100 number that tells coaches exactly who&apos;s ready and who needs attention.
@@ -163,7 +163,7 @@ export default function TeamsPage() {
 
             {/* Check-in image */}
             <div className="relative">
-              <div className="absolute -inset-8 bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -inset-8 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
               <img src={CHECKIN_IMG} alt="Daily Check-in Flow" className="relative w-full max-w-md mx-auto rounded-2xl shadow-2xl shadow-black/30" />
             </div>
           </div>
@@ -174,9 +174,9 @@ export default function TeamsPage() {
       <section id="features" className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-green-400 uppercase tracking-widest mb-3">Platform Features</p>
+            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">Platform Features</p>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Built for Athletes <span className="text-green-400">and Coaches</span>
+              Built for Athletes <span className="text-purple-400">and Coaches</span>
             </h2>
           </div>
 
@@ -184,42 +184,42 @@ export default function TeamsPage() {
             {[
               {
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 ),
                 title: '30-Second Check-ins',
                 desc: 'Five quick sliders — sleep, stress, energy, soreness, hydration. Your Fuel Score calculates instantly. Do it every morning before practice.',
               },
               {
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
                 ),
                 title: 'Consistency Streaks',
                 desc: 'Check in 5+ days in a row and earn a Fuel Score bonus. Coaches see who\'s consistent and who\'s ghosting. Gamified accountability.',
               },
               {
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                 ),
                 title: 'Trend Tracking',
                 desc: 'See if your score is climbing or dropping with day-over-day indicators. A 65 that was 80 yesterday is very different from a 65 that was 50.',
               },
               {
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 ),
                 title: 'AI Meal Scoring',
                 desc: 'Snap a photo of your plate and get instant calorie estimates, macro breakdowns, and a meal quality score powered by AI.',
               },
               {
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                 ),
                 title: 'Smart Alerts',
                 desc: 'Coaches get automatic alerts when athletes hit Red Flag zones, miss check-ins, or show declining trends over 3+ days.',
               },
               {
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 ),
                 title: 'Coach Messaging',
                 desc: 'Direct messaging between athletes and coaches. Add notes to check-ins. Daily recap emails keep coaches in the loop.',
@@ -227,7 +227,7 @@ export default function TeamsPage() {
             ].map((feature, i) => (
               <div
                 key={i}
-                className="group bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 hover:border-green-500/40 hover:bg-slate-800/60 transition-all duration-300"
+                className="group bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 hover:border-purple-500/40 hover:bg-slate-800/60 transition-all duration-300"
               >
                 <div className="w-11 h-11 rounded-xl bg-slate-700/60 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                   {feature.icon}
@@ -245,7 +245,7 @@ export default function TeamsPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Three Steps to <span className="text-green-400">Better Performance</span>
+              Three Steps to <span className="text-purple-400">Better Performance</span>
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto text-lg">
               No complicated setup. Your athletes are checking in within minutes.
@@ -277,9 +277,9 @@ export default function TeamsPage() {
       <section className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-green-400 uppercase tracking-widest mb-3">For Coaches</p>
+            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">For Coaches</p>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Complete Team <span className="text-green-400">Visibility</span>
+              Complete Team <span className="text-purple-400">Visibility</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
               See every athlete&apos;s Fuel Score, streak, and compliance at a glance. Know who&apos;s locked in and who needs attention — without asking.
@@ -299,8 +299,8 @@ export default function TeamsPage() {
                 { num: '04', title: 'Daily Recap Email', desc: 'Every night at 11:30 PM, coaches receive a full summary — who checked in, who didn\'t, red flags, and action items.' },
               ].map((f) => (
                 <div key={f.num} className="flex gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0 mt-1">
-                    <span className="text-green-400 font-bold text-sm">{f.num}</span>
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 mt-1">
+                    <span className="text-purple-400 font-bold text-sm">{f.num}</span>
                   </div>
                   <div>
                     <h4 className="text-lg font-bold text-white">{f.title}</h4>
@@ -318,21 +318,21 @@ export default function TeamsPage() {
         <div className="max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="lg:order-2">
-              <p className="text-sm font-semibold text-green-400 uppercase tracking-widest mb-3">Nutrition Tracking</p>
+              <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">Nutrition Tracking</p>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
                 Track Every Meal.<br />
-                <span className="text-green-400">Hit Every Target.</span>
+                <span className="text-purple-400">Hit Every Target.</span>
               </h2>
               <p className="text-lg text-slate-400 leading-relaxed mb-6">
                 Personalized calorie and macro goals based on your sport, position, and body composition. Log meals with AI photo analysis or quick manual entry. Coaches see compliance trends across the entire roster.
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60">
-                  <p className="text-2xl font-bold text-green-400">AI</p>
+                  <p className="text-2xl font-bold text-purple-400">AI</p>
                   <p className="text-xs text-slate-400 mt-1">Photo meal analysis</p>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60">
-                  <p className="text-2xl font-bold text-green-400">ISSN</p>
+                  <p className="text-2xl font-bold text-purple-400">ISSN</p>
                   <p className="text-xs text-slate-400 mt-1">Evidence-based targets</p>
                 </div>
               </div>
@@ -342,7 +342,7 @@ export default function TeamsPage() {
               <div className="relative rounded-2xl overflow-hidden bg-slate-800/30 p-8 border border-slate-700/60">
                 <div className="space-y-5">
                   <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
+                    <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
                     <span className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Today&apos;s Nutrition</span>
                   </div>
                   {[
@@ -372,15 +372,15 @@ export default function TeamsPage() {
       <section className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-3xl mx-auto text-center">
           <div className="relative rounded-3xl overflow-hidden p-12 md:p-16">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-900/20 via-slate-900 to-slate-900" />
-            <div className="absolute inset-0 border border-green-500/20 rounded-3xl" />
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-green-500/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-900 to-slate-900" />
+            <div className="absolute inset-0 border border-purple-500/20 rounded-3xl" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
 
             <div className="relative space-y-6">
               <LightningBolt className="w-12 h-12 mx-auto" />
               <h2 className="text-3xl sm:text-4xl font-bold">
                 Ready to Fuel<br />
-                <span className="text-green-400">Different?</span>
+                <span className="text-purple-400">Different?</span>
               </h2>
               <p className="text-lg text-slate-400 max-w-lg mx-auto">
                 Give your athletes the accountability tool they actually want to use. Give your coaching staff the visibility they need.
