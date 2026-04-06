@@ -212,27 +212,43 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
         🎯 <span className="text-green-400/80 font-medium">85+</span> is the Locked In zone — where recovery, performance, and body comp gains are maximized.
       </p>
 
-      {/* Sparkline (if 2+ days of data) */}
-      {last7Scores.length >= 2 && (
-        <div className="mb-3 pt-3 border-t border-slate-700/50">
-          <p className="text-[10px] text-slate-500 mb-2 uppercase tracking-wider">Last {last7Scores.length} Days</p>
-          <div className="flex items-end gap-1.5 h-8">
-            {last7Scores.map((score, i) => {
-              const isToday = i === last7Scores.length - 1
-              const barH = Math.max(4, (score / 100) * 32)
-              const barZone = getZoneInfo(score)
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                  <div
-                    className={`w-full rounded-sm transition-all ${barZone.barColor} ${isToday ? 'opacity-100' : 'opacity-60'}`}
-                    style={{ height: `${barH}px` }}
-                  />
-                </div>
-              )
-            })}
+      {/* Last 4 Days as colored score circles */}
+      {last7Scores.length >= 2 && (() => {
+        const last4 = last7Scores.slice(-4)
+        const getCircleClasses = (score: number) => {
+          if (score >= 85) return 'border-green-400 text-green-400'
+          if (score >= 70) return 'border-blue-400 text-blue-400'
+          if (score >= 50) return 'border-amber-400 text-amber-400'
+          return 'border-red-400 text-red-400'
+        }
+        const getRingClass = (score: number) => {
+          if (score >= 85) return 'ring-green-400/40'
+          if (score >= 70) return 'ring-blue-400/40'
+          if (score >= 50) return 'ring-amber-400/40'
+          return 'ring-red-400/40'
+        }
+        return (
+          <div className="mb-3 pt-3 border-t border-slate-700/50">
+            <p className="text-[10px] text-slate-500 mb-3 uppercase tracking-wider">Last {last4.length} Days</p>
+            <div className="flex items-center justify-between gap-3">
+              {last4.map((score, i) => {
+                const isLatest = i === last4.length - 1
+                return (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <div
+                      className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold border-2 ${getCircleClasses(score)} ${
+                        isLatest ? `ring-2 ring-offset-2 ring-offset-slate-800 ${getRingClass(score)}` : 'opacity-75'
+                      }`}
+                    >
+                      {score}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Insight */}
       {insight && (
