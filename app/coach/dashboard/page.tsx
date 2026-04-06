@@ -184,16 +184,17 @@ const ZONE_LEGEND = [
   { label: 'No Check-in', color: 'bg-slate-600', dot: '#475569' },
 ]
 
-function FuelDonut({ segments, total, checkedIn, noCheckin }: {
+function FuelDonut({ segments, total, checkedIn, noCheckin, large }: {
   segments: DonutSegment[]
   total: number
   checkedIn: number
   noCheckin: number
+  large?: boolean
 }) {
   const [hovered, setHovered] = useState<DonutSegment | null>(null)
 
-  const size = 100
-  const strokeWidth = 14
+  const size = large ? 220 : 100
+  const strokeWidth = large ? 28 : 14
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
 
@@ -204,9 +205,74 @@ function FuelDonut({ segments, total, checkedIn, noCheckin }: {
     const pct = noCheckin / total
     const dashLength = pct * circumference
     allSegments.push({
-      label: 'No Check-in', emoji: '', count: noCheckin, color: '#475569', range: '—',
+      label: 'No Check-in', emoji: '', count: noCheckin, color: '#475569', range: '\u2014',
       pct, dashLength, dashGap: circumference - dashLength, offset: prevOffset,
     })
+  }
+
+  if (large) {
+    return (
+      <div className="flex flex-col items-center">
+        <div
+          className="relative cursor-pointer"
+          style={{ width: size, height: size }}
+          onMouseLeave={() => setHovered(null)}
+        >
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+            <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#1e293b" strokeWidth={strokeWidth} />
+            {allSegments.map((seg) => (
+              <circle
+                key={seg.label}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke={seg.color}
+                strokeWidth={hovered?.label === seg.label ? strokeWidth + 4 : strokeWidth}
+                strokeDasharray={`${seg.dashLength} ${seg.dashGap}`}
+                strokeDashoffset={-seg.offset}
+                strokeLinecap="butt"
+                className="transition-all duration-200"
+                style={{ opacity: hovered && hovered.label !== seg.label ? 0.25 : 1 }}
+                onMouseEnter={() => setHovered(seg)}
+              />
+            ))}
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            {hovered ? (
+              <>
+                <span className="text-2xl font-bold leading-none" style={{ color: hovered.color }}>{hovered.count}</span>
+                <span className="text-xs text-slate-300 mt-1 font-medium">{hovered.label}</span>
+                <span className="text-[10px] text-slate-500 mt-0.5">{Math.round(hovered.pct * 100)}%</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-8 h-8 text-slate-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <span className="text-lg font-bold text-white leading-none">{checkedIn}/{total}</span>
+                <span className="text-[10px] text-slate-500 mt-0.5">checked in</span>
+              </>
+            )}
+          </div>
+        </div>
+        {/* Percentage labels around the chart */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5 w-full">
+          {ZONE_LEGEND.map(z => {
+            const seg = allSegments.find(s => s.label === z.label)
+            const count = seg?.count || 0
+            const pct = total > 0 ? Math.round((count / total) * 100) : 0
+            return (
+              <div key={z.label} className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: z.dot }} />
+                <div>
+                  <span className="text-white text-sm font-semibold">{pct}%</span>
+                  <span className="text-slate-500 text-xs ml-1">{z.label}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -250,7 +316,6 @@ function FuelDonut({ segments, total, checkedIn, noCheckin }: {
           )}
         </div>
       </div>
-      {/* Compact inline legend */}
       <div className="flex flex-col gap-0.5">
         {ZONE_LEGEND.map(z => (
           <div key={z.label} className="flex items-center gap-1">
@@ -905,7 +970,9 @@ export default function CoachDashboardPage() {
     const redFlag = withScores.filter(a => (a.wellnessScore || 0) < 50).length
     const noCheckin = filteredAthletes.filter(a => a.wellnessScore === null).length
 
-    return { total, loggedToday, avgCompliance, avgStreak, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgWellness, lockedIn, onTrack, dialItIn, redFlag, noCheckin }
+    const activeStreaks = filteredAthletes.filter(a => a.checkinStreak >= 2).length
+
+    return { total, loggedToday, avgCompliance, avgStreak, activeStreaks, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgWellness, lockedIn, onTrack, dialItIn, redFlag, noCheckin }
   }, [filteredAthletes, redFlags, wellnessAlerts])
 
   if (loading) {
@@ -1125,251 +1192,164 @@ export default function CoachDashboardPage() {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Athletes</p>
-            <p className="text-2xl font-bold text-white mt-1">{stats.total}</p>
-          </div>
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Logged Today</p>
-            <p className="text-2xl font-bold text-white mt-1">
-              <span className={stats.loggedToday > 0 ? 'text-green-400' : 'text-slate-500'}>{stats.loggedToday}</span>
-              <span className="text-slate-500 text-lg">/{stats.total}</span>
-            </p>
-          </div>
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Avg Compliance</p>
-            <p className="text-2xl font-bold text-white mt-1">
-              <span className={stats.avgCompliance >= 70 ? 'text-green-400' : stats.avgCompliance >= 40 ? 'text-yellow-400' : 'text-red-400'}>
-                {stats.avgCompliance}%
-              </span>
-            </p>
-          </div>
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Avg Streak</p>
-            <p className="text-2xl font-bold text-white mt-1">{stats.avgStreak} <span className="text-slate-500 text-sm">days</span></p>
-          </div>
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Avg Wellness</p>
-            <p className="text-2xl font-bold mt-1">
+        {/* Summary Stat Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
+            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Team Wellness</p>
+            <p className="text-4xl font-bold mt-2">
               {stats.avgWellness !== null ? (
-                <span className={getWellnessColor(stats.avgWellness)}>{stats.avgWellness}</span>
+                <span className={getWellnessColor(stats.avgWellness)}>{stats.avgWellness}%</span>
               ) : (
-                <span className="text-slate-500">—</span>
+                <span className="text-slate-500">\u2014</span>
               )}
             </p>
           </div>
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-            <p className="text-slate-400 text-xs font-medium uppercase tracking-wider">Alerts</p>
-            <p className="text-2xl font-bold mt-1">
-              <span className={(stats.redFlagCount + stats.wellnessAlertCount) > 0 ? 'text-red-400' : 'text-green-400'}>{stats.redFlagCount + stats.wellnessAlertCount}</span>
-            </p>
+          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
+            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Avg. Compliance</p>
+            <p className="text-4xl font-bold text-white mt-2">{stats.avgCompliance}%</p>
+          </div>
+          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
+            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Active Streaks</p>
+            <p className="text-4xl font-bold text-white mt-2">{stats.activeStreaks}</p>
+          </div>
+          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
+            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Total Athletes</p>
+            <p className="text-4xl font-bold text-white mt-2">{stats.total}</p>
           </div>
         </div>
 
         {/* Overview View */}
         {view === 'overview' && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-            {/* Header with embedded donut */}
-            <div className="px-4 py-3 border-b border-slate-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <h3 className="text-white font-semibold">Team Overview</h3>
-                  {/* Inline donut */}
-                  {stats.total > 0 && (() => {
-                    const checkedIn = stats.total - stats.noCheckin
-                    const zones = [
-                      { label: 'Locked In', emoji: '🔥', count: stats.lockedIn, color: '#22c55e', range: '85+' },
-                      { label: 'On Track', emoji: '💪', count: stats.onTrack, color: '#3b82f6', range: '70-84' },
-                      { label: 'Dial It In', emoji: '⚡', count: stats.dialItIn, color: '#f59e0b', range: '50-69' },
-                      { label: 'Red Flag', emoji: '🚩', count: stats.redFlag, color: '#ef4444', range: '<50' },
-                    ].filter(z => z.count > 0)
+          <div className="space-y-6">
+            {/* Two-column layout: Donut Chart + Athlete Table */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left: Team Health Distribution */}
+              <div className="lg:col-span-4 bg-slate-800/60 border border-slate-700/50 rounded-2xl p-6">
+                <h3 className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest mb-6">Team Health Distribution</h3>
+                {stats.total > 0 ? (() => {
+                  const checkedIn = stats.total - stats.noCheckin
+                  const zones = [
+                    { label: 'Locked In', emoji: '\uD83D\uDD25', count: stats.lockedIn, color: '#22c55e', range: '85+' },
+                    { label: 'On Track', emoji: '\uD83D\uDCAA', count: stats.onTrack, color: '#3b82f6', range: '70-84' },
+                    { label: 'Dial It In', emoji: '\u26A1', count: stats.dialItIn, color: '#f59e0b', range: '50-69' },
+                    { label: 'Red Flag', emoji: '\uD83D\uDEA9', count: stats.redFlag, color: '#ef4444', range: '<50' },
+                  ].filter(z => z.count > 0)
 
-                    const tempSize = 120
-                    const tempStroke = 18
-                    const tempRadius = (tempSize - tempStroke) / 2
-                    const tempCirc = 2 * Math.PI * tempRadius
-                    let cumOffset = 0
-                    const segments = zones.map(zone => {
-                      const pct = zone.count / stats.total
-                      const dashLength = pct * tempCirc
-                      const seg = { ...zone, pct, dashLength, dashGap: tempCirc - dashLength, offset: cumOffset }
-                      cumOffset += dashLength
-                      return seg
-                    })
+                  const tempSize = 220
+                  const tempStroke = 28
+                  const tempRadius = (tempSize - tempStroke) / 2
+                  const tempCirc = 2 * Math.PI * tempRadius
+                  let cumOffset = 0
+                  const segments = zones.map(zone => {
+                    const pct = zone.count / stats.total
+                    const dashLength = pct * tempCirc
+                    const seg = { ...zone, pct, dashLength, dashGap: tempCirc - dashLength, offset: cumOffset }
+                    cumOffset += dashLength
+                    return seg
+                  })
 
-                    return (
-                      <FuelDonut segments={segments} total={stats.total} checkedIn={checkedIn} noCheckin={stats.noCheckin} />
-                    )
-                  })()}
+                  return (
+                    <FuelDonut segments={segments} total={stats.total} checkedIn={checkedIn} noCheckin={stats.noCheckin} large />
+                  )
+                })() : (
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                    <svg className="w-12 h-12 mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <p className="text-sm">No data yet</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Athlete Performance & Wellness */}
+              <div className="lg:col-span-8 bg-slate-800/60 border border-slate-700/50 rounded-2xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-700/50">
+                  <h3 className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Athlete Performance & Wellness</h3>
                 </div>
-                <p className="text-slate-400 text-sm">{filteredAthletes.length} athletes</p>
-              </div>
-            </div>
 
-            {filteredAthletes.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-slate-400">No athletes have joined this team yet. Share the invite code with your athletes.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-700 text-left">
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider">
-                        <button onClick={() => handleSort('name')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
-                          Athlete
-                          {sortColumn === 'name' && (
-                            <span className="text-purple-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Today</th>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider">
-                        <button onClick={() => handleSort('wellness')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
-                          Wellness
-                          {sortColumn === 'wellness' && (
-                            <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">7-Day Avg</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Calories</th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Protein</th>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider hidden md:table-cell">
-                        <button onClick={() => handleSort('streak')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
-                          Streak
-                          {sortColumn === 'streak' && (
-                            <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider">
-                        <button onClick={() => handleSort('compliance')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
-                          Compliance <span className="normal-case text-slate-500">(7d trend)</span>
-                          {sortColumn === 'compliance' && (
-                            <span className="text-purple-400 ml-0.5">{sortDirection === 'desc' ? '↓' : '↑'}</span>
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-700/50">
-                    {sortedAthletes.map(a => {
-                      const calPct = a.targetCalories > 0 ? Math.round((a.todayCalories / a.targetCalories) * 100) : 0
-                      const proPct = a.targetProtein > 0 ? Math.round((a.todayProtein / a.targetProtein) * 100) : 0
-                      return (
-                        <tr key={a.id} className="hover:bg-slate-700/30 transition-colors">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-sm font-bold flex-shrink-0">
-                                {a.name.charAt(0).toUpperCase()}
+                {filteredAthletes.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-slate-400">No athletes have joined this team yet. Share the invite code with your athletes.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-slate-700/50 text-left">
+                          <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
+                            <button onClick={() => handleSort('name')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                              Athlete Name
+                              {sortColumn === 'name' && (
+                                <span className="text-purple-400">{sortDirection === 'asc' ? '\u2191' : '\u2193'}</span>
+                              )}
+                            </button>
+                          </th>
+                          <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
+                            <button onClick={() => handleSort('wellness')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                              Wellness Score
+                              {sortColumn === 'wellness' && (
+                                <span className="text-purple-400">{sortDirection === 'desc' ? '\u2193' : '\u2191'}</span>
+                              )}
+                            </button>
+                          </th>
+                          <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
+                            <button onClick={() => handleSort('streak')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                              Streak Count
+                              {sortColumn === 'streak' && (
+                                <span className="text-purple-400">{sortDirection === 'desc' ? '\u2193' : '\u2191'}</span>
+                              )}
+                            </button>
+                          </th>
+                          <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
+                            <button onClick={() => handleSort('compliance')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
+                              Compliance %
+                              {sortColumn === 'compliance' && (
+                                <span className="text-purple-400">{sortDirection === 'desc' ? '\u2193' : '\u2191'}</span>
+                              )}
+                            </button>
+                          </th>
+                          <th className="px-6 py-3"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700/30">
+                        {sortedAthletes.map(a => (
+                          <tr key={a.id} className="hover:bg-slate-700/20 transition-colors cursor-pointer" onClick={() => router.push(`/coach/athlete/${a.id}`)}>
+                            <td className="px-6 py-3.5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-sm font-bold flex-shrink-0">
+                                  {a.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="text-white text-sm font-medium">{a.name}</span>
                               </div>
-                              <div>
-                                <p className="text-white text-sm font-medium">{a.name}</p>
-                                <p className="text-slate-500 text-xs">{formatUserContext(a)}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            {a.loggedToday ? (
-                              <span className="inline-flex items-center gap-1 text-green-400 text-xs font-medium">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                                Logged
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-slate-500 text-xs font-medium">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
-                                Not yet
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            {a.wellnessScore !== null ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-bold ${getWellnessBgColor(a.wellnessScore)} ${getWellnessColor(a.wellnessScore)}`}>
+                            </td>
+                            <td className="px-6 py-3.5">
+                              {a.wellnessScore !== null ? (
+                                <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold ${getWellnessBgColor(a.wellnessScore)} ${getWellnessColor(a.wellnessScore)}`}>
                                   {a.wellnessScore}
                                 </span>
-                                {a.wellnessDaysAgo !== null && a.wellnessDaysAgo > 0 && (
-                                  <span className="text-slate-500 text-[10px]">{a.wellnessDaysAgo}d ago</span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-slate-600 text-xs">No data</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 hidden md:table-cell">
-                            <WellnessSpotlight
-                              checkins={a.recentCheckins.map(c => ({ date: c.date, wellness_score: c.wellness_score }))}
-                              compact
-                              role="coach"
-                            />
-                          </td>
-                          <td className="px-4 py-3 hidden lg:table-cell">
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 bg-slate-700 rounded-full h-1.5">
-                                <div
-                                  className={`h-1.5 rounded-full transition-all ${calPct >= 80 ? 'bg-green-500' : calPct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                  style={{ width: `${Math.min(calPct, 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-slate-300 text-xs font-mono w-20">
-                                {a.todayCalories}/{a.targetCalories > 0 ? a.targetCalories : '—'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 hidden lg:table-cell">
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 bg-slate-700 rounded-full h-1.5">
-                                <div
-                                  className={`h-1.5 rounded-full transition-all ${proPct >= 80 ? 'bg-green-500' : proPct >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                  style={{ width: `${Math.min(proPct, 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-slate-300 text-xs font-mono w-16">
-                                {a.todayProtein}/{a.targetProtein > 0 ? `${a.targetProtein}g` : '—'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 hidden md:table-cell">
-                            <span className="text-white text-sm font-medium">{a.streak}</span>
-                            <span className="text-slate-500 text-xs ml-1">days</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1.5">
+                              ) : (
+                                <span className="text-slate-600 text-xs">\u2014</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-3.5">
+                              <span className="text-white text-sm font-medium">{a.checkinStreak > 0 ? `${a.checkinStreak} Day${a.checkinStreak !== 1 ? 's' : ''}` : '\u2014'}</span>
+                            </td>
+                            <td className="px-6 py-3.5">
                               <span className={`text-sm font-semibold ${
                                 a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
                               }`}>
                                 {a.complianceRate}%
                               </span>
-                              {a.trend === 'up' && (
-                                <svg className="w-3.5 h-3.5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-                              )}
-                              {a.trend === 'down' && (
-                                <svg className="w-3.5 h-3.5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                              )}
-                              {a.trend === 'stable' && (
-                                <span className="text-slate-500 text-xs font-bold">—</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() => router.push(`/coach/athlete/${a.id}`)}
-                              className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                            </td>
+                            <td className="px-6 py-3.5">
+                              <span className="text-purple-400 hover:text-purple-300 text-sm font-medium">View \u2192</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 
