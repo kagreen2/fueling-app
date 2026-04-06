@@ -34,7 +34,7 @@ export default function GymsPage() {
           </Link>
           <div className="hidden sm:flex items-center gap-6 text-sm">
             <Link href="/teams" className="text-slate-400 hover:text-white transition-colors">For Teams</Link>
-            <span className="text-green-400 font-medium">For Gyms & Trainers</span>
+            <span className="text-purple-400 font-medium">For Gyms & Trainers</span>
             <button onClick={() => scrollToSection('meal-tracking')} className="text-slate-400 hover:text-white transition-colors">Meal Tracking</button>
             <button onClick={() => scrollToSection('body-comp')} className="text-slate-400 hover:text-white transition-colors">Body Comp</button>
           </div>
@@ -64,15 +64,15 @@ export default function GymsPage() {
 
         <div className="relative z-10 max-w-5xl mx-auto">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/25 mb-6">
-              <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-              <span className="text-xs font-semibold text-green-300 uppercase tracking-wider">For Nutrition Coaches, Trainers & Gyms</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 mb-6">
+              <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+              <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">For Nutrition Coaches, Trainers & Gyms</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[0.95] tracking-tight mb-6">
               <span className="text-white">See the</span>
               <br />
-              <span className="text-green-400">Full Picture</span>
+              <span className="text-purple-400">Full Picture</span>
               <br />
               <span className="text-white">of Every Client</span>
             </h1>
@@ -102,9 +102,9 @@ export default function GymsPage() {
       {/* The Problem */}
       <section className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto text-center">
-          <p className="text-sm font-semibold text-green-400 uppercase tracking-widest mb-3">The Problem</p>
+          <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">The Problem</p>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            You Only See Your Clients for <span className="text-green-400">an Hour a Week</span>
+            You Only See Your Clients for <span className="text-purple-400">an Hour a Week</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-12">
             What happens the other 167 hours? Are they eating right? Sleeping enough? Stressed out? You have no idea — until they show up and the scale hasn&apos;t moved.
@@ -154,12 +154,12 @@ export default function GymsPage() {
         <div className="max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
-                <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                <span className="text-xs text-green-400 font-medium">AI-Powered</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4">
+                <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <span className="text-xs text-purple-400 font-medium">AI-Powered</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Snap a Photo.<br /><span className="text-green-400">Get the Macros.</span>
+                Snap a Photo.<br /><span className="text-purple-400">Get the Macros.</span>
               </h2>
               <p className="text-slate-400 text-lg leading-relaxed mb-6">
                 Your clients take a photo of their meal and AI breaks it down instantly — calories, protein, carbs, and fats. No more food diaries they never fill out. No more guessing portion sizes.
@@ -171,8 +171,8 @@ export default function GymsPage() {
                   { title: 'Meal History Review', desc: 'Scroll through a client\'s actual meals before your next session' },
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center mt-0.5 shrink-0">
-                      <div className="w-2 h-2 rounded-full bg-green-400" />
+                    <div className="w-6 h-6 rounded-full bg-purple-500/10 flex items-center justify-center mt-0.5 shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-purple-400" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">{item.title}</p>
@@ -185,7 +185,7 @@ export default function GymsPage() {
 
             {/* Meal log mockup */}
             <div className="relative">
-              <div className="absolute -inset-4 bg-green-500/5 rounded-3xl blur-2xl pointer-events-none" />
+              <div className="absolute -inset-4 bg-purple-500/5 rounded-3xl blur-2xl pointer-events-none" />
               <div className="relative bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 overflow-hidden">
                 <div className="flex items-center justify-between mb-6">
                   <div>
@@ -194,7 +194,7 @@ export default function GymsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-slate-500">Calories</p>
-                    <p className="text-xl font-bold text-green-400">1,840 / 2,200</p>
+                    <p className="text-xl font-bold text-purple-400">1,840 / 2,200</p>
                   </div>
                 </div>
                 {[
@@ -210,7 +210,7 @@ export default function GymsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold text-white">{m.cal} cal</p>
-                      <p className="text-xs text-green-400">{m.protein} protein</p>
+                      <p className="text-xs text-purple-400">{m.protein} protein</p>
                     </div>
                   </div>
                 ))}
@@ -218,7 +218,7 @@ export default function GymsPage() {
                   <div>
                     <p className="text-xs text-slate-500">Protein</p>
                     <div className="w-32 h-1.5 bg-slate-700/60 rounded-full mt-1">
-                      <div className="w-[72%] h-full bg-green-500 rounded-full" />
+                      <div className="w-[72%] h-full bg-purple-500 rounded-full" />
                     </div>
                     <p className="text-xs text-slate-500 mt-1">115 / 160g</p>
                   </div>
@@ -243,19 +243,19 @@ export default function GymsPage() {
             {/* Image */}
             <div className="lg:order-1">
               <div className="relative">
-                <div className="absolute -inset-8 bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -inset-8 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
                 <img src={FUEL_SCORE_IMG} alt="Fuel Score Dashboard" className="relative rounded-2xl border border-slate-700/40 w-full shadow-2xl shadow-black/30" />
               </div>
             </div>
 
             {/* Content */}
             <div className="lg:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
-                <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                <span className="text-xs text-green-400 font-medium">Fuel Score</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4">
+                <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                <span className="text-xs text-purple-400 font-medium">Fuel Score</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                More Than Macros.<br /><span className="text-green-400">See How They Feel.</span>
+                More Than Macros.<br /><span className="text-purple-400">See How They Feel.</span>
               </h2>
               <p className="text-slate-400 text-lg leading-relaxed mb-6">
                 A 30-second daily check-in captures sleep quality, stress levels, energy, soreness, and hydration. The Fuel Score gives you a single number that tells you how your client is really doing — not just what they&apos;re eating.
@@ -277,8 +277,8 @@ export default function GymsPage() {
                 ))}
               </div>
 
-              <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4">
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Zone System</p>
+              <div className="bg-slate-800/40 border border-purple-500/20 rounded-xl p-4">
+                <p className="text-xs text-purple-400 uppercase tracking-wider mb-3">Zone System</p>
                 <div className="space-y-2">
                   {[
                     { zone: 'Locked In', range: '85-100', color: 'bg-green-500', emoji: '🔥' },
@@ -304,12 +304,12 @@ export default function GymsPage() {
         <div className="max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
-                <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
-                <span className="text-xs text-green-400 font-medium">Body Composition</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4">
+                <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>
+                <span className="text-xs text-purple-400 font-medium">Body Composition</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Track Progress.<br /><span className="text-green-400">Prove Results.</span>
+                Track Progress.<br /><span className="text-purple-400">Prove Results.</span>
               </h2>
               <p className="text-slate-400 text-lg leading-relaxed mb-6">
                 Import InBody scans and track body composition changes over time. See lean mass gains, body fat reductions, and water balance — all in one place. Show your clients the data that proves your program works.
@@ -321,8 +321,8 @@ export default function GymsPage() {
                   { title: 'Before & After Comparisons', desc: 'Side-by-side scan data to celebrate wins and adjust plans' },
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center mt-0.5 shrink-0">
-                      <div className="w-2 h-2 rounded-full bg-green-400" />
+                    <div className="w-6 h-6 rounded-full bg-purple-500/10 flex items-center justify-center mt-0.5 shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-purple-400" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">{item.title}</p>
@@ -334,23 +334,93 @@ export default function GymsPage() {
             </div>
 
             <div className="relative">
-              <div className="absolute -inset-8 bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -inset-8 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
               <img src={BODY_COMP} alt="Body Composition Tracking" className="relative rounded-2xl border border-slate-700/40 w-full shadow-2xl shadow-black/30" />
             </div>
           </div>
         </div>
       </section>
 
+      {/* Supplement Tracking */}
+      <section id="supplements" className="py-24 px-4 border-t border-slate-800/60">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Content */}
+            <div className="lg:order-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4">
+                <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                <span className="text-xs text-purple-400 font-medium">Supplement Safety</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+                Know What They&apos;re Taking.<br /><span className="text-purple-400">Protect Their Career.</span>
+              </h2>
+              <p className="text-slate-400 text-lg leading-relaxed mb-6">
+                Your clients log every supplement they take. Each one gets screened for banned substances and safety concerns. You get full visibility into what&apos;s going into their body — and peace of mind that nothing puts their eligibility at risk.
+              </p>
+              <div className="space-y-4">
+                {[
+                  { title: 'Supplement Logging', desc: 'Clients log every supplement — pre-workout, protein, creatine, vitamins, everything' },
+                  { title: 'Banned Substance Screening', desc: 'Every supplement is checked against banned substance databases to protect eligibility' },
+                  { title: 'Safety Alerts', desc: 'Get flagged immediately if a client logs something that could be a risk' },
+                  { title: 'Full Supplement History', desc: 'Review what your clients are taking over time and spot patterns or concerns' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-purple-500/10 flex items-center justify-center mt-0.5 shrink-0">
+                      <div className="w-2 h-2 rounded-full bg-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{item.title}</p>
+                      <p className="text-xs text-slate-400">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Supplement mockup */}
+            <div className="lg:order-1 relative">
+              <div className="absolute -inset-4 bg-purple-500/5 rounded-3xl blur-2xl pointer-events-none" />
+              <div className="relative bg-slate-800/60 border border-slate-700/60 rounded-2xl p-6 overflow-hidden">
+                <div className="flex items-center gap-3 mb-6">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  <span className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Supplement Log</span>
+                </div>
+                {[
+                  { name: 'Whey Protein Isolate', brand: 'Optimum Nutrition', status: 'Safe', statusColor: 'text-green-400', bgColor: 'bg-green-500/10' },
+                  { name: 'Creatine Monohydrate', brand: 'Thorne', status: 'Safe', statusColor: 'text-green-400', bgColor: 'bg-green-500/10' },
+                  { name: 'Pre-Workout Blend', brand: 'Unknown Brand', status: 'Review', statusColor: 'text-amber-400', bgColor: 'bg-amber-500/10' },
+                  { name: 'Vitamin D3 + K2', brand: 'NOW Foods', status: 'Safe', statusColor: 'text-green-400', bgColor: 'bg-green-500/10' },
+                  { name: 'Fat Burner Complex', brand: 'Online Purchase', status: 'Flagged', statusColor: 'text-red-400', bgColor: 'bg-red-500/10' },
+                ].map((s, i) => (
+                  <div key={i} className="flex items-center gap-4 py-3 border-t border-slate-700/40">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-white">{s.name}</p>
+                      <p className="text-xs text-slate-500">{s.brand}</p>
+                    </div>
+                    <div className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.statusColor} ${s.bgColor}`}>
+                      {s.status}
+                    </div>
+                  </div>
+                ))}
+                <div className="mt-4 pt-4 border-t border-slate-700/40 text-center">
+                  <p className="text-xs text-slate-500">5 supplements logged &middot; 1 flagged for review</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Client Dashboard */}
-      <section id="dashboard" className="py-24 px-4 border-t border-slate-800/60">
+      <section id="dashboard" className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 mb-4">
-              <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-              <span className="text-xs text-green-400 font-medium">Coach Dashboard</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 mb-4">
+              <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+              <span className="text-xs text-purple-400 font-medium">Coach Dashboard</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Every Client. <span className="text-green-400">One Dashboard.</span>
+              Every Client. <span className="text-purple-400">One Dashboard.</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
               See who&apos;s tracking, who&apos;s struggling, and who needs your attention — without chasing anyone down. Your dashboard gives you the full picture at a glance.
@@ -359,7 +429,7 @@ export default function GymsPage() {
 
           <div className="mb-12">
             <div className="relative">
-              <div className="absolute -inset-4 bg-green-500/5 rounded-3xl blur-2xl pointer-events-none" />
+              <div className="absolute -inset-4 bg-purple-500/5 rounded-3xl blur-2xl pointer-events-none" />
               <img src={CLIENT_DASH} alt="Client Dashboard" className="relative rounded-2xl border border-slate-700/40 w-full shadow-2xl shadow-black/30" />
             </div>
           </div>
@@ -368,28 +438,28 @@ export default function GymsPage() {
             {[
               {
                 icon: (
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 ),
                 title: 'Compliance Rates',
                 desc: 'See who\'s logging meals and check-ins daily',
               },
               {
                 icon: (
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
                 ),
                 title: 'Smart Alerts',
                 desc: 'Get notified when a client\'s score drops or they stop tracking',
               },
               {
                 icon: (
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 ),
                 title: 'In-App Messaging',
                 desc: 'Reach out directly without texting your personal number',
               },
               {
                 icon: (
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 ),
                 title: 'Daily Recap Email',
                 desc: 'Morning summary of yesterday\'s activity delivered to your inbox',
@@ -399,7 +469,7 @@ export default function GymsPage() {
                 key={i}
                 className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5"
               >
-                <div className="w-9 h-9 rounded-lg bg-green-500/10 flex items-center justify-center mb-3">
+                <div className="w-9 h-9 rounded-lg bg-purple-500/10 flex items-center justify-center mb-3">
                   {item.icon}
                 </div>
                 <h3 className="text-sm font-semibold text-white mb-1">{item.title}</h3>
@@ -411,11 +481,11 @@ export default function GymsPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
+      <section className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Up and Running in <span className="text-green-400">Minutes</span>
+              Up and Running in <span className="text-purple-400">Minutes</span>
             </h2>
             <p className="text-slate-400 max-w-xl mx-auto text-lg">
               No complicated setup. No long onboarding. Get your clients tracking today.
@@ -429,7 +499,7 @@ export default function GymsPage() {
                 title: 'Create Your Account',
                 desc: 'Sign up as a coach. Set up your profile and customize your client dashboard preferences.',
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                 ),
               },
               {
@@ -437,7 +507,7 @@ export default function GymsPage() {
                 title: 'Invite Your Clients',
                 desc: 'Send invite links to your clients. They create an account and they\'re connected to you instantly.',
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 ),
               },
               {
@@ -445,15 +515,15 @@ export default function GymsPage() {
                 title: 'Start Coaching Smarter',
                 desc: 'See their meals, wellness scores, body comp data, and streaks — all from your dashboard. Intervene when it matters.',
                 icon: (
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
                 ),
               },
             ].map((item) => (
               <div key={item.step} className="text-center">
-                <div className="w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-4">
                   {item.icon}
                 </div>
-                <p className="text-xs text-green-400 font-bold tracking-widest mb-2">{item.step}</p>
+                <p className="text-xs text-purple-400 font-bold tracking-widest mb-2">{item.step}</p>
                 <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
                 <p className="text-sm text-slate-400 leading-relaxed">{item.desc}</p>
               </div>
@@ -463,18 +533,18 @@ export default function GymsPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-4 border-t border-slate-800/60">
+      <section className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-3xl mx-auto text-center">
           <div className="relative rounded-3xl overflow-hidden p-12 md:p-16">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-900/20 via-slate-900 to-slate-900" />
-            <div className="absolute inset-0 border border-green-500/20 rounded-3xl" />
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-green-500/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-900 to-slate-900" />
+            <div className="absolute inset-0 border border-purple-500/20 rounded-3xl" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
 
             <div className="relative space-y-6">
               <LightningBolt className="w-12 h-12 mx-auto" />
               <h2 className="text-3xl sm:text-4xl font-bold">
                 Ready to See the<br />
-                <span className="text-green-400">Full Picture?</span>
+                <span className="text-purple-400">Full Picture?</span>
               </h2>
               <p className="text-lg text-slate-400 max-w-lg mx-auto">
                 Join coaches and trainers who are already using Fuel Different to deliver better results for their clients.
