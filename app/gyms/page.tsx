@@ -1,7 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const InteractiveDemo = dynamic(() => import('@/components/InteractiveDemo'), { ssr: false })
 
 const COACHES_HERO = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/coaches-hero-5Dv7oNygnMPD7vStbvcB7D.webp'
 const CLIENT_DASH = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/client-dashboard-view-DM6BwjHJErcHBujcKGjCvL.webp'
@@ -18,6 +22,7 @@ function LightningBolt({ className = 'w-8 h-8' }: { className?: string }) {
 
 export default function GymsPage() {
   const router = useRouter()
+  const [demoOpen, setDemoOpen] = useState(false)
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
@@ -89,10 +94,10 @@ export default function GymsPage() {
                 Start Coaching Smarter &rarr;
               </button>
               <button
-                onClick={() => scrollToSection('meal-tracking')}
+                onClick={() => setDemoOpen(true)}
                 className="border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 font-semibold text-base px-8 py-3 rounded-xl transition-all"
               >
-                See How It Works
+                Try the Demo
               </button>
             </div>
           </div>
@@ -579,6 +584,7 @@ export default function GymsPage() {
           </div>
         </div>
       </footer>
+      {demoOpen && <InteractiveDemo onClose={() => setDemoOpen(false)} />}
     </main>
   )
 }

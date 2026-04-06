@@ -1,7 +1,11 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const InteractiveDemo = dynamic(() => import('@/components/InteractiveDemo'), { ssr: false })
 
 const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/hero-fuel-score-6LB3dNjSYxmVb4soTVcD85.webp'
 const FUEL_SCORE_IMG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-score-dashboard-d7aLb2Rk48NJHjiiYroNah.webp'
@@ -19,6 +23,7 @@ function LightningBolt({ className = 'w-8 h-8' }: { className?: string }) {
 
 export default function TeamsPage() {
   const router = useRouter()
+  const [demoOpen, setDemoOpen] = useState(false)
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
@@ -89,10 +94,10 @@ export default function TeamsPage() {
                   Start Fueling &rarr;
                 </button>
                 <button
-                  onClick={() => scrollToSection('how-it-works')}
+                  onClick={() => setDemoOpen(true)}
                   className="border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 font-semibold text-base px-8 py-3 rounded-xl transition-all"
                 >
-                  See How It Works
+                  Try the Demo
                 </button>
               </div>
 
@@ -415,6 +420,7 @@ export default function TeamsPage() {
           </div>
         </div>
       </footer>
+      {demoOpen && <InteractiveDemo onClose={() => setDemoOpen(false)} />}
     </main>
   )
 }

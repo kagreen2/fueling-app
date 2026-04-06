@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const InteractiveDemo = dynamic(() => import('@/components/InteractiveDemo'), { ssr: false })
 
 const LIGHTNING_ICON = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-lightning-icon-B5LtaPwMAWwPkoULwNEbea.png'
 const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-hero-bg-MVnKGJNhByQXjBHybbrXBq.webp'
@@ -23,6 +26,7 @@ export default function Home() {
   const router = useRouter()
   const [isPWA, setIsPWA] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [demoOpen, setDemoOpen] = useState(false)
 
   useEffect(() => {
     // Detect if running as installed PWA
@@ -139,10 +143,10 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => scrollToSection('the-edge')}
+                onClick={() => setDemoOpen(true)}
                 className="text-base border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white px-8"
               >
-                See What You&apos;re Missing
+                Try the Demo
               </Button>
             </div>
           </div>
@@ -534,6 +538,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      {demoOpen && <InteractiveDemo onClose={() => setDemoOpen(false)} />}
     </main>
   )
 }
