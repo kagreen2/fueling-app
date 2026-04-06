@@ -41,8 +41,8 @@ export default function TeamsPage() {
           <div className="hidden sm:flex items-center gap-6 text-sm">
             <span className="text-purple-400 font-medium">For Teams</span>
             <Link href="/gyms" className="text-slate-400 hover:text-white transition-colors">For Gyms & Trainers</Link>
+            <button onClick={() => scrollToSection('nutrition')} className="text-slate-400 hover:text-white transition-colors">Nutrition</button>
             <button onClick={() => scrollToSection('fuel-score')} className="text-slate-400 hover:text-white transition-colors">Fuel Score</button>
-            <button onClick={() => scrollToSection('features')} className="text-slate-400 hover:text-white transition-colors">Features</button>
           </div>
           <div className="flex gap-2.5">
             <button
@@ -61,7 +61,10 @@ export default function TeamsPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 1: HERO
+          Lead with visibility — what coaches actually want to hear
+      ═══════════════════════════════════════════════════════════════ */}
       <section className="relative pt-28 pb-24 px-4">
         <div className="absolute inset-0 z-0">
           <img src={HERO_BG} alt="" className="w-full h-full object-cover opacity-40" />
@@ -73,17 +76,18 @@ export default function TeamsPage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 mb-6">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-                <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Athlete Wellness Platform</span>
+                <span className="text-xs font-semibold text-purple-300 uppercase tracking-wider">Sports Nutrition Platform</span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-[0.95] tracking-tight mb-6">
-                <span className="text-white">Know Your</span>
+                <span className="text-white">See What Your</span>
                 <br />
-                <span className="text-purple-400">Fuel Score</span>
+                <span className="text-white">Athletes </span>
+                <span className="text-purple-400">Eat & Feel</span>
               </h1>
 
               <p className="text-lg text-slate-400 max-w-lg leading-relaxed mb-8">
-                The daily wellness check-in that gives athletes and coaches a single number to track readiness. 30 seconds a day. Complete visibility into sleep, stress, energy, soreness, and hydration.
+                Complete visibility into your athletes&apos; nutrition, wellness, and readiness — without chasing them down. AI meal tracking, individualized macros, daily wellness check-ins, and a coach dashboard that shows you everything.
               </p>
 
               <div className="flex flex-wrap gap-4">
@@ -103,50 +107,232 @@ export default function TeamsPage() {
 
               <div className="flex items-center gap-6 pt-6">
                 <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <span className="text-xs text-slate-500">AI Meal Tracking</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                  <span className="text-xs text-slate-500">Daily Check-ins</span>
+                  <span className="text-xs text-slate-500">Individualized Macros</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                   <span className="text-xs text-slate-500">Coach Dashboard</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                  <span className="text-xs text-slate-500">Team Ready</span>
-                </div>
               </div>
             </div>
 
-            {/* Right: Fuel Score preview card */}
             <div className="relative">
               <div className="absolute -inset-8 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
-              <img src={FUEL_SCORE_IMG} alt="Fuel Score Dashboard" className="relative w-full max-w-md mx-auto rounded-2xl shadow-2xl shadow-black/30 border border-slate-700/40" />
+              <img src={COACH_DASH_IMG} alt="Coach Dashboard" className="relative w-full max-w-md mx-auto rounded-2xl shadow-2xl shadow-black/30 border border-slate-700/40" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Fuel Score Zones */}
-      <section id="fuel-score" className="py-24 px-4 border-t border-slate-800/60">
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 2: AI NUTRITION TRACKING
+          The hook — "Can I see what my athletes are eating?"
+      ═══════════════════════════════════════════════════════════════ */}
+      <section id="nutrition" className="py-24 px-4 border-t border-slate-800/60">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">AI Nutrition Tracking</p>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+                Finally See What<br />
+                <span className="text-purple-400">Your Athletes Eat</span>
+              </h2>
+              <p className="text-lg text-slate-400 leading-relaxed mb-6">
+                Athletes snap a photo of their plate and AI instantly estimates calories and macros. No more guessing, no more food diaries that never get filled out. You see every meal, every day, across your entire roster.
+              </p>
+
+              <div className="space-y-4 mb-8">
+                {[
+                  { title: 'Photo-to-Macros in Seconds', desc: 'AI analyzes the meal photo and returns calories, protein, carbs, and fat instantly. Athletes can also log manually.' },
+                  { title: 'Compliance at a Glance', desc: 'See which athletes are logging meals and hitting their targets — and which ones are falling off.' },
+                  { title: 'AI Coach Feedback', desc: 'Every meal gets a quality assessment with actionable suggestions. "Great protein — add a complex carb before practice."' },
+                ].map((item) => (
+                  <div key={item.title} className="flex gap-3">
+                    <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-white">{item.title}</h4>
+                      <p className="text-sm text-slate-400 mt-0.5 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Meal tracking mockup */}
+            <div className="relative">
+              <div className="absolute -inset-8 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="relative rounded-2xl overflow-hidden bg-slate-800/30 p-8 border border-slate-700/60">
+                <div className="flex items-center gap-3 mb-6">
+                  <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <span className="text-sm font-semibold text-slate-300 uppercase tracking-wider">AI Meal Analysis</span>
+                  <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium">High Confidence</span>
+                </div>
+
+                <div className="text-center text-5xl mb-4">🥗</div>
+                <p className="text-center text-sm text-slate-400 mb-6">Grilled Chicken Power Bowl</p>
+
+                <div className="grid grid-cols-4 gap-3 mb-6">
+                  {[
+                    { label: 'Calories', value: '680', color: 'text-green-400' },
+                    { label: 'Protein', value: '52g', color: 'text-blue-400' },
+                    { label: 'Carbs', value: '64g', color: 'text-amber-400' },
+                    { label: 'Fat', value: '22g', color: 'text-cyan-400' },
+                  ].map((m) => (
+                    <div key={m.label} className="text-center p-2.5 rounded-lg bg-slate-700/40">
+                      <p className={`text-lg font-bold font-mono ${m.color}`}>{m.value}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/15">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <svg className="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    <span className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider">AI Coach</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Great protein hit — 29% of daily target in one meal. Consider adding sweet potato for sustained energy before afternoon practice.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 3: INDIVIDUALIZED MACRO PLANS
+          "How much work is this? Can I customize per athlete?"
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">The Fuel Score</p>
+            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">Individualized Targets</p>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              One Number. <span className="text-purple-400">Complete Clarity.</span>
+              Every Athlete Gets <span className="text-purple-400">Their Own Plan</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              Every morning, athletes rate their sleep, stress, energy, soreness, and hydration on simple sliders. The Fuel Score calculates instantly — a 0-100 number that tells coaches exactly who&apos;s ready and who needs attention.
+              A 280lb offensive lineman and a 150lb point guard don&apos;t eat the same way. Set personalized calorie and macro targets based on sport, position, body composition, and training phase.
             </p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Macro comparison mockup */}
+            <div className="space-y-4">
+              {/* Athlete 1 */}
+              <div className="rounded-2xl bg-slate-800/40 border border-slate-700/60 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-lg">🏈</div>
+                  <div>
+                    <p className="font-semibold text-white">Marcus Williams</p>
+                    <p className="text-xs text-slate-500">OL &middot; 6&apos;4&quot; &middot; 285 lbs</p>
+                  </div>
+                  <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 font-medium">Bulking</span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Calories', target: '4,200', pct: 82, color: 'bg-green-500' },
+                    { label: 'Protein', target: '220g', pct: 91, color: 'bg-blue-500' },
+                    { label: 'Carbs', target: '480g', pct: 75, color: 'bg-amber-500' },
+                  ].map((m) => (
+                    <div key={m.label} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400">{m.label}</span>
+                        <span className="text-slate-500 font-mono">{m.target}</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${m.color}`} style={{ width: `${m.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Athlete 2 */}
+              <div className="rounded-2xl bg-slate-800/40 border border-slate-700/60 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-lg">🏀</div>
+                  <div>
+                    <p className="font-semibold text-white">Jaylen Torres</p>
+                    <p className="text-xs text-slate-500">PG &middot; 6&apos;1&quot; &middot; 175 lbs</p>
+                  </div>
+                  <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">Maintenance</span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Calories', target: '2,800', pct: 88, color: 'bg-green-500' },
+                    { label: 'Protein', target: '160g', pct: 78, color: 'bg-blue-500' },
+                    { label: 'Carbs', target: '320g', pct: 85, color: 'bg-amber-500' },
+                  ].map((m) => (
+                    <div key={m.label} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400">{m.label}</span>
+                        <span className="text-slate-500 font-mono">{m.target}</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${m.color}`} style={{ width: `${m.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: explanation */}
+            <div className="space-y-6">
+              {[
+                { title: 'Sport & Position-Specific', desc: 'Macro targets are calculated based on the athlete\'s sport demands, position, body weight, and training phase. A wrestler cutting weight has different needs than a swimmer in peak season.' },
+                { title: 'Adjustable by Coaches', desc: 'Coaches and sports dietitians can override or fine-tune any athlete\'s targets at any time. Shift from bulking to cutting with a few taps.' },
+                { title: 'Evidence-Based Calculations', desc: 'Targets follow ISSN (International Society of Sports Nutrition) guidelines for protein, carbohydrate, and fat recommendations for athletes.' },
+                { title: 'Body Comp Integration', desc: 'When InBody, DEXA, or other body composition data is available, macro targets automatically adjust based on lean mass and body fat percentage.' },
+              ].map((item, i) => (
+                <div key={item.title} className="flex gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 mt-1">
+                    <span className="text-purple-400 font-bold text-sm">0{i + 1}</span>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-white">{item.title}</h4>
+                    <p className="text-sm text-slate-400 mt-1 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 4: THE FUEL SCORE
+          The differentiator — "Macros tell you what they ate. This tells you if they're ready."
+      ═══════════════════════════════════════════════════════════════ */}
+      <section id="fuel-score" className="py-24 px-4 border-t border-slate-800/60">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-6">
+            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">The Fuel Score</p>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              Macros Tell You What They Ate.<br />
+              <span className="text-purple-400">This Tells You If They&apos;re Ready.</span>
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+              An athlete can hit every macro target and still show up to practice exhausted, dehydrated, and stressed about exams. The Fuel Score captures what nutrition tracking alone can&apos;t — a 30-second daily check-in on sleep, stress, energy, soreness, and hydration that gives you one number for readiness.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center mt-12">
             {/* Zone cards */}
             <div className="space-y-4">
               {[
-                { name: 'Locked In', emoji: '🔥', range: '85-100', color: 'bg-green-500', borderColor: 'border-green-500/30', textColor: 'text-green-400', desc: 'Performing at your best. Keep doing what you\'re doing.' },
-                { name: 'On Track', emoji: '💪', range: '70-84', color: 'bg-blue-500', borderColor: 'border-blue-500/30', textColor: 'text-blue-400', desc: 'Solid foundation. Minor tweaks could push you higher.' },
-                { name: 'Dial It In', emoji: '⚡', range: '50-69', color: 'bg-amber-500', borderColor: 'border-amber-500/30', textColor: 'text-amber-400', desc: 'Something needs attention. Check your sleep and hydration.' },
-                { name: 'Red Flag', emoji: '🚨', range: 'Below 50', color: 'bg-red-500', borderColor: 'border-red-500/30', textColor: 'text-red-400', desc: 'Coach gets alerted. Time to recover and reset.' },
+                { name: 'Locked In', emoji: '🔥', range: '85-100', color: 'bg-green-500', borderColor: 'border-green-500/30', textColor: 'text-green-400', desc: 'Performing at their best. Sleep, stress, and nutrition are all dialed in.' },
+                { name: 'On Track', emoji: '💪', range: '70-84', color: 'bg-blue-500', borderColor: 'border-blue-500/30', textColor: 'text-blue-400', desc: 'Solid foundation. Minor tweaks to sleep or hydration could push them higher.' },
+                { name: 'Dial It In', emoji: '⚡', range: '50-69', color: 'bg-amber-500', borderColor: 'border-amber-500/30', textColor: 'text-amber-400', desc: 'Something needs attention. Check their sleep and stress levels.' },
+                { name: 'Red Flag', emoji: '🚨', range: 'Below 50', color: 'bg-red-500', borderColor: 'border-red-500/30', textColor: 'text-red-400', desc: 'You get alerted immediately. Time for a conversation about recovery.' },
               ].map((zone) => (
                 <div
                   key={zone.name}
@@ -170,124 +356,29 @@ export default function TeamsPage() {
             <div className="relative">
               <div className="absolute -inset-8 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
               <img src={CHECKIN_IMG} alt="Daily Check-in Flow" className="relative w-full max-w-md mx-auto rounded-2xl shadow-2xl shadow-black/30" />
+              <div className="mt-6 p-4 rounded-xl bg-slate-800/40 border border-slate-700/60 text-center">
+                <p className="text-sm text-slate-300 font-medium">30 seconds. 5 sliders. Every morning.</p>
+                <p className="text-xs text-slate-500 mt-1">Sleep &middot; Stress &middot; Energy &middot; Soreness &middot; Hydration</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="features" className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">Platform Features</p>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Built for Athletes <span className="text-purple-400">and Coaches</span>
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                ),
-                title: '30-Second Check-ins',
-                desc: 'Five quick sliders — sleep, stress, energy, soreness, hydration. Your Fuel Score calculates instantly. Do it every morning before practice.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" /></svg>
-                ),
-                title: 'Consistency Streaks',
-                desc: 'Check in 5+ days in a row and earn a Fuel Score bonus. Coaches see who\'s consistent and who\'s ghosting. Gamified accountability.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                ),
-                title: 'Trend Tracking',
-                desc: 'See if your score is climbing or dropping with day-over-day indicators. A 65 that was 80 yesterday is very different from a 65 that was 50.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                ),
-                title: 'AI Meal Scoring',
-                desc: 'Snap a photo of your plate and get instant calorie estimates, macro breakdowns, and a meal quality score powered by AI.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                ),
-                title: 'Smart Alerts',
-                desc: 'Coaches get automatic alerts when athletes hit Red Flag zones, miss check-ins, or show declining trends over 3+ days.',
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                ),
-                title: 'Coach Messaging',
-                desc: 'Direct messaging between athletes and coaches. Add notes to check-ins. Daily recap emails keep coaches in the loop.',
-              },
-            ].map((feature, i) => (
-              <div
-                key={i}
-                className="group bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 hover:border-purple-500/40 hover:bg-slate-800/60 transition-all duration-300"
-              >
-                <div className="w-11 h-11 rounded-xl bg-slate-700/60 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                  {feature.icon}
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-white">{feature.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{feature.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="py-24 px-4 border-t border-slate-800/60">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Three Steps to <span className="text-purple-400">Better Performance</span>
-            </h2>
-            <p className="text-slate-400 max-w-xl mx-auto text-lg">
-              No complicated setup. Your athletes are checking in within minutes.
-            </p>
-          </div>
-
-          <div className="space-y-16">
-            {[
-              { num: '01', title: 'Check In Daily', desc: 'Rate your sleep, stress, energy, soreness, and hydration on simple sliders. Takes 30 seconds.', img: CHECKIN_IMG },
-              { num: '02', title: 'Get Your Fuel Score', desc: 'Your responses calculate a 0-100 score that tells you exactly where you stand. Zone names make it instantly clear.', img: FUEL_SCORE_IMG },
-              { num: '03', title: 'Build Your Streak', desc: 'Check in 5+ consecutive days to earn bonus points. The longer your streak, the bigger the boost. Stay accountable.', img: STREAK_IMG },
-            ].map((step, i) => (
-              <div key={step.num} className={`grid lg:grid-cols-2 gap-12 items-center`}>
-                <div className={i % 2 === 1 ? 'lg:order-2' : ''}>
-                  <div className="text-6xl font-extrabold text-slate-800/60 mb-3">{step.num}</div>
-                  <h3 className="text-2xl md:text-3xl font-extrabold text-white -mt-4 mb-3">{step.title}</h3>
-                  <p className="text-lg text-slate-400 leading-relaxed max-w-md">{step.desc}</p>
-                </div>
-                <div className={i % 2 === 1 ? 'lg:order-1' : ''}>
-                  <img src={step.img} alt={step.title} className="w-full max-w-sm mx-auto rounded-2xl shadow-xl shadow-black/20 border border-slate-700/40" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Coach Dashboard Section */}
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 5: COACH DASHBOARD
+          "Can I actually monitor 50+ athletes without drowning?"
+      ═══════════════════════════════════════════════════════════════ */}
       <section className="py-24 px-4 bg-slate-800/20 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">For Coaches</p>
+            <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">Coach Command Center</p>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Complete Team <span className="text-purple-400">Visibility</span>
+              Your Entire Roster.<br />
+              <span className="text-purple-400">One Dashboard.</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              See every athlete&apos;s Fuel Score, streak, and compliance at a glance. Know who&apos;s locked in and who needs attention — without asking.
+              See every athlete&apos;s Fuel Score, nutrition compliance, streak, and wellness status at a glance. Know who&apos;s locked in and who needs a conversation — without chasing anyone down.
             </p>
           </div>
 
@@ -298,10 +389,10 @@ export default function TeamsPage() {
 
             <div className="space-y-6">
               {[
-                { num: '01', title: 'Team Overview', desc: 'See every athlete\'s Fuel Score, streak, and compliance at a glance. Sort by any column to find who needs attention.' },
-                { num: '02', title: 'Zone Distribution', desc: 'A donut chart shows how many athletes are Locked In, On Track, Dial It In, or Red Flag — instant team health pulse.' },
-                { num: '03', title: 'Automated Alerts', desc: 'Get notified when athletes hit Red Flag zones, show declining trends, report high stress for 3+ days, or miss check-ins.' },
-                { num: '04', title: 'Daily Recap Email', desc: 'Every night at 11:30 PM, coaches receive a full summary — who checked in, who didn\'t, red flags, and action items.' },
+                { num: '01', title: 'Team Overview', desc: 'Every athlete\'s Fuel Score, meal compliance, and streak count in one sortable table. Click any athlete to drill into their full history.' },
+                { num: '02', title: 'Zone Distribution', desc: 'A donut chart shows how many athletes are Locked In, On Track, Dial It In, or Red Flag — your team\'s health at a glance.' },
+                { num: '03', title: 'Smart Alerts', desc: 'Automatic notifications when athletes hit Red Flag zones, show declining trends over 3+ days, miss check-ins, or report high stress.' },
+                { num: '04', title: 'Daily Recap Email', desc: 'Every night, coaches receive a full summary — who checked in, who didn\'t, red flags, nutrition compliance, and action items.' },
               ].map((f) => (
                 <div key={f.num} className="flex gap-4">
                   <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0 mt-1">
@@ -318,70 +409,59 @@ export default function TeamsPage() {
         </div>
       </section>
 
-      {/* Nutrition Section */}
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 6: ENGAGEMENT ENGINE
+          Why athletes actually stick with it
+      ═══════════════════════════════════════════════════════════════ */}
       <section className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="lg:order-2">
-              <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">Nutrition Tracking</p>
+              <p className="text-sm font-semibold text-purple-400 uppercase tracking-widest mb-3">Built-In Accountability</p>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Track Every Meal.<br />
-                <span className="text-purple-400">Hit Every Target.</span>
+                They&apos;ll Actually<br />
+                <span className="text-purple-400">Use It Every Day</span>
               </h2>
-              <p className="text-lg text-slate-400 leading-relaxed mb-6">
-                Personalized calorie and macro goals based on your sport, position, and body composition. Log meals with AI photo analysis or quick manual entry. Coaches see compliance trends across the entire roster.
+              <p className="text-lg text-slate-400 leading-relaxed mb-8">
+                The biggest problem with nutrition apps isn&apos;t features — it&apos;s compliance. Fuel Different is built with gamification and social accountability so athletes want to check in, not just have to.
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60">
-                  <p className="text-2xl font-bold text-purple-400">AI</p>
-                  <p className="text-xs text-slate-400 mt-1">Photo meal analysis</p>
-                </div>
-                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/60">
-                  <p className="text-2xl font-bold text-purple-400">ISSN</p>
-                  <p className="text-xs text-slate-400 mt-1">Evidence-based targets</p>
-                </div>
+
+              <div className="space-y-5">
+                {[
+                  { title: 'Consistency Streaks', desc: 'Check in 5+ days in a row and earn a Fuel Score bonus. Athletes compete to keep their streaks alive. Coaches see who\'s consistent and who\'s ghosting.' },
+                  { title: 'Push Notifications', desc: 'Smart reminders at the right time — morning check-in prompts, meal logging nudges, and streak-at-risk alerts that keep athletes engaged.' },
+                  { title: 'Coach Messaging', desc: 'Direct messaging between athletes and coaches. Add notes to check-ins. Athletes know someone is watching — and that drives accountability.' },
+                  { title: 'Leaderboards', desc: 'Team leaderboards for streaks and compliance. Competitive athletes don\'t want to be at the bottom of the list.' },
+                ].map((item) => (
+                  <div key={item.title} className="flex gap-3">
+                    <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <svg className="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-white">{item.title}</h4>
+                      <p className="text-sm text-slate-400 mt-0.5 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="lg:order-1">
-              <div className="relative rounded-2xl overflow-hidden bg-slate-800/30 p-8 border border-slate-700/60">
-                <div className="space-y-5">
-                  <div className="flex items-center gap-3">
-                    <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
-                    <span className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Today&apos;s Nutrition</span>
-                  </div>
-                  {[
-                    { label: 'Calories', current: '2,846', target: '3,600', pct: 79, color: 'bg-green-500' },
-                    { label: 'Protein', current: '156g', target: '180g', pct: 87, color: 'bg-blue-500' },
-                    { label: 'Carbs', current: '310g', target: '360g', pct: 86, color: 'bg-amber-500' },
-                    { label: 'Fat', current: '89g', target: '120g', pct: 74, color: 'bg-cyan-500' },
-                  ].map((m) => (
-                    <div key={m.label} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-300 font-medium">{m.label}</span>
-                        <span className="text-slate-500 font-mono text-xs">{m.current} / {m.target}</span>
-                      </div>
-                      <div className="h-2 bg-slate-700/60 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${m.color}`} style={{ width: `${m.pct}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="lg:order-1 relative">
+              <div className="absolute -inset-8 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+              <img src={STREAK_IMG} alt="Streak System" className="relative w-full max-w-sm mx-auto rounded-2xl shadow-2xl shadow-black/30 border border-slate-700/40" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* ═══════════════════════════════════════════════════════════════
+          SECTION 7: CTA
+      ═══════════════════════════════════════════════════════════════ */}
       <section className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-3xl mx-auto text-center">
           <div className="relative rounded-3xl overflow-hidden p-12 md:p-16">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-900 to-slate-900" />
-            <div className="absolute inset-0 border border-purple-500/20 rounded-3xl" />
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
-
-            <div className="relative space-y-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-slate-800/40 to-slate-900/60" />
+            <div className="relative z-10 space-y-6">
               <LightningBolt className="w-12 h-12 mx-auto" />
               <h2 className="text-3xl sm:text-4xl font-bold">
                 Ready to Fuel<br />
@@ -420,6 +500,7 @@ export default function TeamsPage() {
           </div>
         </div>
       </footer>
+
       {demoOpen && <InteractiveDemo onClose={() => setDemoOpen(false)} />}
     </main>
   )
