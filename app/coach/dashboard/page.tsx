@@ -205,7 +205,7 @@ function FuelDonut({ segments, total, checkedIn, noCheckin, large }: {
     const pct = noCheckin / total
     const dashLength = pct * circumference
     allSegments.push({
-      label: 'No Check-in', emoji: '', count: noCheckin, color: '#475569', range: '\u2014',
+      label: 'No Check-in', emoji: '', count: noCheckin, color: '#475569', range: '—',
       pct, dashLength, dashGap: circumference - dashLength, offset: prevOffset,
     })
   }
@@ -1200,7 +1200,7 @@ export default function CoachDashboardPage() {
               {stats.avgWellness !== null ? (
                 <span className={getWellnessColor(stats.avgWellness)}>{stats.avgWellness}%</span>
               ) : (
-                <span className="text-slate-500">\u2014</span>
+                <span className="text-slate-500">—</span>
               )}
             </p>
           </div>
@@ -1278,7 +1278,7 @@ export default function CoachDashboardPage() {
                             <button onClick={() => handleSort('name')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
                               Athlete Name
                               {sortColumn === 'name' && (
-                                <span className="text-purple-400">{sortDirection === 'asc' ? '\u2191' : '\u2193'}</span>
+                                <span className="text-purple-400">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                               )}
                             </button>
                           </th>
@@ -1286,7 +1286,7 @@ export default function CoachDashboardPage() {
                             <button onClick={() => handleSort('wellness')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
                               Wellness Score
                               {sortColumn === 'wellness' && (
-                                <span className="text-purple-400">{sortDirection === 'desc' ? '\u2193' : '\u2191'}</span>
+                                <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                               )}
                             </button>
                           </th>
@@ -1294,7 +1294,7 @@ export default function CoachDashboardPage() {
                             <button onClick={() => handleSort('streak')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
                               Streak Count
                               {sortColumn === 'streak' && (
-                                <span className="text-purple-400">{sortDirection === 'desc' ? '\u2193' : '\u2191'}</span>
+                                <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                               )}
                             </button>
                           </th>
@@ -1302,7 +1302,7 @@ export default function CoachDashboardPage() {
                             <button onClick={() => handleSort('compliance')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
                               Compliance %
                               {sortColumn === 'compliance' && (
-                                <span className="text-purple-400">{sortDirection === 'desc' ? '\u2193' : '\u2191'}</span>
+                                <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                               )}
                             </button>
                           </th>
@@ -1326,11 +1326,11 @@ export default function CoachDashboardPage() {
                                   {a.wellnessScore}
                                 </span>
                               ) : (
-                                <span className="text-slate-600 text-xs">\u2014</span>
+                                <span className="text-slate-600 text-xs">—</span>
                               )}
                             </td>
                             <td className="px-6 py-3.5">
-                              <span className="text-white text-sm font-medium">{a.checkinStreak > 0 ? `${a.checkinStreak} Day${a.checkinStreak !== 1 ? 's' : ''}` : '\u2014'}</span>
+                              <span className="text-white text-sm font-medium">{a.checkinStreak > 0 ? `${a.checkinStreak} Day${a.checkinStreak !== 1 ? 's' : ''}` : '—'}</span>
                             </td>
                             <td className="px-6 py-3.5">
                               <span className={`text-sm font-semibold ${
@@ -1340,7 +1340,7 @@ export default function CoachDashboardPage() {
                               </span>
                             </td>
                             <td className="px-6 py-3.5">
-                              <span className="text-purple-400 hover:text-purple-300 text-sm font-medium">View \u2192</span>
+                              <span className="text-purple-400 hover:text-purple-300 text-sm font-medium">View →</span>
                             </td>
                           </tr>
                         ))}
