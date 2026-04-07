@@ -15,6 +15,14 @@ interface Message {
   content: string
   mode?: Mode
   timestamp: Date
+  saved?: boolean
+}
+
+interface SavedItem {
+  id: string
+  content: string
+  mode: Mode
+  savedAt: Date
 }
 
 interface MacroContext {
@@ -60,6 +68,16 @@ export default function MealAssistantPage() {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [macroContext, setMacroContext] = useState<MacroContext | null>(null)
+  const [savedItems, setSavedItems] = useState<SavedItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('fuel-meal-assistant-saved')
+        return stored ? JSON.parse(stored) : []
+      } catch { return [] }
+    }
+    return []
+  })
+  const [showSaved, setShowSaved] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -75,6 +93,25 @@ export default function MealAssistantPage() {
     const { data: athlete } = await supabase.from('athletes').select('id').eq('profile_id', user.id).single()
     if (!athlete) { router.push('/athlete/onboarding'); return }
     setLoading(false)
+  }
+
+  function toggleSave(msgId: string, content: string) {
+    const existing = savedItems.find(s => s.id === msgId)
+    let updated: SavedItem[]
+    if (existing) {
+      updated = savedItems.filter(s => s.id !== msgId)
+    } else {
+      updated = [...savedItems, { id: msgId, content, mode: activeMode!, savedAt: new Date() }]
+    }
+    setSavedItems(updated)
+    localStorage.setItem('fuel-meal-assistant-saved', JSON.stringify(updated))
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, saved: !m.saved } : m))
+  }
+
+  function deleteSaved(id: string) {
+    const updated = savedItems.filter(s => s.id !== id)
+    setSavedItems(updated)
+    localStorage.setItem('fuel-meal-assistant-saved', JSON.stringify(updated))
   }
 
   function selectMode(mode: Mode) {
@@ -207,6 +244,39 @@ export default function MealAssistantPage() {
             ))}
           </div>
 
+          {/* Saved Items */}
+          {savedItems.length > 0 && (
+            <div className="mt-10">
+              <button
+                onClick={() => setShowSaved(!showSaved)}
+                className="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-wider font-medium mb-3 hover:text-purple-400 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                Saved ({savedItems.length})
+                <svg className={`w-3 h-3 transition-transform ${showSaved ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              {showSaved && (
+                <div className="space-y-2 mb-6">
+                  {savedItems.map((item) => (
+                    <div key={item.id} className="bg-slate-800/60 border border-slate-700/40 rounded-xl p-3 group">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-xs">{MODE_CONFIG[item.mode].icon}</span>
+                          <span className="text-[10px] text-purple-400 font-medium">{MODE_CONFIG[item.mode].label}</span>
+                          <span className="text-[10px] text-slate-500">{new Date(item.savedAt).toLocaleDateString()}</span>
+                        </div>
+                        <button onClick={() => deleteSaved(item.id)} className="text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all" title="Remove">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-300 line-clamp-3 whitespace-pre-wrap">{item.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Quick prompts */}
           <div className="mt-10">
             <p className="text-xs text-slate-500 uppercase tracking-wider font-medium mb-3">Quick Prompts</p>
@@ -217,6 +287,7 @@ export default function MealAssistantPage() {
                 { text: "Build me a grocery list", mode: 'grocery_list' as Mode },
                 { text: "Should I eat before practice?", mode: 'question' as Mode },
                 { text: "How much protein do I really need?", mode: 'question' as Mode },
+                { text: "Give me a 3-day meal prep plan", mode: 'grocery_list' as Mode },
               ].map((prompt, i) => (
                 <button
                   key={i}
@@ -294,6 +365,7 @@ export default function MealAssistantPage() {
                   "Build me a weekly grocery list",
                   "Budget-friendly list under $80",
                   "High protein meal prep list",
+                  "Give me a 3-day meal prep plan with grocery list",
                   "I'm vegetarian, help me plan",
                 ].map((q, i) => (
                   <button key={i} onClick={() => sendMessage(q)} className="text-xs bg-slate-800/60 border border-slate-700/40 text-slate-300 hover:text-white hover:border-purple-500/30 px-3 py-1.5 rounded-full transition-all">{q}</button>
@@ -322,9 +394,21 @@ export default function MealAssistantPage() {
                 <div className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.role === 'user' ? 'text-white' : 'text-slate-200'}`}>
                   {msg.content}
                 </div>
-                <p className="text-[10px] text-slate-500 mt-2">
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-[10px] text-slate-500">
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  {msg.role === 'assistant' && (
+                    <button
+                      onClick={() => toggleSave(msg.id, msg.content)}
+                      className={`text-[10px] flex items-center gap-1 transition-colors ${msg.saved || savedItems.some(s => s.id === msg.id) ? 'text-purple-400' : 'text-slate-500 hover:text-purple-400'}`}
+                      title={msg.saved || savedItems.some(s => s.id === msg.id) ? 'Unsave' : 'Save'}
+                    >
+                      <svg className="w-3 h-3" fill={msg.saved || savedItems.some(s => s.id === msg.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
+                      {msg.saved || savedItems.some(s => s.id === msg.id) ? 'Saved' : 'Save'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
