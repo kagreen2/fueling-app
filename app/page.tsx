@@ -13,6 +13,7 @@ const LIGHTNING_ICON = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669
 const HERO_BG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-hero-bg-MVnKGJNhByQXjBHybbrXBq.webp'
 const ATHLETE_IMG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-athlete-section-QrgLzuEReAb4d8r2FkQ8Ys.webp'
 const COACH_IMG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-coach-section-V4MCx87Z8tdmVmXWoCvfDA.webp'
+const PHONE_MOCKUP = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-hero-phone-mockup-BPK6hpLrKumXCJaUkfVNAu.png'
 
 function LightningBolt({ className = 'w-8 h-8' }: { className?: string }) {
   return (
@@ -112,42 +113,54 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/70 to-slate-900" />
         </div>
 
-        <div className="relative z-10 max-w-5xl mx-auto">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-green-500/10 border border-green-500/25 rounded-full">
-              <LightningBolt className="w-4 h-4" />
-              <span className="text-sm font-medium text-green-400">The Competitive Advantage Your Opponents Don&apos;t Have</span>
+        <div className="relative z-10 max-w-6xl mx-auto">
+          <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+            {/* Left: Text */}
+            <div className="flex-1 max-w-2xl">
+              <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-green-500/10 border border-green-500/25 rounded-full">
+                <LightningBolt className="w-4 h-4" />
+                <span className="text-sm font-medium text-green-400">The Competitive Advantage Your Opponents Don&apos;t Have</span>
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 leading-[1.1] tracking-tight">
+                Fuel Different.
+                <br />
+                <span className="bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">Outperform.</span>
+              </h1>
+
+              <p className="text-lg sm:text-xl text-slate-300 mb-4 leading-relaxed font-medium">
+                Everyone trains hard. Not everyone fuels smart.
+              </p>
+              <p className="text-base sm:text-lg text-slate-400 mb-10 leading-relaxed">
+                Evidence-based nutrition coaching that gives athletes and fitness enthusiasts the edge they need. Personalized macros, AI meal tracking, body composition integration, and real-time coach communication.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={() => router.push('/signup')}
+                  size="lg"
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base px-8"
+                >
+                  Start Dominating
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setDemoOpen(true)}
+                  className="text-base border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white px-8"
+                >
+                  Try the Demo
+                </Button>
+              </div>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 leading-[1.1] tracking-tight">
-              Fuel Different.
-              <br />
-              <span className="bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">Outperform.</span>
-            </h1>
-
-            <p className="text-lg sm:text-xl text-slate-300 mb-4 max-w-2xl leading-relaxed font-medium">
-              Everyone trains hard. Not everyone fuels smart.
-            </p>
-            <p className="text-base sm:text-lg text-slate-400 mb-10 max-w-2xl leading-relaxed">
-              Evidence-based nutrition coaching that gives athletes and their coaches the edge they need to dominate. Personalized macros, AI meal tracking, body composition integration, and real-time coach communication — built for teams that refuse to settle.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={() => router.push('/signup')}
-                size="lg"
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base px-8"
-              >
-                Start Dominating
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => setDemoOpen(true)}
-                className="text-base border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white px-8"
-              >
-                Try the Demo
-              </Button>
+            {/* Right: Phone Mockup */}
+            <div className="flex-shrink-0 lg:flex-1 flex justify-center lg:justify-end">
+              <img
+                src={PHONE_MOCKUP}
+                alt="Fuel Different app showing Fuel Score dashboard, nutrition tracking, and AI meal analysis"
+                className="w-64 sm:w-72 lg:w-80 xl:w-96 drop-shadow-2xl"
+              />
             </div>
           </div>
         </div>
