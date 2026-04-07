@@ -128,6 +128,7 @@ export default function BiometricsPage() {
     try {
       const fd = new FormData()
       fd.append('photo', file)
+      fd.append('scanType', SCAN_TYPES.find(t => t.value === form.scan_type)?.label || 'Other')
       const res = await fetch('/api/biometrics/scan-photo', { method: 'POST', body: fd })
       const result = await res.json()
       if (!res.ok) { setScanError(result.error || 'Failed to read scan. You can enter values manually.'); setScanning(false); return }
@@ -309,12 +310,11 @@ export default function BiometricsPage() {
                 </select>
               </div>
 
-              {/* Photo Upload — available for InBody 580 */}
-              {form.scan_type === 'inbody_580' && (
+              {/* Photo Upload — available for all scan types */}
               <div className="bg-slate-700/30 rounded-xl p-5 border border-dashed border-slate-600">
                 <div className="text-center">
-                  <p className="text-white font-medium mb-1">📸 Scan Your InBody 580 Printout</p>
-                  <p className="text-slate-400 text-sm mb-3">Take a photo or upload — we'll read all the numbers automatically</p>
+                  <p className="text-white font-medium mb-1">📸 Scan Your {SCAN_TYPES.find(t => t.value === form.scan_type)?.label || 'Body Comp'} Printout</p>
+                  <p className="text-slate-400 text-sm mb-3">Take a photo or upload your printout — we'll read the numbers automatically</p>
                   <p className="text-slate-500 text-[10px] mb-4 leading-snug max-w-md mx-auto">By uploading your body composition scan, you consent to Fuel Different collecting, processing, and securely storing your body composition data to provide personalized nutrition recommendations. This data is shared only with your assigned coach and is never sold. You may request deletion at any time. <a href="/privacy" target="_blank" className="text-purple-400 underline">Privacy Policy</a></p>
                   {!scanPreview ? (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -332,12 +332,6 @@ export default function BiometricsPage() {
                   )}
                 </div>
               </div>
-              )}
-
-              {/* Consent for non-InBody scans */}
-              {form.scan_type !== 'inbody_580' && (
-                <p className="text-slate-500 text-[10px] leading-snug max-w-md">By entering your body composition data, you consent to Fuel Different collecting, processing, and securely storing this data to provide personalized nutrition recommendations. This data is shared only with your assigned coach and is never sold. You may request deletion at any time. <a href="/privacy" target="_blank" className="text-purple-400 underline">Privacy Policy</a></p>
-              )}
 
               {/* Scan Date */}
               <div>

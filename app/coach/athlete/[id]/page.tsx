@@ -85,8 +85,17 @@ export default function CoachAthleteDetailPage() {
   const [biometricScanFile, setBiometricScanFile] = useState<File | null>(null)
   const [biometricScanError, setBiometricScanError] = useState<string | null>(null)
   const [savingBiometric, setSavingBiometric] = useState(false)
+  const SCAN_TYPES = [
+    { value: 'inbody_580', label: 'InBody 580' },
+    { value: 'dexa', label: 'DEXA Scan' },
+    { value: 'bod_pod', label: 'Bod Pod' },
+    { value: 'skinfold', label: 'Skinfold Calipers' },
+    { value: 'bia_scale', label: 'BIA Scale' },
+    { value: 'other', label: 'Other' },
+  ]
   const emptyBiometricForm = {
     scan_date: new Date().toISOString().split('T')[0],
+    scan_type: 'inbody_580',
     intracellular_water_lbs: '', extracellular_water_lbs: '', dry_lean_mass_lbs: '', body_fat_mass_lbs: '',
     total_body_water_lbs: '', fat_free_mass_lbs: '', weight_lbs: '',
     skeletal_muscle_mass_lbs: '',
@@ -175,6 +184,7 @@ export default function CoachAthleteDetailPage() {
     try {
       const formData = new FormData()
       formData.append('photo', file)
+      formData.append('scanType', SCAN_TYPES.find(t => t.value === biometricForm.scan_type)?.label || 'Other')
       const res = await fetch('/api/biometrics/scan-photo', { method: 'POST', body: formData })
       const result = await res.json()
       if (!res.ok) { setBiometricScanError(result.error || 'Failed to read scan.'); setBiometricScanning(false); return }
@@ -980,10 +990,17 @@ export default function CoachAthleteDetailPage() {
           {/* Add Scan Form */}
           {showBiometricForm && (
             <div className="px-5 py-4 border-b border-slate-700/50 space-y-4">
+              {/* Scan Type Selector */}
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Scan Type</label>
+                <select value={biometricForm.scan_type} onChange={e => setBiometricForm(prev => ({ ...prev, scan_type: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
+                  {SCAN_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
               {/* Photo Upload */}
               <div className="bg-slate-700/30 rounded-lg p-4 border border-dashed border-slate-600 text-center">
-                <p className="text-white text-sm font-medium mb-1">📸 Scan InBody Printout (Optional)</p>
-                <p className="text-slate-400 text-xs mb-3">If using InBody, upload a photo and we'll extract the numbers automatically</p>
+                <p className="text-white text-sm font-medium mb-1">📸 Scan {SCAN_TYPES.find(t => t.value === biometricForm.scan_type)?.label || 'Body Comp'} Printout (Optional)</p>
+                <p className="text-slate-400 text-xs mb-3">Upload a photo of the printout and we'll extract the numbers automatically</p>
                 {!biometricScanPreview ? (
                   <label className="inline-block cursor-pointer px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors">
                     📷 Upload Photo
