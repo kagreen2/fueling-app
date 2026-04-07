@@ -357,17 +357,17 @@ export default function GymsPage() {
                 <span className="text-xs text-purple-400 font-medium">Supplement Safety</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Know What They&apos;re Taking.<br /><span className="text-purple-400">Protect Their Career.</span>
+                Full Visibility Into<br /><span className="text-purple-400">What Your Clients Take.</span>
               </h2>
               <p className="text-slate-400 text-lg leading-relaxed mb-6">
-                Your clients log every supplement they take. Each one gets screened for banned substances and safety concerns. You get full visibility into what&apos;s going into their body — and peace of mind that nothing puts their eligibility at risk.
+                Most coaches have no idea what supplements their clients are taking — or where they&apos;re buying them. With Fuel Different, you see every supplement on your dashboard, flag anything questionable, and recommend trusted alternatives. You&apos;re in control of the conversation.
               </p>
               <div className="space-y-4">
                 {[
-                  { title: 'Supplement Logging', desc: 'Clients log every supplement — pre-workout, protein, creatine, vitamins, everything' },
-                  { title: 'Banned Substance Screening', desc: 'Every supplement is checked against banned substance databases to protect eligibility' },
-                  { title: 'Safety Alerts', desc: 'Get flagged immediately if a client logs something that could be a risk' },
-                  { title: 'Full Supplement History', desc: 'Review what your clients are taking over time and spot patterns or concerns' },
+                  { title: 'See Everything From Your Dashboard', desc: 'Every supplement your clients log shows up on your coach dashboard — no chasing, no guessing' },
+                  { title: 'Flag & Recommend', desc: 'See something questionable? Flag it directly and suggest a trusted alternative from your preferred brands' },
+                  { title: 'Instant Alerts', desc: 'Get notified when a client adds a new supplement so you can review it before they start taking it' },
+                  { title: 'Track Changes Over Time', desc: 'See a full supplement timeline for each client — what they added, what they dropped, and when' },
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <div className="w-6 h-6 rounded-full bg-purple-500/10 flex items-center justify-center mt-0.5 shrink-0">
