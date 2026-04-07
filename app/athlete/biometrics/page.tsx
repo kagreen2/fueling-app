@@ -45,8 +45,18 @@ interface BiometricScan {
 }
 
 // All InBody 580 form fields as strings for input handling
+const SCAN_TYPES = [
+  { value: 'inbody_580', label: 'InBody 580' },
+  { value: 'dexa', label: 'DEXA Scan' },
+  { value: 'bod_pod', label: 'Bod Pod' },
+  { value: 'skinfold', label: 'Skinfold Calipers' },
+  { value: 'bia_scale', label: 'BIA Scale' },
+  { value: 'other', label: 'Other' },
+] as const
+
 const emptyForm = {
   scan_date: getLocalDateString(),
+  scan_type: 'inbody_580',
   // Body Composition Analysis
   intracellular_water_lbs: '', extracellular_water_lbs: '', dry_lean_mass_lbs: '', body_fat_mass_lbs: '',
   total_body_water_lbs: '', fat_free_mass_lbs: '', weight_lbs: '',
@@ -160,7 +170,7 @@ export default function BiometricsPage() {
         seg_lean_trunk_lbs: pn(form.seg_lean_trunk_lbs), seg_lean_right_leg_lbs: pn(form.seg_lean_right_leg_lbs), seg_lean_left_leg_lbs: pn(form.seg_lean_left_leg_lbs),
         ecw_tbw_ratio: pn(form.ecw_tbw_ratio),
         visceral_fat_area_cm2: pn(form.visceral_fat_area_cm2),
-        source: 'athlete', entered_by: userId, notes: form.notes || null, photo_url: photoUrl,
+        source: 'athlete', scan_type: form.scan_type, entered_by: userId, notes: form.notes || null, photo_url: photoUrl,
       })
       if (error) { alert('Error saving scan: ' + error.message); setSaving(false); return }
       // Update athlete record with latest weight and body fat
@@ -216,7 +226,7 @@ export default function BiometricsPage() {
             <button onClick={() => router.push('/athlete/dashboard')} className="text-slate-400 hover:text-white transition-colors">← Back</button>
             <div>
               <h1 className="text-lg font-bold text-white">Body Composition</h1>
-              <p className="text-xs text-slate-400">InBody 580 Scan Results</p>
+              <p className="text-xs text-slate-400">Track your progress across scan types</p>
             </div>
           </div>
           <Button onClick={() => { setShowForm(true); setForm({ ...emptyForm }) }} className="bg-purple-600 hover:bg-purple-700 text-sm">+ New Scan</Button>
@@ -285,18 +295,27 @@ export default function BiometricsPage() {
           <Card className="bg-slate-800/50 border-purple-500/50 border-2">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">New InBody 580 Scan</h2>
+                <h2 className="text-lg font-semibold text-white">New Body Composition Scan</h2>
                 <button onClick={() => { setShowForm(false); setScanPreview(null); setScanFile(null); setScanError(null) }} className="text-slate-400 hover:text-white">✕</button>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
 
-              {/* Photo Upload */}
+              {/* Scan Type Selector */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Scan Type</label>
+                <select value={form.scan_type} onChange={e => setForm(prev => ({ ...prev, scan_type: e.target.value }))} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm">
+                  {SCAN_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+
+              {/* Photo Upload — available for InBody 580 */}
+              {form.scan_type === 'inbody_580' && (
               <div className="bg-slate-700/30 rounded-xl p-5 border border-dashed border-slate-600">
                 <div className="text-center">
                   <p className="text-white font-medium mb-1">📸 Scan Your InBody 580 Printout</p>
                   <p className="text-slate-400 text-sm mb-3">Take a photo or upload — we'll read all the numbers automatically</p>
-                  <p className="text-slate-500 text-[10px] mb-4 leading-snug max-w-md mx-auto">By uploading your InBody scan, you consent to Fuel Different collecting, processing, and securely storing your body composition data to provide personalized nutrition recommendations. This data is shared only with your assigned coach and is never sold. You may request deletion at any time. <a href="/privacy" target="_blank" className="text-purple-400 underline">Privacy Policy</a></p>
+                  <p className="text-slate-500 text-[10px] mb-4 leading-snug max-w-md mx-auto">By uploading your body composition scan, you consent to Fuel Different collecting, processing, and securely storing your body composition data to provide personalized nutrition recommendations. This data is shared only with your assigned coach and is never sold. You may request deletion at any time. <a href="/privacy" target="_blank" className="text-purple-400 underline">Privacy Policy</a></p>
                   {!scanPreview ? (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                       <Button onClick={() => fileInputRef.current?.click()} className="bg-purple-600 hover:bg-purple-700">📷 Take Photo / Upload</Button>
@@ -305,7 +324,7 @@ export default function BiometricsPage() {
                   ) : (
                     <div className="mt-3 space-y-3">
                       <img src={scanPreview} alt="Scan preview" className="max-h-48 mx-auto rounded-lg border border-slate-600" />
-                      {scanning && <div className="flex items-center justify-center gap-2 text-purple-400"><div className="animate-spin h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full"></div><span className="text-sm">Reading your InBody 580 scan...</span></div>}
+                      {scanning && <div className="flex items-center justify-center gap-2 text-purple-400"><div className="animate-spin h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full"></div><span className="text-sm">Reading your scan...</span></div>}
                       {scanError && <p className="text-yellow-400 text-sm">⚠️ {scanError}</p>}
                       {!scanning && !scanError && <p className="text-green-400 text-sm">✅ Numbers extracted! Review and edit below.</p>}
                       <button onClick={() => { setScanPreview(null); setScanFile(null); setScanError(null); if (fileInputRef.current) fileInputRef.current.value = '' }} className="text-slate-400 hover:text-white text-sm underline">Remove photo</button>
@@ -313,6 +332,12 @@ export default function BiometricsPage() {
                   )}
                 </div>
               </div>
+              )}
+
+              {/* Consent for non-InBody scans */}
+              {form.scan_type !== 'inbody_580' && (
+                <p className="text-slate-500 text-[10px] leading-snug max-w-md">By entering your body composition data, you consent to Fuel Different collecting, processing, and securely storing this data to provide personalized nutrition recommendations. This data is shared only with your assigned coach and is never sold. You may request deletion at any time. <a href="/privacy" target="_blank" className="text-purple-400 underline">Privacy Policy</a></p>
+              )}
 
               {/* Scan Date */}
               <div>
@@ -416,7 +441,7 @@ export default function BiometricsPage() {
               <CardContent className="py-12 text-center">
                 <div className="text-4xl mb-3">📊</div>
                 <p className="text-slate-400 mb-1">No body composition scans yet</p>
-                <p className="text-slate-500 text-sm mb-4">Add your first InBody 580 scan to start tracking your progress</p>
+                <p className="text-slate-500 text-sm mb-4">Add your first body composition scan to start tracking your progress</p>
                 <Button onClick={() => { setShowForm(true); setForm({ ...emptyForm }) }} className="bg-purple-600 hover:bg-purple-700">+ Add First Scan</Button>
               </CardContent>
             </Card>
@@ -431,7 +456,7 @@ export default function BiometricsPage() {
                       <div className="flex items-center gap-4">
                         <div>
                           <p className="text-white font-medium">{new Date(scan.scan_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                          <p className="text-slate-400 text-xs">{scan.source === 'coach' ? '👨‍🏫 Coach' : '🏃 Self'}{scan.notes ? ` · ${scan.notes}` : ''}</p>
+                          <p className="text-slate-400 text-xs">{SCAN_TYPES.find(t => t.value === (scan as any).scan_type)?.label || 'InBody 580'} · {scan.source === 'coach' ? '👨‍🏫 Coach' : '🏃 Self'}{scan.notes ? ` · ${scan.notes}` : ''}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">

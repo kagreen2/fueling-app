@@ -317,11 +317,11 @@ export default function GymsPage() {
                 Track Progress.<br /><span className="text-purple-400">Prove Results.</span>
               </h2>
               <p className="text-slate-400 text-lg leading-relaxed mb-6">
-                Import InBody scans and track body composition changes over time. See lean mass gains, body fat reductions, and water balance — all in one place. Show your clients the data that proves your program works.
+                Import body composition scans (InBody, DEXA, Bod Pod, and more) and track changes over time. See lean mass gains, body fat reductions, and water balance — all in one place. Show your clients the data that proves your program works.
               </p>
               <div className="space-y-4">
                 {[
-                  { title: 'InBody Scan Integration', desc: 'Import scan results and track changes over weeks and months' },
+                  { title: 'Multi-Scan Support', desc: 'Import InBody, DEXA, Bod Pod, calipers, or BIA scale results and track changes over time' },
                   { title: 'Visual Progress Charts', desc: 'Lean mass vs. body fat trends that clients actually understand' },
                   { title: 'Before & After Comparisons', desc: 'Side-by-side scan data to celebrate wins and adjust plans' },
                 ].map((item, i) => (

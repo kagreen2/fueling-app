@@ -129,7 +129,7 @@ export default function Home() {
               Everyone trains hard. Not everyone fuels smart.
             </p>
             <p className="text-base sm:text-lg text-slate-400 mb-10 max-w-2xl leading-relaxed">
-              Evidence-based nutrition coaching that gives athletes and their coaches the edge they need to dominate. Personalized macros, AI meal tracking, InBody integration, and real-time coach communication — built for teams that refuse to settle.
+              Evidence-based nutrition coaching that gives athletes and their coaches the edge they need to dominate. Personalized macros, AI meal tracking, body composition integration, and real-time coach communication — built for teams that refuse to settle.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -209,8 +209,8 @@ export default function Home() {
                 icon: (
                   <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 ),
-                title: 'InBody Integration',
-                desc: 'Upload your InBody 580 scan and unlock precision BMR. No more estimated formulas — your plan is built on your real body composition data.',
+                title: 'Body Comp Integration',
+                desc: 'Upload your InBody, DEXA, Bod Pod, or other body composition scan and unlock precision BMR. No more estimated formulas — your plan is built on your real data.',
               },
               {
                 icon: (
@@ -266,7 +266,7 @@ export default function Home() {
               {
                 step: '01',
                 title: 'Build Your Profile',
-                desc: 'Tell us your sport, position, body stats, and goals. Upload an InBody scan for maximum precision — or skip it and we\'ll still dial you in.',
+                desc: 'Tell us your sport, position, body stats, and goals. Upload a body comp scan (InBody, DEXA, etc.) for maximum precision — or skip it and we\'ll still dial you in.',
               },
               {
                 step: '02',
@@ -307,7 +307,7 @@ export default function Home() {
                 {[
                   'Macros tailored to your sport, position & training phase',
                   'AI meal tracking — snap a photo, get instant feedback',
-                  'InBody-powered precision BMR (no more guessing)',
+                  'Body comp-powered precision BMR (no more guessing)',
                   'Daily Fuel Score tracking your coach actually sees',
                   'Direct messaging with your nutrition coach',
                   'Supplement screening to protect your eligibility',
@@ -378,7 +378,7 @@ export default function Home() {
                 {[
                   'Personalized macros based on your training style — strength, CrossFit, cardio, or mixed',
                   'AI meal tracking that takes 5 seconds — just snap a photo',
-                  'InBody scan integration for precision body composition tracking',
+                  'Body comp scan integration (InBody, DEXA, Bod Pod & more)',
                   'Goal-specific plans: lose fat, build muscle, or optimize performance',
                   'Direct access to a nutrition coach who keeps you accountable',
                   'No bro science — every number is backed by ISSN research',
@@ -428,7 +428,7 @@ export default function Home() {
                   'The app builds personalized plans for each athlete automatically',
                   'Get alerts when an athlete misses meals, check-ins, or falls off track',
                   'One dashboard to monitor your entire roster\'s nutrition compliance',
-                  'InBody scan tracking shows you body composition trends over time',
+                  'Body comp scan tracking shows you body composition trends over time',
                   'Message athletes directly when they need a push',
                   'One-click invite codes — onboard your whole team in minutes',
                   'Supplement screening protects your athletes\' eligibility',
@@ -464,7 +464,7 @@ export default function Home() {
               { icon: '📐', label: 'Mifflin-St Jeor Fallback' },
               { icon: '🏋️', label: 'Sport-Specific Multipliers' },
               { icon: '🎯', label: 'Goal-Phase Adjustments' },
-              { icon: '📊', label: 'InBody 580 Integration' },
+              { icon: '📊', label: 'Body Comp Integration' },
               { icon: '🤖', label: 'AI Meal Analysis' },
               { icon: '💧', label: 'Hydration Protocols' },
               { icon: '🛡️', label: 'Supplement Screening' },

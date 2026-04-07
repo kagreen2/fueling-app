@@ -274,7 +274,7 @@ export default function ProgressPage() {
             <div>
               <h1 className="text-xl font-bold">Body Composition</h1>
               <p className="text-xs text-slate-400">
-                {scans.length === 0 ? 'No scans recorded' : `${scans.length} scan${scans.length > 1 ? 's' : ''} · InBody 580`}
+                {scans.length === 0 ? 'No scans recorded' : `${scans.length} scan${scans.length > 1 ? 's' : ''}`}
               </p>
             </div>
           </div>
@@ -303,7 +303,7 @@ export default function ProgressPage() {
               </svg>
             </div>
             <p className="text-white font-semibold mb-1">No body scans on file yet</p>
-            <p className="text-slate-500 text-sm">Your coach will add scans after your InBody assessment.</p>
+            <p className="text-slate-500 text-sm">Your coach will add scans after your body composition assessment.</p>
           </div>
         ) : (
           <>
@@ -317,7 +317,7 @@ export default function ProgressPage() {
                   <MetricCard label="Weight" value={fmt(latest.weight_lbs)} unit="lbs" change={delta(latest.weight_lbs, previous?.weight_lbs ?? null)} accent="purple" />
                   <MetricCard label="Body Fat %" value={fmt(latest.body_fat_percent)} unit="%" change={delta(latest.body_fat_percent, previous?.body_fat_percent ?? null)} lowerIsBetter accent="red" />
                   <MetricCard label="Muscle Mass" value={fmt(latest.skeletal_muscle_mass_lbs)} unit="lbs" change={delta(latest.skeletal_muscle_mass_lbs, previous?.skeletal_muscle_mass_lbs ?? null)} accent="green" />
-                  <MetricCard label="InBody Score" value={latest.inbody_score?.toString() ?? '—'} unit="" change={delta(latest.inbody_score, previous?.inbody_score ?? null)} accent="purple" />
+                  <MetricCard label="Body Comp Score" value={latest.inbody_score?.toString() ?? '—'} unit="" change={delta(latest.inbody_score, previous?.inbody_score ?? null)} accent="purple" />
                   <MetricCard label="BMR" value={fmt(latest.bmr_calories, 0)} unit="kcal" change={null} accent="blue" />
                   <MetricCard label="Visceral Fat" value={latest.visceral_fat_level?.toString() ?? '—'} unit="" change={delta(latest.visceral_fat_level, previous?.visceral_fat_level ?? null)} lowerIsBetter accent="red" />
                 </div>
@@ -335,7 +335,7 @@ export default function ProgressPage() {
                     <TrendBar scans={scans} field="weight_lbs" label="Weight (lbs)" color="#9333EA" />
                     <TrendBar scans={scans} field="body_fat_percent" label="Body Fat %" color="#ef4444" />
                     <TrendBar scans={scans} field="skeletal_muscle_mass_lbs" label="Muscle Mass (lbs)" color="#22c55e" />
-                    <TrendBar scans={scans} field="inbody_score" label="InBody Score" color="#9333EA" />
+                    <TrendBar scans={scans} field="inbody_score" label="Body Comp Score" color="#9333EA" />
                   </div>
                 </div>
               </div>

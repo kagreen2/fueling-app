@@ -982,8 +982,8 @@ export default function CoachAthleteDetailPage() {
             <div className="px-5 py-4 border-b border-slate-700/50 space-y-4">
               {/* Photo Upload */}
               <div className="bg-slate-700/30 rounded-lg p-4 border border-dashed border-slate-600 text-center">
-                <p className="text-white text-sm font-medium mb-1">📸 Scan InBody 580 Printout</p>
-                <p className="text-slate-400 text-xs mb-3">Upload a photo and we'll extract all the numbers automatically</p>
+                <p className="text-white text-sm font-medium mb-1">📸 Scan InBody Printout (Optional)</p>
+                <p className="text-slate-400 text-xs mb-3">If using InBody, upload a photo and we'll extract the numbers automatically</p>
                 {!biometricScanPreview ? (
                   <label className="inline-block cursor-pointer px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors">
                     📷 Upload Photo
@@ -992,7 +992,7 @@ export default function CoachAthleteDetailPage() {
                 ) : (
                   <div className="space-y-2">
                     <img src={biometricScanPreview} alt="Scan" className="max-h-32 mx-auto rounded-lg border border-slate-600" />
-                    {biometricScanning && <div className="flex items-center justify-center gap-2 text-purple-400"><div className="animate-spin h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full"></div><span className="text-xs">Reading InBody 580 scan...</span></div>}
+                    {biometricScanning && <div className="flex items-center justify-center gap-2 text-purple-400"><div className="animate-spin h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full"></div><span className="text-xs">Reading scan...</span></div>}
                     {biometricScanError && <p className="text-yellow-400 text-xs">⚠️ {biometricScanError}</p>}
                     {!biometricScanning && !biometricScanError && <p className="text-green-400 text-xs">✅ Numbers extracted! Review below.</p>}
                     <button onClick={() => { setBiometricScanPreview(null); setBiometricScanFile(null); setBiometricScanError(null) }} className="text-slate-400 hover:text-white text-xs underline">Remove photo</button>

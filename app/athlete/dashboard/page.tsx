@@ -70,8 +70,15 @@ const QUICK_ACTIONS: QuickAction[] = [
     id: 'biometrics',
     icon: '📊',
     label: 'Body Comp',
-    description: 'InBody scans',
+    description: 'Body comp scans',
     href: '/athlete/biometrics',
+  },
+  {
+    id: 'meal-assistant',
+    icon: '🤖',
+    label: 'Meal Assistant',
+    description: 'AI nutrition coach',
+    href: '/athlete/meal-assistant',
   },
 ]
 
