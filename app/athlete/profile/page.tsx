@@ -364,10 +364,28 @@ export default function ProfilePage() {
       setCurrentTeams(prev => [...prev, team])
       setTeamSuccess(`Successfully joined ${team.name}!`)
       setTeamCode('')
+
+      // Send push notification to coach that a new athlete joined their team
+      try {
+        await fetch('/api/notifications/push-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'team_join',
+            data: {
+              athleteName: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'An athlete',
+              teamId: team.id,
+              teamName: team.name,
+            },
+          }),
+        })
+      } catch (e) {
+        // Non-critical — don't block team join
+        console.error('Error sending team join notification:', e)
+      }
     } catch (e) {
       setTeamError('Something went wrong. Please try again.')
     }
-
     setJoiningTeam(false)
   }
 

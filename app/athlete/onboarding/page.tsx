@@ -381,6 +381,56 @@ export default function OnboardingPage() {
       console.error('Error marking invitation accepted:', e)
     }
 
+    // Send push notification to admin: new user signed up
+    try {
+      const athleteName = `${form.firstName} ${form.lastName}`.trim()
+      await fetch('/api/notifications/push-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'new_signup',
+          data: {
+            athleteName,
+            email: user.email,
+            sport: form.sport || null,
+            school: form.school || null,
+          },
+        }),
+      })
+    } catch (e) {
+      // Non-critical — don't block onboarding
+      console.error('Error sending new signup notification:', e)
+    }
+
+    // Send push notification to coach if athlete joined a team
+    if (form.inviteCode.trim()) {
+      try {
+        const { data: joinedTeam } = await supabase
+          .from('teams')
+          .select('id, name')
+          .eq('invite_code', form.inviteCode.trim().toUpperCase())
+          .single()
+
+        if (joinedTeam) {
+          const athleteName = `${form.firstName} ${form.lastName}`.trim()
+          await fetch('/api/notifications/push-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event: 'team_join',
+              data: {
+                athleteName,
+                teamId: joinedTeam.id,
+                teamName: joinedTeam.name,
+              },
+            }),
+          })
+        }
+      } catch (e) {
+        console.error('Error sending team join notification:', e)
+      }
+    }
+
     router.push('/athlete/dashboard')
   }
 
