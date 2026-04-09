@@ -226,7 +226,7 @@ export default function CoachAthleteDetailPage() {
       seg_lean_trunk_lbs: pn(biometricForm.seg_lean_trunk_lbs), seg_lean_right_leg_lbs: pn(biometricForm.seg_lean_right_leg_lbs), seg_lean_left_leg_lbs: pn(biometricForm.seg_lean_left_leg_lbs),
       ecw_tbw_ratio: pn(biometricForm.ecw_tbw_ratio),
       visceral_fat_area_cm2: pn(biometricForm.visceral_fat_area_cm2),
-      source: 'coach', entered_by: user.id, notes: biometricForm.notes || null, photo_url: photoUrl,
+      source: 'coach', scan_type: biometricForm.scan_type, entered_by: user.id, notes: biometricForm.notes || null, photo_url: photoUrl,
     })
     if (error) { alert('Error saving: ' + error.message) } else {
       // Update athlete record too
