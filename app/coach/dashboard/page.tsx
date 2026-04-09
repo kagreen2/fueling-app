@@ -337,7 +337,7 @@ export default function CoachDashboardPage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [athletes, setAthletes] = useState<AthleteData[]>([])
   const [selectedTeam, setSelectedTeam] = useState<string>('all')
-  const [timeRange, setTimeRange] = useState<number>(7)
+  const [timeRange, setTimeRange] = useState<number>(30)
   const [view, setView] = useState<'overview' | 'leaderboard' | 'alerts' | 'messages'>('overview')
   const [coachName, setCoachName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
@@ -369,7 +369,7 @@ export default function CoachDashboardPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [timeRange])
 
   async function loadData() {
     setLoading(true)
@@ -486,7 +486,7 @@ export default function CoachDashboardPage() {
     // Get today's date and date range
     const today = getLocalDateString()
     const rangeStart = new Date()
-    rangeStart.setDate(rangeStart.getDate() - 30) // Always fetch 30 days for flexibility
+    rangeStart.setDate(rangeStart.getDate() - timeRange) // Use selected time range
     const rangeStartStr = getLocalDateString(rangeStart)
 
     // Get meal summaries for all athletes in the date range (restricted view - macros only)
@@ -543,12 +543,12 @@ export default function CoachDashboardPage() {
       const logDates = summaries.map(s => s.date).sort()
       const daysActive = logDates.length
 
-      // Calculate days since signup (cap at 30)
+      // Calculate days since signup (cap at selected time range)
       const athleteCreatedAt = athlete?.created_at ? new Date(athlete.created_at) : null
-      let daysSinceSignup = 30
+      let daysSinceSignup = timeRange
       if (athleteCreatedAt) {
         const diffMs = new Date().getTime() - athleteCreatedAt.getTime()
-        daysSinceSignup = Math.max(1, Math.min(30, Math.floor(diffMs / (1000 * 60 * 60 * 24))))
+        daysSinceSignup = Math.max(1, Math.min(timeRange, Math.floor(diffMs / (1000 * 60 * 60 * 24))))
       }
       const totalDays = daysSinceSignup
 
@@ -593,9 +593,9 @@ export default function CoachDashboardPage() {
         checkDate.setDate(checkDate.getDate() - 1)
       }
 
-      // Last log date
+      // Last log date — use signup date as fallback instead of 999
       const lastLogDate = logDates.length > 0 ? logDates[logDates.length - 1] : null
-      let daysSinceLastLog = 999
+      let daysSinceLastLog = daysSinceSignup // fallback to days since signup
       if (lastLogDate) {
         const lastDate = new Date(lastLogDate + 'T12:00:00')
         const now = new Date()
@@ -761,12 +761,20 @@ export default function CoachDashboardPage() {
     }
   }
 
-  // Leaderboard: sorted by compliance rate, then streak
-  const leaderboard = useMemo(() => {
-    return [...filteredAthletes].sort((a, b) => {
-      if (b.complianceRate !== a.complianceRate) return b.complianceRate - a.complianceRate
-      return b.streak - a.streak
-    })
+  // Leaderboard: compliance (only athletes with targets) and fuel score (only with check-ins)
+  const complianceLeaderboard = useMemo(() => {
+    return filteredAthletes
+      .filter(a => a.hasTargets)
+      .sort((a, b) => {
+        if (b.complianceRate !== a.complianceRate) return b.complianceRate - a.complianceRate
+        return b.streak - a.streak
+      })
+  }, [filteredAthletes])
+
+  const fuelScoreLeaderboard = useMemo(() => {
+    return filteredAthletes
+      .filter(a => a.wellnessScore !== null)
+      .sort((a, b) => (b.wellnessScore || 0) - (a.wellnessScore || 0))
   }, [filteredAthletes])
 
   // Red flag athletes
@@ -1000,9 +1008,36 @@ export default function CoachDashboardPage() {
     const redFlag = withScores.filter(a => (a.wellnessScore || 0) < 50).length
     const noCheckin = filteredAthletes.filter(a => a.wellnessScore === null).length
 
-    const activeStreaks = filteredAthletes.filter(a => a.checkinStreak >= 2).length
+    // Top Compliance athlete (only those with targets)
+    const topComplianceAthlete = athletesWithTargets.length > 0
+      ? athletesWithTargets.reduce((best, a) => a.complianceRate > best.complianceRate ? a : best)
+      : null
 
-    return { total, loggedToday, avgCompliance, avgStreak, activeStreaks, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgWellness, lockedIn, onTrack, dialItIn, redFlag, noCheckin }
+    // Top Fuel Score athlete (only those with a wellness score)
+    const topFuelScoreAthlete = withScores.length > 0
+      ? withScores.reduce((best, a) => (a.wellnessScore || 0) > (best.wellnessScore || 0) ? a : best)
+      : null
+
+    // Format name as "First L."
+    const formatShortName = (name: string) => {
+      const parts = name.trim().split(/\s+/)
+      if (parts.length >= 2) return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`
+      return parts[0]
+    }
+
+    const topCompliance = topComplianceAthlete ? {
+      name: formatShortName(topComplianceAthlete.name),
+      value: topComplianceAthlete.complianceRate,
+      id: topComplianceAthlete.id,
+    } : null
+
+    const topFuelScore = topFuelScoreAthlete ? {
+      name: formatShortName(topFuelScoreAthlete.name),
+      value: topFuelScoreAthlete.wellnessScore || 0,
+      id: topFuelScoreAthlete.id,
+    } : null
+
+    return { total, loggedToday, avgCompliance, avgStreak, topCompliance, topFuelScore, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgWellness, lockedIn, onTrack, dialItIn, redFlag, noCheckin }
   }, [filteredAthletes, redFlags, wellnessAlerts])
 
   if (loading) {
@@ -1185,7 +1220,7 @@ export default function CoachDashboardPage() {
 
         {/* Team Filter + View Tabs */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <select
               value={selectedTeam}
               onChange={e => setSelectedTeam(e.target.value)}
@@ -1198,6 +1233,19 @@ export default function CoachDashboardPage() {
                 </option>
               ))}
             </select>
+            <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5">
+              {[7, 14, 30].map(d => (
+                <button
+                  key={d}
+                  onClick={() => setTimeRange(d)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    timeRange === d ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-1">
@@ -1248,13 +1296,37 @@ export default function CoachDashboardPage() {
               <p className="text-sm text-slate-500 italic mt-3">No targets set</p>
             )}
           </div>
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
-            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Active Streaks</p>
-            <p className="text-4xl font-bold text-white mt-2">{stats.activeStreaks}</p>
+          <div
+            className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 cursor-pointer hover:border-yellow-500/30 transition-colors"
+            onClick={() => stats.topCompliance && router.push(`/coach/athlete/${stats.topCompliance.id}`)}
+          >
+            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1.5">
+              <span className="text-yellow-400">🏆</span> Top Compliance
+            </p>
+            {stats.topCompliance ? (
+              <div className="mt-2">
+                <p className="text-xl font-bold text-white leading-tight">{stats.topCompliance.name}</p>
+                <p className="text-2xl font-bold text-yellow-400 mt-0.5">{stats.topCompliance.value}%</p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 italic mt-3">No data yet</p>
+            )}
           </div>
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
-            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Total Athletes</p>
-            <p className="text-4xl font-bold text-white mt-2">{stats.total}</p>
+          <div
+            className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 cursor-pointer hover:border-emerald-500/30 transition-colors"
+            onClick={() => stats.topFuelScore && router.push(`/coach/athlete/${stats.topFuelScore.id}`)}
+          >
+            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1.5">
+              <span className="text-emerald-400">⚡</span> Top Fuel Score
+            </p>
+            {stats.topFuelScore ? (
+              <div className="mt-2">
+                <p className="text-xl font-bold text-white leading-tight">{stats.topFuelScore.name}</p>
+                <p className="text-2xl font-bold text-emerald-400 mt-0.5">{stats.topFuelScore.value}%</p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 italic mt-3">No data yet</p>
+            )}
           </div>
         </div>
 
@@ -1415,54 +1487,108 @@ export default function CoachDashboardPage() {
 
         {/* Leaderboard View */}
         {view === 'leaderboard' && (
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-700">
-              <h3 className="text-white font-semibold">Commitment Leaderboard</h3>
-              <p className="text-slate-400 text-sm mt-0.5">Ranked by 30-day compliance rate</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Compliance Leaderboard */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-700">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <span className="text-yellow-400">🏆</span> Compliance Leaderboard
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">% of days within 80–120% of calorie &amp; protein targets ({timeRange}d)</p>
+              </div>
+
+              {complianceLeaderboard.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-slate-400 text-sm">No athletes with targets set yet.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-700/50">
+                  {complianceLeaderboard.map((a, i) => {
+                    const rank = i + 1
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null
+                    return (
+                      <div
+                        key={a.id}
+                        className="px-4 py-3 flex items-center gap-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/coach/athlete/${a.id}`)}
+                      >
+                        <div className="w-8 text-center flex-shrink-0">
+                          {medal ? (
+                            <span className="text-lg">{medal}</span>
+                          ) : (
+                            <span className="text-slate-500 text-xs font-bold">#{rank}</span>
+                          )}
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-sm font-bold flex-shrink-0">
+                          {a.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium text-sm truncate">{a.name}</p>
+                          <p className="text-slate-500 text-xs truncate">{a.teamName}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className={`text-lg font-bold ${
+                            a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
+                          }`}>
+                            {a.complianceRate}%
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            {leaderboard.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-slate-400">No athletes to rank yet.</p>
+            {/* Fuel Score Leaderboard */}
+            <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-700">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <span className="text-emerald-400">⚡</span> Fuel Score Leaderboard
+                </h3>
+                <p className="text-slate-400 text-xs mt-0.5">Average Fuel Score from daily check-ins</p>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-700/50">
-                {leaderboard.map((a, i) => {
-                  const rank = i + 1
-                  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null
-                  return (
-                    <div
-                      key={a.id}
-                      className="px-4 py-4 flex items-center gap-4 hover:bg-slate-700/30 transition-colors cursor-pointer"
-                      onClick={() => router.push(`/coach/athlete/${a.id}`)}
-                    >
-                      <div className="w-10 text-center flex-shrink-0">
-                        {medal ? (
-                          <span className="text-xl">{medal}</span>
-                        ) : (
-                          <span className="text-slate-500 text-sm font-bold">#{rank}</span>
-                        )}
+
+              {fuelScoreLeaderboard.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-slate-400 text-sm">No check-in data yet.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-700/50">
+                  {fuelScoreLeaderboard.map((a, i) => {
+                    const rank = i + 1
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null
+                    return (
+                      <div
+                        key={a.id}
+                        className="px-4 py-3 flex items-center gap-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/coach/athlete/${a.id}`)}
+                      >
+                        <div className="w-8 text-center flex-shrink-0">
+                          {medal ? (
+                            <span className="text-lg">{medal}</span>
+                          ) : (
+                            <span className="text-slate-500 text-xs font-bold">#{rank}</span>
+                          )}
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center text-emerald-400 text-sm font-bold flex-shrink-0">
+                          {a.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-medium text-sm truncate">{a.name}</p>
+                          <p className="text-slate-500 text-xs truncate">{a.teamName}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className={`text-lg font-bold ${getWellnessColor(a.wellnessScore)}`}>
+                            {a.wellnessScore}%
+                          </p>
+                        </div>
                       </div>
-                      <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 font-bold flex-shrink-0">
-                        {a.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium text-sm truncate">{a.name}</p>
-                        <p className="text-slate-500 text-xs">{a.teamName} · {formatUserContext(a)}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className={`text-lg font-bold ${
-                          a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
-                        }`}>
-                          {a.complianceRate}%
-                        </p>
-                        <p className="text-slate-500 text-xs">{a.streak} day streak</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1543,7 +1669,11 @@ export default function CoachDashboardPage() {
 
                     {redFlags.map(a => {
                       const reasons: string[] = []
-                      if (a.daysSinceLastLog >= 3) reasons.push(`Haven't logged in ${a.daysSinceLastLog} days`)
+                      if (a.lastLogDate === null) {
+                        reasons.push(`Never logged a meal (signed up ${a.totalDays} day${a.totalDays !== 1 ? 's' : ''} ago)`)
+                      } else if (a.daysSinceLastLog >= 3) {
+                        reasons.push(`Haven't logged in ${a.daysSinceLastLog} days`)
+                      }
                       if (a.hasTargets && a.complianceRate < 30) reasons.push(`Only ${a.complianceRate}% compliance`)
                       if (a.todayCalories > 0 && a.targetCalories > 0 && a.todayCalories < a.targetCalories * 0.5) reasons.push(`Under 50% of calorie target today`)
 
