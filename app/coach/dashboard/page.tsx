@@ -86,6 +86,7 @@ interface AthleteData {
   daysActive: number
   totalDays: number
   complianceRate: number
+  hasTargets: boolean
   streak: number
   lastLogDate: string | null
   daysSinceLastLog: number
@@ -422,6 +423,7 @@ export default function CoachDashboardPage() {
             user_type,
             activity_level,
             training_style,
+            created_at,
             profile:profiles(full_name, email)
           )
         `)
@@ -445,6 +447,7 @@ export default function CoachDashboardPage() {
           user_type,
           activity_level,
           training_style,
+          created_at,
           profile:profiles(full_name, email)
         )
       `)
@@ -540,9 +543,31 @@ export default function CoachDashboardPage() {
       const logDates = summaries.map(s => s.date).sort()
       const daysActive = logDates.length
 
-      // Calculate total days in range (up to 30)
-      const totalDays = 30
-      const complianceRate = totalDays > 0 ? Math.round((daysActive / totalDays) * 100) : 0
+      // Calculate days since signup (cap at 30)
+      const athleteCreatedAt = athlete?.created_at ? new Date(athlete.created_at) : null
+      let daysSinceSignup = 30
+      if (athleteCreatedAt) {
+        const diffMs = new Date().getTime() - athleteCreatedAt.getTime()
+        daysSinceSignup = Math.max(1, Math.min(30, Math.floor(diffMs / (1000 * 60 * 60 * 24))))
+      }
+      const totalDays = daysSinceSignup
+
+      // Calculate compliance based on macro target adherence
+      const targetCals = rec?.daily_calories || 0
+      const targetPro = rec?.daily_protein_g || 0
+      const hasTargets = targetCals > 0 && targetPro > 0
+      let complianceRate = 0
+      if (hasTargets) {
+        const compliantDays = summaries.filter(s => {
+          const calPct = s.total_calories / targetCals
+          const proPct = s.total_protein / targetPro
+          return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
+        }).length
+        complianceRate = totalDays > 0 ? Math.round((compliantDays / totalDays) * 100) : 0
+      } else {
+        // No targets set — fall back to logging-based compliance
+        complianceRate = totalDays > 0 ? Math.round((daysActive / totalDays) * 100) : 0
+      }
 
       // Calculate weekly trend: compare last 7 days vs prior 7 days
       const now = new Date()
@@ -631,6 +656,7 @@ export default function CoachDashboardPage() {
         daysActive,
         totalDays,
         complianceRate,
+        hasTargets,
         streak,
         lastLogDate,
         daysSinceLastLog,
@@ -748,8 +774,8 @@ export default function CoachDashboardPage() {
     return filteredAthletes.filter(a => {
       // Haven't logged in 3+ days
       if (a.daysSinceLastLog >= 3) return true
-      // Compliance below 30%
-      if (a.complianceRate < 30) return true
+      // Compliance below 30% (only for athletes with targets set)
+      if (a.hasTargets && a.complianceRate < 30) return true
       // Consistently under 50% of calorie target when they do log
       if (a.todayCalories > 0 && a.targetCalories > 0 && a.todayCalories < a.targetCalories * 0.5) return true
       return false
@@ -955,9 +981,10 @@ export default function CoachDashboardPage() {
   const stats = useMemo(() => {
     const total = filteredAthletes.length
     const loggedToday = filteredAthletes.filter(a => a.loggedToday).length
-    const avgCompliance = total > 0
-      ? Math.round(filteredAthletes.reduce((sum, a) => sum + a.complianceRate, 0) / total)
-      : 0
+    const athletesWithTargets = filteredAthletes.filter(a => a.hasTargets)
+    const avgCompliance = athletesWithTargets.length > 0
+      ? Math.round(athletesWithTargets.reduce((sum, a) => sum + a.complianceRate, 0) / athletesWithTargets.length)
+      : -1 // -1 means no athletes have targets set
     const avgStreak = total > 0
       ? Math.round(filteredAthletes.reduce((sum, a) => sum + a.streak, 0) / total * 10) / 10
       : 0
@@ -1207,9 +1234,19 @@ export default function CoachDashboardPage() {
               )}
             </p>
           </div>
-          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
-            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Avg. Compliance</p>
-            <p className="text-4xl font-bold text-white mt-2">{stats.avgCompliance}%</p>
+          <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 relative group">
+            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">
+              Avg. Compliance
+              <span className="text-slate-500 cursor-help text-[10px] ml-1">ⓘ</span>
+            </p>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+              % of days hitting within 80–120% of calorie &amp; protein targets
+            </div>
+            {stats.avgCompliance >= 0 ? (
+              <p className="text-4xl font-bold text-white mt-2">{stats.avgCompliance}%</p>
+            ) : (
+              <p className="text-sm text-slate-500 italic mt-3">No targets set</p>
+            )}
           </div>
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
             <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Active Streaks</p>
@@ -1311,6 +1348,12 @@ export default function CoachDashboardPage() {
                                 <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                               )}
                             </button>
+                            <div className="relative group/tip inline-block ml-1">
+                              <span className="text-slate-500 cursor-help text-[10px]">ⓘ</span>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                % of days hitting within 80% of calorie &amp; protein targets
+                              </div>
+                            </div>
                           </th>
                           <th className="px-6 py-3"></th>
                         </tr>
@@ -1346,11 +1389,15 @@ export default function CoachDashboardPage() {
                               )}
                             </td>
                             <td className="px-6 py-3.5">
-                              <span className={`text-sm font-semibold ${
-                                a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
-                              }`}>
-                                {a.complianceRate}%
-                              </span>
+                              {a.hasTargets ? (
+                                <span className={`text-sm font-semibold ${
+                                  a.complianceRate >= 70 ? 'text-green-400' : a.complianceRate >= 40 ? 'text-yellow-400' : 'text-red-400'
+                                }`}>
+                                  {a.complianceRate}%
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 text-xs italic">No targets set</span>
+                              )}
                             </td>
                             <td className="px-6 py-3.5">
                               <span className="text-purple-400 hover:text-purple-300 text-sm font-medium">View →</span>
@@ -1497,7 +1544,7 @@ export default function CoachDashboardPage() {
                     {redFlags.map(a => {
                       const reasons: string[] = []
                       if (a.daysSinceLastLog >= 3) reasons.push(`Haven't logged in ${a.daysSinceLastLog} days`)
-                      if (a.complianceRate < 30) reasons.push(`Only ${a.complianceRate}% compliance (30 days)`)
+                      if (a.hasTargets && a.complianceRate < 30) reasons.push(`Only ${a.complianceRate}% compliance`)
                       if (a.todayCalories > 0 && a.targetCalories > 0 && a.todayCalories < a.targetCalories * 0.5) reasons.push(`Under 50% of calorie target today`)
 
                       return (

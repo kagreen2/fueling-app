@@ -389,7 +389,7 @@ export default function CoachAthleteDetailPage() {
     // Get athlete data
     const { data: athleteData } = await supabase
       .from('athletes')
-      .select('*, profile:profiles(full_name, email, phone, created_at)')
+      .select('*, profile:profiles(full_name, email, phone, created_at), created_at')
       .eq('id', athleteId)
       .single()
 
@@ -415,6 +415,13 @@ export default function CoachAthleteDetailPage() {
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - timeRange)
 
+    // Clamp start date to athlete signup date (don't show dates before they joined)
+    const athleteSignupDate = athleteData.created_at ? new Date(athleteData.created_at) : null
+    if (athleteSignupDate && athleteSignupDate > startDate) {
+      startDate.setTime(athleteSignupDate.getTime())
+      startDate.setHours(0, 0, 0, 0)
+    }
+
     const { data: mealSummaries } = await supabase
       .from('coach_meal_summary')
       .select('date, total_calories, total_protein, meal_count')
@@ -432,10 +439,15 @@ export default function CoachAthleteDetailPage() {
       }
     }
 
+    // Only generate days from signup date (or range start) to today
     const days: DayData[] = []
-    for (let i = timeRange; i >= 0; i--) {
+    const dayMs = 1000 * 60 * 60 * 24
+    const totalDaysInRange = Math.floor((endDate.getTime() - startDate.getTime()) / dayMs)
+    for (let i = totalDaysInRange; i >= 0; i--) {
       const d = new Date()
       d.setDate(d.getDate() - i)
+      // Skip dates before signup
+      if (athleteSignupDate && d < athleteSignupDate && i > 0) continue
       const dateStr = getLocalDateString(d)
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
       const label = i === 0 ? 'Today' : i === 1 ? 'Yesterday' : `${dayNames[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}`
@@ -460,13 +472,30 @@ export default function CoachAthleteDetailPage() {
 
   // Computed stats
   const stats = useMemo(() => {
-    if (dailyData.length === 0) return { daysActive: 0, compliance: 0, avgCalories: 0, avgProtein: 0, streak: 0, maxCalories: 0 }
+    if (dailyData.length === 0) return { daysActive: 0, compliance: 0, hasTargets: false, avgCalories: 0, avgProtein: 0, streak: 0, maxCalories: 0 }
     const activeDays = dailyData.filter(d => d.mealCount > 0)
     const daysActive = activeDays.length
-    const compliance = Math.round((daysActive / dailyData.length) * 100)
     const avgCalories = activeDays.length > 0 ? Math.round(activeDays.reduce((s, d) => s + d.calories, 0) / activeDays.length) : 0
     const avgProtein = activeDays.length > 0 ? Math.round(activeDays.reduce((s, d) => s + d.protein, 0) / activeDays.length) : 0
     const maxCalories = Math.max(...dailyData.map(d => d.calories), 1)
+
+    // Compliance: macro target adherence (80-120% of cal & protein targets)
+    const tCal = recs?.daily_calories || 0
+    const tPro = recs?.daily_protein_g || 0
+    const hasTargets = tCal > 0 && tPro > 0
+    let compliance = 0
+    if (hasTargets) {
+      const compliantDays = dailyData.filter(d => {
+        if (d.mealCount === 0) return false
+        const calPct = d.calories / tCal
+        const proPct = d.protein / tPro
+        return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
+      }).length
+      compliance = dailyData.length > 0 ? Math.round((compliantDays / dailyData.length) * 100) : 0
+    } else {
+      // Fallback: logging-based compliance
+      compliance = dailyData.length > 0 ? Math.round((daysActive / dailyData.length) * 100) : 0
+    }
 
     // Streak
     let streak = 0
@@ -476,8 +505,8 @@ export default function CoachAthleteDetailPage() {
       else continue // Skip today if empty, check yesterday
     }
 
-    return { daysActive, compliance, avgCalories, avgProtein, streak, maxCalories }
-  }, [dailyData])
+    return { daysActive, compliance, hasTargets, avgCalories, avgProtein, streak, maxCalories }
+  }, [dailyData, recs])
 
   if (loading) {
     return (
@@ -678,11 +707,21 @@ export default function CoachAthleteDetailPage() {
 
         {/* Stats Summary */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-center">
-            <p className="text-slate-400 text-xs uppercase tracking-wider">Compliance</p>
-            <p className={`text-2xl font-bold mt-1 ${
-              stats.compliance >= 70 ? 'text-green-400' : stats.compliance >= 40 ? 'text-yellow-400' : 'text-red-400'
-            }`}>{stats.compliance}%</p>
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-center relative group">
+            <p className="text-slate-400 text-xs uppercase tracking-wider">
+              Compliance
+              <span className="text-slate-500 cursor-help text-[10px] ml-1">ⓘ</span>
+            </p>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+              % of days hitting within 80–120% of calorie &amp; protein targets
+            </div>
+            {stats.hasTargets ? (
+              <p className={`text-2xl font-bold mt-1 ${
+                stats.compliance >= 70 ? 'text-green-400' : stats.compliance >= 40 ? 'text-yellow-400' : 'text-red-400'
+              }`}>{stats.compliance}%</p>
+            ) : (
+              <p className="text-sm text-slate-500 italic mt-2">No targets set</p>
+            )}
           </div>
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-center">
             <p className="text-slate-400 text-xs uppercase tracking-wider">Streak</p>

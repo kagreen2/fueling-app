@@ -507,8 +507,11 @@ export default function AthleteDashboard() {
         }
       }
 
-      // Get last 14 days of check-ins for WellnessSpotlight
-      const twoWeeksAgo = getLocalDateString(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000))
+      // Get last 14 days of check-ins for WellnessSpotlight (clamped to signup date)
+      const twoWeeksAgoDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+      const athleteSignupDate = athleteData.created_at ? new Date(athleteData.created_at) : null
+      const checkinStartDate = athleteSignupDate && athleteSignupDate > twoWeeksAgoDate ? athleteSignupDate : twoWeeksAgoDate
+      const twoWeeksAgo = getLocalDateString(checkinStartDate)
       const { data: recentCheckinData } = await supabase
         .from('daily_checkins')
         .select('date, wellness_score')
@@ -529,11 +532,13 @@ export default function AthleteDashboard() {
       // Calculate protein streak: consecutive days (going back) where daily protein >= protein goal
       let proteinStreakCount = 0
       if (recsData?.daily_protein_g) {
+        const streakLookbackDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+        const streakStartDate = athleteSignupDate && athleteSignupDate > streakLookbackDate ? athleteSignupDate : streakLookbackDate
         const { data: recentMealDays } = await supabase
           .from('meal_logs')
           .select('date, protein')
           .eq('athlete_id', athleteData.id)
-          .gte('date', getLocalDateString(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)))
+          .gte('date', getLocalDateString(streakStartDate))
           .order('date', { ascending: false })
 
         if (recentMealDays && recentMealDays.length > 0) {
