@@ -79,6 +79,7 @@ interface AthleteData {
   teamName: string
   todayCalories: number
   todayProtein: number
+  todayMealCount: number
   targetCalories: number
   targetProtein: number
   loggedToday: boolean
@@ -532,6 +533,7 @@ export default function CoachDashboardPage() {
       const todaySummary = summaries.find(s => s.date === today)
       const todayCalories = todaySummary?.total_calories || 0
       const todayProtein = todaySummary?.total_protein || 0
+      const todayMealCount = todaySummary?.meal_count || 0
       const loggedToday = !!todaySummary
 
       // Get unique dates with logs
@@ -622,6 +624,7 @@ export default function CoachDashboardPage() {
         teamName: teamMap[m.team_id] || 'Unknown Team',
         todayCalories,
         todayProtein,
+        todayMealCount,
         targetCalories: rec?.daily_calories || 0,
         targetProtein: rec?.daily_protein_g || 0,
         loggedToday,
@@ -1299,6 +1302,9 @@ export default function CoachDashboardPage() {
                             </button>
                           </th>
                           <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
+                            <span className="text-slate-400">Today</span>
+                          </th>
+                          <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
                             <button onClick={() => handleSort('compliance')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
                               Compliance %
                               {sortColumn === 'compliance' && (
@@ -1331,6 +1337,13 @@ export default function CoachDashboardPage() {
                             </td>
                             <td className="px-6 py-3.5">
                               <span className="text-white text-sm font-medium">{a.checkinStreak > 0 ? `${a.checkinStreak} Day${a.checkinStreak !== 1 ? 's' : ''}` : '—'}</span>
+                            </td>
+                            <td className="px-6 py-3.5">
+                              {a.todayMealCount > 0 ? (
+                                <span className="text-green-400 text-sm font-medium">{a.todayMealCount} meal{a.todayMealCount !== 1 ? 's' : ''}</span>
+                              ) : (
+                                <span className="text-red-400 text-sm font-medium">0</span>
+                              )}
                             </td>
                             <td className="px-6 py-3.5">
                               <span className={`text-sm font-semibold ${
