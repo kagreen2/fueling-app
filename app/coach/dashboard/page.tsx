@@ -1295,7 +1295,19 @@ export default function CoachDashboardPage() {
                     <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
                       <h3 className="text-white font-semibold text-sm">Alerts</h3>
                       {alertItems.length > 0 && (
-                        <span className="text-slate-400 text-xs">{alertItems.length} active</span>
+                        <button
+                          onClick={() => {
+                            const allIds = alertItems.map(a => a.id)
+                            setDismissedCoachAlerts(prev => {
+                              const next = new Set([...prev, ...allIds])
+                              try { localStorage.setItem('coach_dismissed_alerts', JSON.stringify([...next])) } catch {}
+                              return next
+                            })
+                          }}
+                          className="text-slate-400 hover:text-white text-xs transition-colors"
+                        >
+                          Clear All
+                        </button>
                       )}
                     </div>
                     <div className="overflow-y-auto flex-1">
