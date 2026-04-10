@@ -588,8 +588,8 @@ export default function CoachDashboardPage() {
       }
       const totalDays = daysSinceSignup
 
-      // Calculate compliance: multiplicative (logging % × target adherence %)
-      // You need both consistency AND accuracy to score high
+      // Calculate compliance: 40% logging consistency + 60% macro accuracy
+      // Weighted toward results — hitting macros matters more than just tracking
       const targetCals = rec?.daily_calories || 0
       const targetPro = rec?.daily_protein_g || 0
       const hasTargets = targetCals > 0 && targetPro > 0
@@ -602,7 +602,7 @@ export default function CoachDashboardPage() {
           return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
         }).length
         const adherencePct = compliantDays / daysActive
-        complianceRate = Math.round(loggingPct * adherencePct * 100)
+        complianceRate = Math.round((loggingPct * 0.4 + adherencePct * 0.6) * 100)
       } else if (hasTargets) {
         // Has targets but never logged — 0%
         complianceRate = 0
@@ -1393,7 +1393,7 @@ export default function CoachDashboardPage() {
               <span className="text-slate-500 cursor-help text-[10px] ml-1">ⓘ</span>
             </p>
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-              Logging consistency × macro target accuracy (80–120%)
+              40% logging consistency + 60% macro accuracy (80–120%)
             </div>
             {stats.avgCompliance >= 0 ? (
               <p className="text-4xl font-bold text-white mt-2">{stats.avgCompliance}%</p>
@@ -1528,7 +1528,7 @@ export default function CoachDashboardPage() {
                             <div className="relative group/tip inline-block ml-1">
                               <span className="text-slate-500 cursor-help text-[10px]">ⓘ</span>
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                                Logging consistency × macro target accuracy (80–120%)
+                                40% logging consistency + 60% macro accuracy (80–120%)
                               </div>
                             </div>
                           </th>
@@ -1607,7 +1607,7 @@ export default function CoachDashboardPage() {
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   <span className="text-yellow-400">🏆</span> Compliance Leaderboard
                 </h3>
-                <p className="text-slate-400 text-xs mt-0.5">Logging % × target hit % ({getRangeLabel('leaderboard')})</p>
+                <p className="text-slate-400 text-xs mt-0.5">40% logging + 60% macro accuracy ({getRangeLabel('leaderboard')})</p>
               </div>
 
               {complianceLeaderboard.length === 0 ? (

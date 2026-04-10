@@ -254,7 +254,7 @@ function buildEmailHtml(
               <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">🏆 Top Compliance</div>
               <div style="color: #fbbf24; font-size: 24px; font-weight: 800; margin-top: 6px;">${topCompliance.complianceRate}%</div>
               <div style="color: #e2e8f0; font-size: 14px; font-weight: 500; margin-top: 2px;">${formatShortName(topCompliance.name)}</div>
-              <div style="color: #64748b; font-size: 11px; margin-top: 2px;">logging % × target hit %</div>
+              <div style="color: #64748b; font-size: 11px; margin-top: 2px;">40% logging + 60% macro accuracy</div>
             </td>
             ` : ''}
             ${topFuelScore ? `
@@ -591,7 +591,7 @@ Deno.serve(async (req) => {
               return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
             }).length
             const adherencePct = compliantDays / daysLogged
-            complianceRate = Math.round(loggingPct * adherencePct * 100)
+            complianceRate = Math.round((loggingPct * 0.4 + adherencePct * 0.6) * 100)
           } else if (hasTargets) {
             complianceRate = 0
           } else {
