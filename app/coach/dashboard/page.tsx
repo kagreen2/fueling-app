@@ -360,6 +360,28 @@ export default function CoachDashboardPage() {
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [sortColumn, setSortColumn] = useState<'name' | 'wellness' | 'streak' | 'compliance' | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  const [customMode, setCustomMode] = useState(false)
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
+
+  // Helper to format a date string like "Apr 1"
+  const formatShortDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T12:00:00')
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  // Helper for range-aware labels
+  const getRangeLabel = (style: 'stat' | 'header' | 'leaderboard') => {
+    if (customMode && customStart && customEnd) {
+      return `${formatShortDate(customStart)} – ${formatShortDate(customEnd)}`
+    }
+    if (timeRange === 1) {
+      return style === 'stat' ? 'today' : style === 'header' ? '— Today' : 'Today'
+    }
+    return style === 'stat' ? `${timeRange}-day average` : style === 'header' ? `— Last ${timeRange} Days` : `${timeRange}d`
+  }
+
+  const isMultiDay = customMode || timeRange > 1
   const [dismissedCoachAlerts, setDismissedCoachAlerts] = useState<Set<string>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -372,7 +394,7 @@ export default function CoachDashboardPage() {
 
   useEffect(() => {
     loadData()
-  }, [timeRange])
+  }, [timeRange, customStart, customEnd])
 
   async function loadData() {
     setLoading(true)
@@ -488,9 +510,19 @@ export default function CoachDashboardPage() {
 
     // Get today's date and date range
     const today = getLocalDateString()
-    const rangeStart = new Date()
-    rangeStart.setDate(rangeStart.getDate() - timeRange) // Use selected time range
-    const rangeStartStr = getLocalDateString(rangeStart)
+    let rangeStartStr: string
+    let effectiveRangeDays: number
+    if (customMode && customStart && customEnd) {
+      rangeStartStr = customStart
+      const diffMs = new Date(customEnd + 'T12:00:00').getTime() - new Date(customStart + 'T12:00:00').getTime()
+      effectiveRangeDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1)
+    } else {
+      const rangeStart = new Date()
+      rangeStart.setDate(rangeStart.getDate() - timeRange)
+      rangeStartStr = getLocalDateString(rangeStart)
+      effectiveRangeDays = timeRange
+    }
+    const effectiveEndStr = customMode && customEnd ? customEnd : today
 
     // Get meal summaries for all athletes in the date range (restricted view - macros only)
     const { data: mealSummaries } = await supabase
@@ -498,7 +530,7 @@ export default function CoachDashboardPage() {
       .select('athlete_id, date, total_calories, total_protein, total_carbs, total_fat, meal_count')
       .in('athlete_id', athleteIds)
       .gte('date', rangeStartStr)
-      .lte('date', today)
+      .lte('date', effectiveEndStr)
 
     // Get nutrition recommendations for all athletes
     const { data: recs } = await supabase
@@ -519,7 +551,7 @@ export default function CoachDashboardPage() {
       .select('athlete_id, date, energy, stress, soreness, hydration, sleep_hours, training_type, wellness_score')
       .in('athlete_id', athleteIds)
       .gte('date', wellnessStartStr)
-      .lte('date', today)
+      .lte('date', effectiveEndStr)
       .order('date', { ascending: false })
 
     // Group wellness data by athlete
@@ -536,8 +568,8 @@ export default function CoachDashboardPage() {
       const rec = recsMap[m.athlete_id]
       const summaries = (mealSummaries || []).filter(s => s.athlete_id === m.athlete_id)
 
-      // Today's totals (view already aggregates per day)
-      const todaySummary = summaries.find(s => s.date === today)
+      // Today's/end-date totals (view already aggregates per day)
+      const todaySummary = summaries.find(s => s.date === effectiveEndStr)
       const todayCalories = todaySummary?.total_calories || 0
       const todayProtein = todaySummary?.total_protein || 0
       const todayMealCount = todaySummary?.meal_count || 0
@@ -547,17 +579,17 @@ export default function CoachDashboardPage() {
       const logDates = summaries.map(s => s.date).sort()
       const daysActive = logDates.length
 
-      // Calculate days since signup (cap at selected time range)
+      // Calculate days since signup (cap at effective range)
       const athleteCreatedAt = athlete?.created_at ? new Date(athlete.created_at) : null
-      let daysSinceSignup = timeRange
+      let daysSinceSignup = effectiveRangeDays
       if (athleteCreatedAt) {
         const diffMs = new Date().getTime() - athleteCreatedAt.getTime()
-        daysSinceSignup = Math.max(1, Math.min(timeRange, Math.floor(diffMs / (1000 * 60 * 60 * 24))))
+        daysSinceSignup = Math.max(1, Math.min(effectiveRangeDays, Math.floor(diffMs / (1000 * 60 * 60 * 24))))
       }
       const totalDays = daysSinceSignup
 
-      // Calculate compliance: weighted blend of logging consistency + target adherence
-      // Compliance = 50% (days logged / total days) + 50% (days hitting targets / days logged)
+      // Calculate compliance: multiplicative (logging % × target adherence %)
+      // You need both consistency AND accuracy to score high
       const targetCals = rec?.daily_calories || 0
       const targetPro = rec?.daily_protein_g || 0
       const hasTargets = targetCals > 0 && targetPro > 0
@@ -570,7 +602,7 @@ export default function CoachDashboardPage() {
           return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
         }).length
         const adherencePct = compliantDays / daysActive
-        complianceRate = Math.round((loggingPct * 0.5 + adherencePct * 0.5) * 100)
+        complianceRate = Math.round(loggingPct * adherencePct * 100)
       } else if (hasTargets) {
         // Has targets but never logged — 0%
         complianceRate = 0
@@ -624,15 +656,15 @@ export default function CoachDashboardPage() {
         ? Math.round(last7Scored.reduce((sum, c) => sum + c.wellness_score, 0) / last7Scored.length)
         : null
 
-      // Range-aware Fuel Score: today's score for 1d, average over range for multi-day
+      // Range-aware Fuel Score: single-day score for 1d, average over range for multi-day
       let rangeFuelScore: number | null = null
-      if (timeRange === 1) {
+      if (!customMode && timeRange === 1) {
         // Today's single score
-        const todayCheckin = athleteWellness.find(c => c.date === today)
+        const todayCheckin = athleteWellness.find(c => c.date === effectiveEndStr)
         rangeFuelScore = todayCheckin?.wellness_score ?? null
       } else {
         // Average over the selected range
-        const rangeCheckins = athleteWellness.filter(c => c.date >= rangeStartStr && c.date <= today && c.wellness_score != null)
+        const rangeCheckins = athleteWellness.filter(c => c.date >= rangeStartStr && c.date <= effectiveEndStr && c.wellness_score != null)
         rangeFuelScore = rangeCheckins.length > 0
           ? Math.round(rangeCheckins.reduce((sum, c) => sum + c.wellness_score, 0) / rangeCheckins.length)
           : null
@@ -640,7 +672,7 @@ export default function CoachDashboardPage() {
 
       // Average daily meals over the range
       const totalMealsInRange = summaries.reduce((sum, s) => sum + (s.meal_count || 0), 0)
-      const avgDailyMeals = timeRange === 1 ? todayMealCount : (totalDays > 0 ? Math.round((totalMealsInRange / totalDays) * 10) / 10 : 0)
+      const avgDailyMeals = (!customMode && timeRange === 1) ? todayMealCount : (totalDays > 0 ? Math.round((totalMealsInRange / totalDays) * 10) / 10 : 0)
 
       // Days since last check-in
       let checkinDaysAgo: number | null = null
@@ -653,10 +685,10 @@ export default function CoachDashboardPage() {
       let checkinStreak = 0
       if (athleteWellness.length > 0) {
         const checkinDates = athleteWellness.map(c => c.date).sort().reverse()
-        const todayD = new Date(today)
+        const endD = new Date(effectiveEndStr + 'T12:00:00')
         for (let i = 0; i < checkinDates.length; i++) {
-          const expectedDate = new Date(todayD)
-          expectedDate.setDate(todayD.getDate() - i)
+          const expectedDate = new Date(endD)
+          expectedDate.setDate(endD.getDate() - i)
           const expectedStr = expectedDate.toISOString().split('T')[0]
           if (checkinDates[i] === expectedStr) {
             checkinStreak++
@@ -1268,18 +1300,55 @@ export default function CoachDashboardPage() {
                 </option>
               ))}
             </select>
-            <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5">
-              {[{ value: 1, label: 'Today' }, { value: 7, label: '7 Days' }, { value: 30, label: '30 Days' }].map(d => (
+            <div className="flex items-center gap-2">
+              <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5">
+                {[{ value: 1, label: 'Today' }, { value: 7, label: '7 Days' }, { value: 30, label: '30 Days' }].map(d => (
+                  <button
+                    key={d.value}
+                    onClick={() => { setCustomMode(false); setTimeRange(d.value); }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      !customMode && timeRange === d.value ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
                 <button
-                  key={d.value}
-                  onClick={() => setTimeRange(d.value)}
+                  onClick={() => {
+                    setCustomMode(true)
+                    if (!customStart) {
+                      const s = new Date(); s.setDate(s.getDate() - 7)
+                      setCustomStart(getLocalDateString(s))
+                    }
+                    if (!customEnd) setCustomEnd(getLocalDateString())
+                  }}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    timeRange === d.value ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                    customMode ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  {d.label}
+                  Custom
                 </button>
-              ))}
+              </div>
+              {customMode && (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={customStart}
+                    onChange={e => setCustomStart(e.target.value)}
+                    max={customEnd || getLocalDateString()}
+                    className="bg-slate-800 border border-slate-700 text-white rounded-md px-2 py-1 text-xs focus:outline-none focus:border-purple-600 [color-scheme:dark]"
+                  />
+                  <span className="text-slate-500 text-xs">to</span>
+                  <input
+                    type="date"
+                    value={customEnd}
+                    onChange={e => setCustomEnd(e.target.value)}
+                    min={customStart}
+                    max={getLocalDateString()}
+                    className="bg-slate-800 border border-slate-700 text-white rounded-md px-2 py-1 text-xs focus:outline-none focus:border-purple-600 [color-scheme:dark]"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -1316,7 +1385,7 @@ export default function CoachDashboardPage() {
                 <span className="text-slate-500">—</span>
               )}
             </p>
-            <p className="text-slate-500 text-[10px] mt-1">{timeRange === 1 ? "today" : `${timeRange}-day average`}</p>
+            <p className="text-slate-500 text-[10px] mt-1">{getRangeLabel('stat')}</p>
           </div>
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 relative group">
             <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">
@@ -1324,7 +1393,7 @@ export default function CoachDashboardPage() {
               <span className="text-slate-500 cursor-help text-[10px] ml-1">ⓘ</span>
             </p>
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-              50% logging consistency + 50% hitting 80–120% of macro targets
+              Logging consistency × macro target accuracy (80–120%)
             </div>
             {stats.avgCompliance >= 0 ? (
               <p className="text-4xl font-bold text-white mt-2">{stats.avgCompliance}%</p>
@@ -1410,7 +1479,7 @@ export default function CoachDashboardPage() {
               {/* Right: Athlete Performance & Wellness */}
               <div className="lg:col-span-8 bg-slate-800/60 border border-slate-700/50 rounded-2xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-700/50">
-                  <h3 className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Athlete Performance {timeRange === 1 ? '— Today' : `— Last ${timeRange} Days`}</h3>
+                  <h3 className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Athlete Performance {getRangeLabel('header')}</h3>
                 </div>
 
                 {filteredAthletes.length === 0 ? (
@@ -1459,7 +1528,7 @@ export default function CoachDashboardPage() {
                             <div className="relative group/tip inline-block ml-1">
                               <span className="text-slate-500 cursor-help text-[10px]">ⓘ</span>
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                                50% logging consistency + 50% hitting 80–120% of macro targets
+                                Logging consistency × macro target accuracy (80–120%)
                               </div>
                             </div>
                           </th>
@@ -1490,15 +1559,15 @@ export default function CoachDashboardPage() {
                               <span className="text-white text-sm font-medium">{a.checkinStreak > 0 ? `${a.checkinStreak} Day${a.checkinStreak !== 1 ? 's' : ''}` : '—'}</span>
                             </td>
                             <td className="px-6 py-3.5">
-                              {timeRange === 1 ? (
-                                a.todayMealCount > 0 ? (
-                                  <span className="text-green-400 text-sm font-medium">{a.todayMealCount}</span>
+                              {isMultiDay ? (
+                                a.avgDailyMeals > 0 ? (
+                                  <span className="text-green-400 text-sm font-medium">{a.avgDailyMeals}</span>
                                 ) : (
                                   <span className="text-red-400 text-sm font-medium">0</span>
                                 )
                               ) : (
-                                a.avgDailyMeals > 0 ? (
-                                  <span className="text-green-400 text-sm font-medium">{a.avgDailyMeals}</span>
+                                a.todayMealCount > 0 ? (
+                                  <span className="text-green-400 text-sm font-medium">{a.todayMealCount}</span>
                                 ) : (
                                   <span className="text-red-400 text-sm font-medium">0</span>
                                 )
@@ -1538,7 +1607,7 @@ export default function CoachDashboardPage() {
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   <span className="text-yellow-400">🏆</span> Compliance Leaderboard
                 </h3>
-                <p className="text-slate-400 text-xs mt-0.5">50% logging + 50% hitting macro targets ({timeRange === 1 ? 'today' : `${timeRange}d`})</p>
+                <p className="text-slate-400 text-xs mt-0.5">Logging % × target hit % ({getRangeLabel('leaderboard')})</p>
               </div>
 
               {complianceLeaderboard.length === 0 ? (
@@ -1590,7 +1659,7 @@ export default function CoachDashboardPage() {
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   <span className="text-emerald-400">⚡</span> Fuel Score Leaderboard
                 </h3>
-                <p className="text-slate-400 text-xs mt-0.5">{timeRange === 1 ? "Today's Fuel Score" : `${timeRange}-day avg Fuel Score`}</p>
+                <p className="text-slate-400 text-xs mt-0.5">{isMultiDay ? `Avg Fuel Score (${getRangeLabel('leaderboard')})` : "Today's Fuel Score"}</p>
               </div>
 
               {fuelScoreLeaderboard.length === 0 ? (

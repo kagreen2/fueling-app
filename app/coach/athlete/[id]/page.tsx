@@ -479,8 +479,8 @@ export default function CoachAthleteDetailPage() {
     const avgProtein = activeDays.length > 0 ? Math.round(activeDays.reduce((s, d) => s + d.protein, 0) / activeDays.length) : 0
     const maxCalories = Math.max(...dailyData.map(d => d.calories), 1)
 
-    // Compliance: weighted blend of logging consistency + target adherence
-    // Compliance = 50% (days logged / total days) + 50% (days hitting targets / days logged)
+    // Compliance: multiplicative (logging % × target adherence %)
+    // You need both consistency AND accuracy to score high
     const tCal = recs?.daily_calories || 0
     const tPro = recs?.daily_protein_g || 0
     const hasTargets = tCal > 0 && tPro > 0
@@ -495,7 +495,7 @@ export default function CoachAthleteDetailPage() {
         return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
       }).length
       const adherencePct = compliantDays / daysActive
-      compliance = Math.round((loggingPct * 0.5 + adherencePct * 0.5) * 100)
+      compliance = Math.round(loggingPct * adherencePct * 100)
     } else if (hasTargets) {
       // Has targets but never logged — 0%
       compliance = 0
@@ -720,7 +720,7 @@ export default function CoachAthleteDetailPage() {
               <span className="text-slate-500 cursor-help text-[10px] ml-1">ⓘ</span>
             </p>
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-              % of days hitting within 80–120% of calorie &amp; protein targets
+              Logging consistency × macro target accuracy (80–120%)
             </div>
             {stats.hasTargets ? (
               <p className={`text-2xl font-bold mt-1 ${
