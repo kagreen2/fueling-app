@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+/*
+ * White-label theming via CSS custom properties.
+ * 
+ * The OrganizationProvider sets --org-primary-rgb (e.g. "147 51 234")
+ * on the <html> element at runtime. These @theme overrides make all
+ * Tailwind purple-* utilities automatically use the org's primary color.
+ *
+ * Tailwind v4 uses OKLCH internally, but we can override specific color
+ * slots with rgb() values via @theme.
+ */
+
+@theme inline {
+  /* Override Tailwind's purple palette to use the org's primary color.
+     The CSS variables --org-primary-rgb are set by OrganizationContext.
+     Fallback values are the default Fuel Different purple. */
+  --color-purple-400: rgb(var(--org-primary-rgb, 147 51 234) / 0.75);
+  --color-purple-500: rgb(var(--org-primary-rgb, 147 51 234) / 0.85);
+  --color-purple-600: rgb(var(--org-primary-rgb, 147 51 234));
+  --color-purple-700: rgb(var(--org-primary-rgb, 147 51 234) / 0.88);
+}

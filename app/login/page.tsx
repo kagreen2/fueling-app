@@ -6,11 +6,14 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import LightningBolt from '@/components/ui/LightningBolt'
+import { useOrganization, useOrgStyles } from '@/lib/organizations'
+import OrgBrand from '@/components/OrgBrand'
 
 export default function LoginPage( ) {
   const router = useRouter()
   const supabase = createClient()
+  const { org } = useOrganization()
+  const styles = useOrgStyles()
 
   // Listen for auth state changes and mirror session to localStorage for PWA persistence
   useEffect(() => {
@@ -114,17 +117,17 @@ export default function LoginPage( ) {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col items-center justify-center p-6">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 w-72 h-72 rounded-full blur-3xl" style={{ backgroundColor: styles.colors.primary + '18' }} />
+        <div className="absolute bottom-20 right-10 w-72 h-72 rounded-full blur-3xl" style={{ backgroundColor: styles.colors.primary + '18' }} />
       </div>
 
       <div className="w-full max-w-md relative z-10">
         <div className="mb-8 text-center">
           <div className="inline-block mb-4">
-            <LightningBolt className="w-10 h-10" />
+            <OrgBrand size="lg" showName={false} />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-slate-400">Sign in to your Fuel Different account</p>
+          <p className="text-slate-400">Sign in to your {org.name} account</p>
         </div>
 
         {showForgotPassword ? (
@@ -138,7 +141,8 @@ export default function LoginPage( ) {
                 </p>
                 <button
                   onClick={() => { setShowForgotPassword(false); setResetSent(false); setResetError('') }}
-                  className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                  style={styles.primaryText}
+                  className="hover:opacity-80 text-sm font-medium transition-colors"
                 >
                   Back to sign in
                 </button>
@@ -168,7 +172,8 @@ export default function LoginPage( ) {
                   <Button
                     type="submit"
                     disabled={resetLoading}
-                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-semibold py-3 rounded-xl text-lg transition-colors"
+                    style={styles.primaryButton}
+                    className="w-full disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-lg transition-colors"
                   >
                     {resetLoading ? 'Sending...' : 'Send Reset Link'}
                   </Button>
@@ -214,7 +219,8 @@ export default function LoginPage( ) {
                 <button
                   type="button"
                   onClick={() => { setShowForgotPassword(true); setResetEmail(email); setError('') }}
-                  className="text-purple-400 hover:text-purple-300 text-sm font-medium transition-colors"
+                  style={styles.primaryText}
+                  className="hover:opacity-80 text-sm font-medium transition-colors"
                 >
                   Forgot password?
                 </button>
@@ -229,7 +235,8 @@ export default function LoginPage( ) {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-semibold py-3 rounded-xl text-lg transition-colors mt-2"
+                style={styles.primaryButton}
+                className="w-full disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-lg transition-colors mt-2"
               >
                 {loading ? 'Signing in...' : 'Sign In'}
               </Button>
@@ -241,7 +248,7 @@ export default function LoginPage( ) {
         <div className="mt-8 text-center space-y-3">
           <p className="text-slate-400 text-sm">
             New athlete?{' '}
-            <Link href="/signup" className="text-purple-400 hover:text-purple-300 font-medium transition">
+            <Link href="/signup" style={styles.primaryText} className="hover:opacity-80 font-medium transition">
               Create account
             </Link>
           </p>
@@ -249,7 +256,7 @@ export default function LoginPage( ) {
             Back to home
           </Link>
           <a
-            href="mailto:kelly@crossfitironflag.com?subject=Fuel Different — Login Help"
+            href={`mailto:${org.contact_email || 'kelly@crossfitironflag.com'}?subject=${org.name} — Login Help`}
             className="text-slate-500 text-sm hover:text-slate-400 transition block mt-2"
           >
             Need help? Contact support

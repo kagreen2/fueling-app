@@ -855,6 +855,12 @@ export default function AdminDashboard() {
             </div>
             <div className="flex gap-2">
               <button
+                onClick={() => router.push('/admin/organizations')}
+                className="px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+              >
+                Organizations
+              </button>
+              <button
                 onClick={() => router.push('/coach/dashboard')}
                 className="px-3 sm:px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
               >

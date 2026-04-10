@@ -7,6 +7,7 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { InstallPrompt } from "@/components/InstallPrompt";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import { ErrorReporter } from "@/components/ErrorReporter";
+import { OrganizationProvider } from "@/lib/organizations";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,11 +61,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <ErrorReporter />
-        <ServiceWorkerRegistration />
-        <InstallPrompt />
-        <PushNotificationManager />
+        <OrganizationProvider>
+          {children}
+          <ErrorReporter />
+          <ServiceWorkerRegistration />
+          <InstallPrompt />
+          <PushNotificationManager />
+        </OrganizationProvider>
       </body>
     </html>
   );

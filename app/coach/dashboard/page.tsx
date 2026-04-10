@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getZoneInfo } from '@/lib/fuel-score'
+import { useOrganization, useOrgStyles } from '@/lib/organizations'
+import OrgBrand from '@/components/OrgBrand'
 
 interface Team {
   id: string
@@ -336,6 +338,8 @@ function FuelDonut({ segments, total, checkedIn, noCheckin, large }: {
 export default function CoachDashboardPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { org } = useOrganization()
+  const styles = useOrgStyles()
   const [loading, setLoading] = useState(true)
   const [teams, setTeams] = useState<Team[]>([])
   const [athletes, setAthletes] = useState<AthleteData[]>([])
@@ -1256,7 +1260,8 @@ export default function CoachDashboardPage() {
             {isAdmin && (
               <button
                 onClick={() => router.push('/admin')}
-                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors"
+                style={styles.primaryButton}
+                className="px-3 py-2 hover:opacity-90 text-white text-xs font-medium rounded-lg transition-colors"
               >
                 ← Admin
               </button>
@@ -1265,7 +1270,8 @@ export default function CoachDashboardPage() {
             {/* Primary: Invite */}
             <button
               onClick={() => router.push('/coach/invite')}
-              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors"
+              style={styles.primaryButton}
+              className="px-3 py-2 hover:opacity-90 text-white text-xs font-medium rounded-lg transition-colors"
             >
               + Invite
             </button>

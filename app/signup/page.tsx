@@ -6,12 +6,15 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import LightningBolt from '@/components/ui/LightningBolt'
+import { useOrganization, useOrgStyles } from '@/lib/organizations'
+import OrgBrand from '@/components/OrgBrand'
 
 export default function SignupPage( ) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  const { org } = useOrganization()
+  const styles = useOrgStyles()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -173,16 +176,16 @@ export default function SignupPage( ) {
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col items-center justify-center p-6">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-purple-600/10 rounded-full blur-3xl" />
+        <div className="absolute top-20 left-10 w-72 h-72 rounded-full blur-3xl" style={{ backgroundColor: styles.colors.primary + '18' }} />
+        <div className="absolute bottom-20 right-10 w-72 h-72 rounded-full blur-3xl" style={{ backgroundColor: styles.colors.primary + '18' }} />
       </div>
 
       <div className="w-full max-w-md relative z-10">
         <div className="mb-8 text-center">
           <div className="inline-block mb-4">
-            <LightningBolt className="w-10 h-10" />
+            <OrgBrand size="lg" showName={false} />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Join Fuel Different</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Join {org.name}</h1>
           <p className="text-slate-400">Performance fueling for serious athletes &amp; fitness enthusiasts</p>
         </div>
 
@@ -193,9 +196,10 @@ export default function SignupPage( ) {
             onClick={() => setForm(prev => ({ ...prev, role: 'athlete' }))}
             className={`flex-1 py-4 rounded-xl border-2 transition-all duration-200 text-center ${
               form.role === 'athlete'
-                ? 'border-purple-500 bg-purple-500/10 text-white'
+                ? 'border-2 text-white'
                 : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
             }`}
+            style={form.role === 'athlete' ? { borderColor: styles.colors.primary, backgroundColor: styles.colors.primary + '18' } : undefined}
           >
             <div className="text-2xl mb-1">🏈</div>
             <div className="font-semibold text-sm">Athlete</div>
@@ -219,9 +223,10 @@ export default function SignupPage( ) {
             onClick={() => setForm(prev => ({ ...prev, role: 'coach', inviteCode: '' }))}
             className={`flex-1 py-4 rounded-xl border-2 transition-all duration-200 text-center ${
               form.role === 'coach'
-                ? 'border-purple-500 bg-purple-500/10 text-white'
+                ? 'border-2 text-white'
                 : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-600'
             }`}
+            style={form.role === 'coach' ? { borderColor: styles.colors.primary, backgroundColor: styles.colors.primary + '18' } : undefined}
           >
             <div className="text-2xl mb-1">📋</div>
             <div className="font-semibold text-sm">Coach</div>
@@ -294,16 +299,16 @@ export default function SignupPage( ) {
           )}
 
           {form.role === 'coach' && (
-            <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl px-4 py-3">
-              <p className="text-sm text-purple-300/80">
+            <div className="rounded-xl px-4 py-3 border" style={{ backgroundColor: styles.colors.primary + '0d', borderColor: styles.colors.primary + '33' }}>
+              <p className="text-sm" style={{ color: styles.colors.primary + 'cc' }}>
                 After signing up, you&apos;ll create your team and get an invite code to share with your athletes and members.
               </p>
             </div>
           )}
 
           {isAthleteOrMember && (
-            <div className={`${form.role === 'member' ? 'bg-blue-500/5 border-blue-500/20' : 'bg-purple-500/5 border-purple-500/20'} border rounded-xl px-4 py-3`}>
-              <p className={`text-sm ${form.role === 'member' ? 'text-blue-300/80' : 'text-purple-300/80'}`}>
+            <div className="border rounded-xl px-4 py-3" style={{ backgroundColor: (form.role === 'member' ? '#3B82F6' : styles.colors.primary) + '0d', borderColor: (form.role === 'member' ? '#3B82F6' : styles.colors.primary) + '33' }}>
+              <p className="text-sm" style={{ color: (form.role === 'member' ? '#93C5FD' : styles.colors.primary) + 'cc' }}>
                 After creating your account, you&apos;ll be directed to complete payment ($20/month). Have a promo code? You can enter it at checkout.
               </p>
             </div>
@@ -318,13 +323,8 @@ export default function SignupPage( ) {
           <Button
             type="submit"
             disabled={loading}
-            className={`w-full font-semibold py-3 rounded-xl text-lg transition-colors mt-2 text-white ${
-              form.role === 'coach'
-                ? 'bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50'
-                : form.role === 'member'
-                ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50'
-                : 'bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50'
-            }`}
+            style={form.role === 'member' ? { backgroundColor: '#3B82F6' } : styles.primaryButton}
+            className="w-full font-semibold py-3 rounded-xl text-lg transition-colors mt-2 text-white disabled:opacity-50"
           >
             {loading
               ? (isAthleteOrMember ? 'Creating account & preparing checkout...' : 'Creating account...')
@@ -338,13 +338,14 @@ export default function SignupPage( ) {
               type="checkbox"
               checked={agreedToTerms}
               onChange={e => setAgreedToTerms(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 cursor-pointer"
+              className="mt-0.5 w-4 h-4 rounded border-slate-600 bg-slate-700 cursor-pointer"
+              style={{ accentColor: styles.colors.primary }}
             />
             <span className="text-xs text-slate-400 leading-relaxed">
               I agree to the{' '}
-              <a href="/terms" target="_blank" className="text-purple-400 hover:text-purple-300 underline">Terms of Service</a>{' '}
+              <a href="/terms" target="_blank" style={styles.primaryText} className="hover:opacity-80 underline">Terms of Service</a>{' '}
               and{' '}
-              <a href="/privacy" target="_blank" className="text-purple-400 hover:text-purple-300 underline">Privacy Policy</a>
+              <a href="/privacy" target="_blank" style={styles.primaryText} className="hover:opacity-80 underline">Privacy Policy</a>
             </span>
           </label>
 
@@ -353,7 +354,7 @@ export default function SignupPage( ) {
         <div className="mt-8 text-center space-y-3">
           <p className="text-slate-400 text-sm">
             Already have an account?{' '}
-            <Link href="/login" className="text-purple-400 hover:text-purple-300 font-medium transition">
+            <Link href="/login" style={styles.primaryText} className="hover:opacity-80 font-medium transition">
               Sign in
             </Link>
           </p>
@@ -361,7 +362,7 @@ export default function SignupPage( ) {
             Back to home
           </Link>
           <a
-            href="mailto:kelly@crossfitironflag.com?subject=Fuel Different — Signup Help"
+            href={`mailto:${org.contact_email || 'kelly@crossfitironflag.com'}?subject=${org.name} — Signup Help`}
             className="text-slate-500 text-sm hover:text-slate-400 transition block mt-2"
           >
             Need help? Contact support
