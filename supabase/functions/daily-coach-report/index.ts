@@ -254,7 +254,7 @@ function buildEmailHtml(
               <div style="color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">🏆 Top Compliance</div>
               <div style="color: #fbbf24; font-size: 24px; font-weight: 800; margin-top: 6px;">${topCompliance.complianceRate}%</div>
               <div style="color: #e2e8f0; font-size: 14px; font-weight: 500; margin-top: 2px;">${formatShortName(topCompliance.name)}</div>
-              <div style="color: #64748b; font-size: 11px; margin-top: 2px;">80–120% of macro targets</div>
+              <div style="color: #64748b; font-size: 11px; margin-top: 2px;">50% logging + 50% targets</div>
             </td>
             ` : ''}
             ${topFuelScore ? `
@@ -567,7 +567,8 @@ Deno.serve(async (req) => {
             ? Math.round(scored.reduce((sum: number, c: any) => sum + c.wellness_score, 0) / scored.length)
             : null
 
-          // Compliance: 80-120% of calorie AND protein targets over 30 days
+          // Compliance: weighted blend of logging consistency + target adherence
+          // Compliance = 50% (days logged / total days) + 50% (days hitting targets / days logged)
           const targetCals = rec?.daily_calories || 0
           const targetPro = rec?.daily_protein_g || 0
           const hasTargets = targetCals > 0 && targetPro > 0
@@ -580,14 +581,21 @@ Deno.serve(async (req) => {
             daysSinceSignup = Math.max(1, Math.min(30, Math.floor(diffMs / (1000 * 60 * 60 * 24))))
           }
 
+          const daysLogged = summaries.length
+          const loggingPct = daysSinceSignup > 0 ? daysLogged / daysSinceSignup : 0
           let complianceRate = 0
-          if (hasTargets) {
+          if (hasTargets && daysLogged > 0) {
             const compliantDays = summaries.filter(s => {
               const calPct = s.total_calories / targetCals
               const proPct = s.total_protein / targetPro
               return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
             }).length
-            complianceRate = daysSinceSignup > 0 ? Math.round((compliantDays / daysSinceSignup) * 100) : 0
+            const adherencePct = compliantDays / daysLogged
+            complianceRate = Math.round((loggingPct * 0.5 + adherencePct * 0.5) * 100)
+          } else if (hasTargets) {
+            complianceRate = 0
+          } else {
+            complianceRate = daysSinceSignup > 0 ? Math.round(loggingPct * 100) : 0
           }
 
           // Days since last log

@@ -479,22 +479,29 @@ export default function CoachAthleteDetailPage() {
     const avgProtein = activeDays.length > 0 ? Math.round(activeDays.reduce((s, d) => s + d.protein, 0) / activeDays.length) : 0
     const maxCalories = Math.max(...dailyData.map(d => d.calories), 1)
 
-    // Compliance: macro target adherence (80-120% of cal & protein targets)
+    // Compliance: weighted blend of logging consistency + target adherence
+    // Compliance = 50% (days logged / total days) + 50% (days hitting targets / days logged)
     const tCal = recs?.daily_calories || 0
     const tPro = recs?.daily_protein_g || 0
     const hasTargets = tCal > 0 && tPro > 0
     let compliance = 0
-    if (hasTargets) {
+    const totalDaysInPeriod = dailyData.length
+    const loggingPct = totalDaysInPeriod > 0 ? daysActive / totalDaysInPeriod : 0
+    if (hasTargets && daysActive > 0) {
       const compliantDays = dailyData.filter(d => {
         if (d.mealCount === 0) return false
         const calPct = d.calories / tCal
         const proPct = d.protein / tPro
         return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
       }).length
-      compliance = dailyData.length > 0 ? Math.round((compliantDays / dailyData.length) * 100) : 0
+      const adherencePct = compliantDays / daysActive
+      compliance = Math.round((loggingPct * 0.5 + adherencePct * 0.5) * 100)
+    } else if (hasTargets) {
+      // Has targets but never logged — 0%
+      compliance = 0
     } else {
-      // Fallback: logging-based compliance
-      compliance = dailyData.length > 0 ? Math.round((daysActive / dailyData.length) * 100) : 0
+      // No targets set — compliance is just logging consistency
+      compliance = totalDaysInPeriod > 0 ? Math.round(loggingPct * 100) : 0
     }
 
     // Streak

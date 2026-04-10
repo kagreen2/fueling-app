@@ -93,6 +93,8 @@ interface AthleteData {
   // Fuel Score fields
   wellnessScore: number | null  // latest single-day Fuel Score (used for alerts)
   avg7FuelScore: number | null  // 7-day average Fuel Score (displayed in table/cards)
+  rangeFuelScore: number | null  // Fuel Score for the selected range (today's score for 1d, avg for multi-day)
+  avgDailyMeals: number  // average meals per day over the selected range
   checkinStreak: number
   checkinDaysAgo: number | null // days since last check-in (null = never)
   recentCheckins: WellnessCheckin[]
@@ -254,18 +256,21 @@ function FuelDonut({ segments, total, checkedIn, noCheckin, large }: {
             )}
           </div>
         </div>
-        {/* Percentage labels around the chart */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-5 w-full">
+        {/* Zone legend below the chart */}
+        <div className="flex flex-col gap-2 mt-6 w-full">
           {ZONE_LEGEND.map(z => {
             const seg = allSegments.find(s => s.label === z.label)
             const count = seg?.count || 0
             const pct = total > 0 ? Math.round((count / total) * 100) : 0
             return (
-              <div key={z.label} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: z.dot }} />
-                <div>
+              <div key={z.label} className="flex items-center justify-between px-2 py-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: z.dot }} />
+                  <span className="text-slate-400 text-xs">{z.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <span className="text-white text-sm font-semibold">{pct}%</span>
-                  <span className="text-slate-500 text-xs ml-1">{z.label}</span>
+                  <span className="text-slate-600 text-xs">({count})</span>
                 </div>
               </div>
             )
@@ -335,7 +340,7 @@ export default function CoachDashboardPage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [athletes, setAthletes] = useState<AthleteData[]>([])
   const [selectedTeam, setSelectedTeam] = useState<string>('all')
-  const [timeRange, setTimeRange] = useState<number>(30)
+  const [timeRange, setTimeRange] = useState<number>(1)
   const [view, setView] = useState<'overview' | 'leaderboard' | 'alerts' | 'messages'>('overview')
   const [coachName, setCoachName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
@@ -503,9 +508,10 @@ export default function CoachDashboardPage() {
 
     const recsMap = Object.fromEntries((recs || []).map(r => [r.athlete_id, r]))
 
-    // Get wellness check-ins for all athletes (last 14 days for trend detection)
+    // Get wellness check-ins for all athletes (use max of timeRange and 14 for trend detection)
+    const wellnessDays = Math.max(timeRange, 14)
     const wellnessStart = new Date()
-    wellnessStart.setDate(wellnessStart.getDate() - 14)
+    wellnessStart.setDate(wellnessStart.getDate() - wellnessDays)
     const wellnessStartStr = getLocalDateString(wellnessStart)
 
     const { data: wellnessData } = await supabase
@@ -550,21 +556,27 @@ export default function CoachDashboardPage() {
       }
       const totalDays = daysSinceSignup
 
-      // Calculate compliance based on macro target adherence
+      // Calculate compliance: weighted blend of logging consistency + target adherence
+      // Compliance = 50% (days logged / total days) + 50% (days hitting targets / days logged)
       const targetCals = rec?.daily_calories || 0
       const targetPro = rec?.daily_protein_g || 0
       const hasTargets = targetCals > 0 && targetPro > 0
       let complianceRate = 0
-      if (hasTargets) {
+      const loggingPct = totalDays > 0 ? daysActive / totalDays : 0
+      if (hasTargets && daysActive > 0) {
         const compliantDays = summaries.filter(s => {
           const calPct = s.total_calories / targetCals
           const proPct = s.total_protein / targetPro
           return calPct >= 0.8 && calPct <= 1.2 && proPct >= 0.8 && proPct <= 1.2
         }).length
-        complianceRate = totalDays > 0 ? Math.round((compliantDays / totalDays) * 100) : 0
+        const adherencePct = compliantDays / daysActive
+        complianceRate = Math.round((loggingPct * 0.5 + adherencePct * 0.5) * 100)
+      } else if (hasTargets) {
+        // Has targets but never logged — 0%
+        complianceRate = 0
       } else {
-        // No targets set — fall back to logging-based compliance
-        complianceRate = totalDays > 0 ? Math.round((daysActive / totalDays) * 100) : 0
+        // No targets set — compliance is just logging consistency
+        complianceRate = totalDays > 0 ? Math.round(loggingPct * 100) : 0
       }
 
       // Calculate weekly trend: compare last 7 days vs prior 7 days
@@ -605,12 +617,30 @@ export default function CoachDashboardPage() {
       const latestCheckin = athleteWellness.length > 0 ? athleteWellness[0] : null
       const wellnessScore = latestCheckin ? latestCheckin.wellness_score : null
 
-      // Compute 7-day average Fuel Score
+      // Compute 7-day average Fuel Score (always for leaderboard/alerts)
       const scoredCheckins = athleteWellness.filter(c => c.wellness_score != null)
       const last7Scored = scoredCheckins.slice(0, 7) // already sorted desc by date
       const avg7FuelScore = last7Scored.length > 0
         ? Math.round(last7Scored.reduce((sum, c) => sum + c.wellness_score, 0) / last7Scored.length)
         : null
+
+      // Range-aware Fuel Score: today's score for 1d, average over range for multi-day
+      let rangeFuelScore: number | null = null
+      if (timeRange === 1) {
+        // Today's single score
+        const todayCheckin = athleteWellness.find(c => c.date === today)
+        rangeFuelScore = todayCheckin?.wellness_score ?? null
+      } else {
+        // Average over the selected range
+        const rangeCheckins = athleteWellness.filter(c => c.date >= rangeStartStr && c.date <= today && c.wellness_score != null)
+        rangeFuelScore = rangeCheckins.length > 0
+          ? Math.round(rangeCheckins.reduce((sum, c) => sum + c.wellness_score, 0) / rangeCheckins.length)
+          : null
+      }
+
+      // Average daily meals over the range
+      const totalMealsInRange = summaries.reduce((sum, s) => sum + (s.meal_count || 0), 0)
+      const avgDailyMeals = timeRange === 1 ? todayMealCount : (totalDays > 0 ? Math.round((totalMealsInRange / totalDays) * 10) / 10 : 0)
 
       // Days since last check-in
       let checkinDaysAgo: number | null = null
@@ -667,6 +697,8 @@ export default function CoachDashboardPage() {
         trend,
         wellnessScore,
         avg7FuelScore,
+        rangeFuelScore,
+        avgDailyMeals,
         checkinDaysAgo,
         checkinStreak,
         recentCheckins: athleteWellness,
@@ -733,7 +765,7 @@ export default function CoachDashboardPage() {
           cmp = a.name.localeCompare(b.name)
           break
         case 'wellness':
-          cmp = (a.avg7FuelScore ?? -1) - (b.avg7FuelScore ?? -1)
+          cmp = (a.rangeFuelScore ?? -1) - (b.rangeFuelScore ?? -1)
           break
         case 'streak':
           cmp = a.streak - b.streak
@@ -776,8 +808,8 @@ export default function CoachDashboardPage() {
 
   const fuelScoreLeaderboard = useMemo(() => {
     return filteredAthletes
-      .filter(a => a.avg7FuelScore !== null)
-      .sort((a, b) => (b.avg7FuelScore || 0) - (a.avg7FuelScore || 0))
+      .filter(a => a.rangeFuelScore !== null)
+      .sort((a, b) => (b.rangeFuelScore || 0) - (a.rangeFuelScore || 0))
   }, [filteredAthletes])
 
   // Red flag athletes
@@ -997,28 +1029,28 @@ export default function CoachDashboardPage() {
       ? Math.round(athletesWithTargets.reduce((sum, a) => sum + a.complianceRate, 0) / athletesWithTargets.length)
       : -1 // -1 means no athletes have targets set
     const avgFuelScore = (() => {
-      const withScores = filteredAthletes.filter(a => a.avg7FuelScore !== null)
+      const withScores = filteredAthletes.filter(a => a.rangeFuelScore !== null)
       return withScores.length > 0
-        ? Math.round(withScores.reduce((sum, a) => sum + (a.avg7FuelScore || 0), 0) / withScores.length)
+        ? Math.round(withScores.reduce((sum, a) => sum + (a.rangeFuelScore || 0), 0) / withScores.length)
         : null
     })()
 
-    // Zone distribution for Fuel Score chart (based on 7-day avg)
-    const withScores = filteredAthletes.filter(a => a.avg7FuelScore !== null)
-    const lockedIn = withScores.filter(a => (a.avg7FuelScore || 0) >= 85).length
-    const onTrack = withScores.filter(a => (a.avg7FuelScore || 0) >= 70 && (a.avg7FuelScore || 0) < 85).length
-    const dialItIn = withScores.filter(a => (a.avg7FuelScore || 0) >= 50 && (a.avg7FuelScore || 0) < 70).length
-    const redFlag = withScores.filter(a => (a.avg7FuelScore || 0) < 50).length
-    const noCheckin = filteredAthletes.filter(a => a.avg7FuelScore === null).length
+    // Zone distribution for Fuel Score chart (based on selected range)
+    const withScores = filteredAthletes.filter(a => a.rangeFuelScore !== null)
+    const lockedIn = withScores.filter(a => (a.rangeFuelScore || 0) >= 85).length
+    const onTrack = withScores.filter(a => (a.rangeFuelScore || 0) >= 70 && (a.rangeFuelScore || 0) < 85).length
+    const dialItIn = withScores.filter(a => (a.rangeFuelScore || 0) >= 50 && (a.rangeFuelScore || 0) < 70).length
+    const redFlag = withScores.filter(a => (a.rangeFuelScore || 0) < 50).length
+    const noCheckin = filteredAthletes.filter(a => a.rangeFuelScore === null).length
 
     // Top Compliance athlete (only those with targets)
     const topComplianceAthlete = athletesWithTargets.length > 0
       ? athletesWithTargets.reduce((best, a) => a.complianceRate > best.complianceRate ? a : best)
       : null
 
-    // Top Fuel Score athlete (by 7-day avg)
+    // Top Fuel Score athlete (by selected range)
     const topFuelScoreAthlete = withScores.length > 0
-      ? withScores.reduce((best, a) => (a.avg7FuelScore || 0) > (best.avg7FuelScore || 0) ? a : best)
+      ? withScores.reduce((best, a) => (a.rangeFuelScore || 0) > (best.rangeFuelScore || 0) ? a : best)
       : null
 
     // Format name as "First L."
@@ -1036,7 +1068,7 @@ export default function CoachDashboardPage() {
 
     const topFuelScore = topFuelScoreAthlete ? {
       name: formatShortName(topFuelScoreAthlete.name),
-      value: topFuelScoreAthlete.avg7FuelScore || 0,
+      value: topFuelScoreAthlete.rangeFuelScore || 0,
       id: topFuelScoreAthlete.id,
     } : null
 
@@ -1237,15 +1269,15 @@ export default function CoachDashboardPage() {
               ))}
             </select>
             <div className="flex bg-slate-800 border border-slate-700 rounded-lg p-0.5">
-              {[7, 14, 30].map(d => (
+              {[{ value: 1, label: 'Today' }, { value: 7, label: '7 Days' }, { value: 30, label: '30 Days' }].map(d => (
                 <button
-                  key={d}
-                  onClick={() => setTimeRange(d)}
+                  key={d.value}
+                  onClick={() => setTimeRange(d.value)}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    timeRange === d ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                    timeRange === d.value ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  {d}d
+                  {d.label}
                 </button>
               ))}
             </div>
@@ -1284,7 +1316,7 @@ export default function CoachDashboardPage() {
                 <span className="text-slate-500">—</span>
               )}
             </p>
-            <p className="text-slate-500 text-[10px] mt-1">7-day average</p>
+            <p className="text-slate-500 text-[10px] mt-1">{timeRange === 1 ? "today" : `${timeRange}-day average`}</p>
           </div>
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 relative group">
             <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">
@@ -1292,7 +1324,7 @@ export default function CoachDashboardPage() {
               <span className="text-slate-500 cursor-help text-[10px] ml-1">ⓘ</span>
             </p>
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-              % of days hitting within 80–120% of calorie &amp; protein targets
+              50% logging consistency + 50% hitting 80–120% of macro targets
             </div>
             {stats.avgCompliance >= 0 ? (
               <p className="text-4xl font-bold text-white mt-2">{stats.avgCompliance}%</p>
@@ -1378,7 +1410,7 @@ export default function CoachDashboardPage() {
               {/* Right: Athlete Performance & Wellness */}
               <div className="lg:col-span-8 bg-slate-800/60 border border-slate-700/50 rounded-2xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-700/50">
-                  <h3 className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Athlete Performance & Fuel Score</h3>
+                  <h3 className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Athlete Performance {timeRange === 1 ? '— Today' : `— Last ${timeRange} Days`}</h3>
                 </div>
 
                 {filteredAthletes.length === 0 ? (
@@ -1405,7 +1437,6 @@ export default function CoachDashboardPage() {
                                 <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                               )}
                             </button>
-                            <span className="text-slate-600 text-[9px] font-normal normal-case tracking-normal">(7d avg)</span>
                           </th>
                           <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
                             <button onClick={() => handleSort('streak')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
@@ -1416,7 +1447,7 @@ export default function CoachDashboardPage() {
                             </button>
                           </th>
                           <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
-                            <span className="text-slate-400">Today's Meals</span>
+                            <span className="text-slate-400">Meals</span>
                           </th>
                           <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
                             <button onClick={() => handleSort('compliance')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
@@ -1428,7 +1459,7 @@ export default function CoachDashboardPage() {
                             <div className="relative group/tip inline-block ml-1">
                               <span className="text-slate-500 cursor-help text-[10px]">ⓘ</span>
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                                % of days within 80–120% of calorie &amp; protein targets
+                                50% logging consistency + 50% hitting 80–120% of macro targets
                               </div>
                             </div>
                           </th>
@@ -1447,24 +1478,10 @@ export default function CoachDashboardPage() {
                               </div>
                             </td>
                             <td className="px-6 py-3.5">
-                              {a.avg7FuelScore !== null ? (
-                                <div className="flex items-center gap-2">
-                                  <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold ${getWellnessBgColor(a.avg7FuelScore)} ${getWellnessColor(a.avg7FuelScore)}`}>
-                                    {a.avg7FuelScore}
-                                  </span>
-                                  {a.checkinDaysAgo !== null && a.checkinDaysAgo === 0 && (
-                                    <span className="text-green-500 text-[9px] font-medium">today</span>
-                                  )}
-                                  {a.checkinDaysAgo !== null && a.checkinDaysAgo === 1 && (
-                                    <span className="text-slate-500 text-[9px]">1d ago</span>
-                                  )}
-                                  {a.checkinDaysAgo !== null && a.checkinDaysAgo === 2 && (
-                                    <span className="text-slate-500 text-[9px]">2d ago</span>
-                                  )}
-                                  {a.checkinDaysAgo !== null && a.checkinDaysAgo >= 3 && (
-                                    <span className="text-red-400 text-[9px]">{a.checkinDaysAgo}d ago</span>
-                                  )}
-                                </div>
+                              {a.rangeFuelScore !== null ? (
+                                <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold ${getWellnessBgColor(a.rangeFuelScore)} ${getWellnessColor(a.rangeFuelScore)}`}>
+                                  {a.rangeFuelScore}
+                                </span>
                               ) : (
                                 <span className="text-slate-600 text-xs">—</span>
                               )}
@@ -1473,10 +1490,18 @@ export default function CoachDashboardPage() {
                               <span className="text-white text-sm font-medium">{a.checkinStreak > 0 ? `${a.checkinStreak} Day${a.checkinStreak !== 1 ? 's' : ''}` : '—'}</span>
                             </td>
                             <td className="px-6 py-3.5">
-                              {a.todayMealCount > 0 ? (
-                                <span className="text-green-400 text-sm font-medium">{a.todayMealCount} meal{a.todayMealCount !== 1 ? 's' : ''}</span>
+                              {timeRange === 1 ? (
+                                a.todayMealCount > 0 ? (
+                                  <span className="text-green-400 text-sm font-medium">{a.todayMealCount}</span>
+                                ) : (
+                                  <span className="text-red-400 text-sm font-medium">0</span>
+                                )
                               ) : (
-                                <span className="text-red-400 text-sm font-medium">0</span>
+                                a.avgDailyMeals > 0 ? (
+                                  <span className="text-green-400 text-sm font-medium">{a.avgDailyMeals}</span>
+                                ) : (
+                                  <span className="text-red-400 text-sm font-medium">0</span>
+                                )
                               )}
                             </td>
                             <td className="px-6 py-3.5">
@@ -1513,7 +1538,7 @@ export default function CoachDashboardPage() {
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   <span className="text-yellow-400">🏆</span> Compliance Leaderboard
                 </h3>
-                <p className="text-slate-400 text-xs mt-0.5">% of days within 80–120% of calorie &amp; protein targets ({timeRange}d)</p>
+                <p className="text-slate-400 text-xs mt-0.5">50% logging + 50% hitting macro targets ({timeRange === 1 ? 'today' : `${timeRange}d`})</p>
               </div>
 
               {complianceLeaderboard.length === 0 ? (
@@ -1565,7 +1590,7 @@ export default function CoachDashboardPage() {
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   <span className="text-emerald-400">⚡</span> Fuel Score Leaderboard
                 </h3>
-                <p className="text-slate-400 text-xs mt-0.5">7-day average Fuel Score</p>
+                <p className="text-slate-400 text-xs mt-0.5">{timeRange === 1 ? "Today's Fuel Score" : `${timeRange}-day avg Fuel Score`}</p>
               </div>
 
               {fuelScoreLeaderboard.length === 0 ? (
@@ -1598,8 +1623,8 @@ export default function CoachDashboardPage() {
                           <p className="text-slate-500 text-xs truncate">{a.teamName}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className={`text-lg font-bold ${getWellnessColor(a.avg7FuelScore)}`}>
-                            {a.avg7FuelScore}%
+                          <p className={`text-lg font-bold ${getWellnessColor(a.rangeFuelScore)}`}>
+                            {a.rangeFuelScore}%
                           </p>
                         </div>
                       </div>
