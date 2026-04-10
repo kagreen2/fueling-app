@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import WellnessSpotlight from '@/components/WellnessSpotlight'
 import { getZoneInfo } from '@/lib/fuel-score'
 
 interface Team {
@@ -91,12 +90,11 @@ interface AthleteData {
   lastLogDate: string | null
   daysSinceLastLog: number
   trend: 'up' | 'down' | 'stable'
-  // Wellness fields
-  wellnessScore: number | null
-  wellnessLabel: string | null
+  // Fuel Score fields
+  wellnessScore: number | null  // latest single-day Fuel Score (used for alerts)
+  avg7FuelScore: number | null  // 7-day average Fuel Score (displayed in table/cards)
   checkinStreak: number
-  wellnessDate: string | null
-  wellnessDaysAgo: number | null
+  checkinDaysAgo: number | null // days since last check-in (null = never)
   recentCheckins: WellnessCheckin[]
 }
 
@@ -602,11 +600,24 @@ export default function CoachDashboardPage() {
         daysSinceLastLog = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
       }
 
-      // Wellness data processing
+      // Fuel Score data processing
       const athleteWellness = wellnessMap[m.athlete_id] || []
       const latestCheckin = athleteWellness.length > 0 ? athleteWellness[0] : null
       const wellnessScore = latestCheckin ? latestCheckin.wellness_score : null
-      const wellnessLabel = wellnessScore !== null ? getZoneInfo(wellnessScore).label : null
+
+      // Compute 7-day average Fuel Score
+      const scoredCheckins = athleteWellness.filter(c => c.wellness_score != null)
+      const last7Scored = scoredCheckins.slice(0, 7) // already sorted desc by date
+      const avg7FuelScore = last7Scored.length > 0
+        ? Math.round(last7Scored.reduce((sum, c) => sum + c.wellness_score, 0) / last7Scored.length)
+        : null
+
+      // Days since last check-in
+      let checkinDaysAgo: number | null = null
+      if (latestCheckin) {
+        const wDate = new Date(latestCheckin.date + 'T12:00:00')
+        checkinDaysAgo = Math.floor((new Date().getTime() - wDate.getTime()) / (1000 * 60 * 60 * 24))
+      }
 
       // Calculate check-in streak from wellness check-in dates
       let checkinStreak = 0
@@ -623,13 +634,6 @@ export default function CoachDashboardPage() {
             break
           }
         }
-      }
-      const wellnessDate = latestCheckin ? latestCheckin.date : null
-      let wellnessDaysAgo: number | null = null
-      if (wellnessDate) {
-        const wDate = new Date(wellnessDate + 'T12:00:00')
-        const nowDate = new Date()
-        wellnessDaysAgo = Math.floor((nowDate.getTime() - wDate.getTime()) / (1000 * 60 * 60 * 24))
       }
 
       return {
@@ -662,9 +666,8 @@ export default function CoachDashboardPage() {
         daysSinceLastLog,
         trend,
         wellnessScore,
-        wellnessLabel,
-        wellnessDate,
-        wellnessDaysAgo,
+        avg7FuelScore,
+        checkinDaysAgo,
         checkinStreak,
         recentCheckins: athleteWellness,
       }
@@ -730,7 +733,7 @@ export default function CoachDashboardPage() {
           cmp = a.name.localeCompare(b.name)
           break
         case 'wellness':
-          cmp = (a.wellnessScore ?? -1) - (b.wellnessScore ?? -1)
+          cmp = (a.avg7FuelScore ?? -1) - (b.avg7FuelScore ?? -1)
           break
         case 'streak':
           cmp = a.streak - b.streak
@@ -773,8 +776,8 @@ export default function CoachDashboardPage() {
 
   const fuelScoreLeaderboard = useMemo(() => {
     return filteredAthletes
-      .filter(a => a.wellnessScore !== null)
-      .sort((a, b) => (b.wellnessScore || 0) - (a.wellnessScore || 0))
+      .filter(a => a.avg7FuelScore !== null)
+      .sort((a, b) => (b.avg7FuelScore || 0) - (a.avg7FuelScore || 0))
   }, [filteredAthletes])
 
   // Red flag athletes
@@ -993,29 +996,29 @@ export default function CoachDashboardPage() {
     const avgCompliance = athletesWithTargets.length > 0
       ? Math.round(athletesWithTargets.reduce((sum, a) => sum + a.complianceRate, 0) / athletesWithTargets.length)
       : -1 // -1 means no athletes have targets set
-    const avgStreak = total > 0
-      ? Math.round(filteredAthletes.reduce((sum, a) => sum + a.streak, 0) / total * 10) / 10
-      : 0
-    const avgWellness = total > 0
-      ? Math.round(filteredAthletes.filter(a => a.wellnessScore !== null).reduce((sum, a) => sum + (a.wellnessScore || 0), 0) / Math.max(filteredAthletes.filter(a => a.wellnessScore !== null).length, 1))
-      : null
+    const avgFuelScore = (() => {
+      const withScores = filteredAthletes.filter(a => a.avg7FuelScore !== null)
+      return withScores.length > 0
+        ? Math.round(withScores.reduce((sum, a) => sum + (a.avg7FuelScore || 0), 0) / withScores.length)
+        : null
+    })()
 
-    // Zone distribution for Fuel Score chart
-    const withScores = filteredAthletes.filter(a => a.wellnessScore !== null)
-    const lockedIn = withScores.filter(a => (a.wellnessScore || 0) >= 85).length
-    const onTrack = withScores.filter(a => (a.wellnessScore || 0) >= 70 && (a.wellnessScore || 0) < 85).length
-    const dialItIn = withScores.filter(a => (a.wellnessScore || 0) >= 50 && (a.wellnessScore || 0) < 70).length
-    const redFlag = withScores.filter(a => (a.wellnessScore || 0) < 50).length
-    const noCheckin = filteredAthletes.filter(a => a.wellnessScore === null).length
+    // Zone distribution for Fuel Score chart (based on 7-day avg)
+    const withScores = filteredAthletes.filter(a => a.avg7FuelScore !== null)
+    const lockedIn = withScores.filter(a => (a.avg7FuelScore || 0) >= 85).length
+    const onTrack = withScores.filter(a => (a.avg7FuelScore || 0) >= 70 && (a.avg7FuelScore || 0) < 85).length
+    const dialItIn = withScores.filter(a => (a.avg7FuelScore || 0) >= 50 && (a.avg7FuelScore || 0) < 70).length
+    const redFlag = withScores.filter(a => (a.avg7FuelScore || 0) < 50).length
+    const noCheckin = filteredAthletes.filter(a => a.avg7FuelScore === null).length
 
     // Top Compliance athlete (only those with targets)
     const topComplianceAthlete = athletesWithTargets.length > 0
       ? athletesWithTargets.reduce((best, a) => a.complianceRate > best.complianceRate ? a : best)
       : null
 
-    // Top Fuel Score athlete (only those with a wellness score)
+    // Top Fuel Score athlete (by 7-day avg)
     const topFuelScoreAthlete = withScores.length > 0
-      ? withScores.reduce((best, a) => (a.wellnessScore || 0) > (best.wellnessScore || 0) ? a : best)
+      ? withScores.reduce((best, a) => (a.avg7FuelScore || 0) > (best.avg7FuelScore || 0) ? a : best)
       : null
 
     // Format name as "First L."
@@ -1033,11 +1036,11 @@ export default function CoachDashboardPage() {
 
     const topFuelScore = topFuelScoreAthlete ? {
       name: formatShortName(topFuelScoreAthlete.name),
-      value: topFuelScoreAthlete.wellnessScore || 0,
+      value: topFuelScoreAthlete.avg7FuelScore || 0,
       id: topFuelScoreAthlete.id,
     } : null
 
-    return { total, loggedToday, avgCompliance, avgStreak, topCompliance, topFuelScore, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgWellness, lockedIn, onTrack, dialItIn, redFlag, noCheckin }
+    return { total, loggedToday, avgCompliance, topCompliance, topFuelScore, redFlagCount: redFlags.length, wellnessAlertCount: wellnessAlerts.length, avgFuelScore, lockedIn, onTrack, dialItIn, redFlag, noCheckin }
   }, [filteredAthletes, redFlags, wellnessAlerts])
 
   if (loading) {
@@ -1273,14 +1276,15 @@ export default function CoachDashboardPage() {
         {/* Summary Stat Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5">
-            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Team Wellness</p>
+            <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Avg Fuel Score</p>
             <p className="text-4xl font-bold mt-2">
-              {stats.avgWellness !== null ? (
-                <span className={getWellnessColor(stats.avgWellness)}>{stats.avgWellness}%</span>
+              {stats.avgFuelScore !== null ? (
+                <span className={getWellnessColor(stats.avgFuelScore)}>{stats.avgFuelScore}%</span>
               ) : (
                 <span className="text-slate-500">—</span>
               )}
             </p>
+            <p className="text-slate-500 text-[10px] mt-1">7-day average</p>
           </div>
           <div className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 relative group">
             <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">
@@ -1374,7 +1378,7 @@ export default function CoachDashboardPage() {
               {/* Right: Athlete Performance & Wellness */}
               <div className="lg:col-span-8 bg-slate-800/60 border border-slate-700/50 rounded-2xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-700/50">
-                  <h3 className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Athlete Performance & Wellness</h3>
+                  <h3 className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Athlete Performance & Fuel Score</h3>
                 </div>
 
                 {filteredAthletes.length === 0 ? (
@@ -1396,22 +1400,23 @@ export default function CoachDashboardPage() {
                           </th>
                           <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
                             <button onClick={() => handleSort('wellness')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
-                              Wellness Score
+                              Fuel Score
                               {sortColumn === 'wellness' && (
                                 <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                               )}
                             </button>
+                            <span className="text-slate-600 text-[9px] font-normal normal-case tracking-normal">(7d avg)</span>
                           </th>
                           <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
                             <button onClick={() => handleSort('streak')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
-                              Streak Count
+                              Check-in Streak
                               {sortColumn === 'streak' && (
                                 <span className="text-purple-400">{sortDirection === 'desc' ? '↓' : '↑'}</span>
                               )}
                             </button>
                           </th>
                           <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
-                            <span className="text-slate-400">Today</span>
+                            <span className="text-slate-400">Today's Meals</span>
                           </th>
                           <th className="px-6 py-3 text-xs font-medium uppercase tracking-wider">
                             <button onClick={() => handleSort('compliance')} className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors">
@@ -1423,7 +1428,7 @@ export default function CoachDashboardPage() {
                             <div className="relative group/tip inline-block ml-1">
                               <span className="text-slate-500 cursor-help text-[10px]">ⓘ</span>
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-slate-700 text-white text-xs px-3 py-2 rounded-lg shadow-lg opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                                % of days hitting within 80% of calorie &amp; protein targets
+                                % of days within 80–120% of calorie &amp; protein targets
                               </div>
                             </div>
                           </th>
@@ -1442,10 +1447,24 @@ export default function CoachDashboardPage() {
                               </div>
                             </td>
                             <td className="px-6 py-3.5">
-                              {a.wellnessScore !== null ? (
-                                <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold ${getWellnessBgColor(a.wellnessScore)} ${getWellnessColor(a.wellnessScore)}`}>
-                                  {a.wellnessScore}
-                                </span>
+                              {a.avg7FuelScore !== null ? (
+                                <div className="flex items-center gap-2">
+                                  <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-bold ${getWellnessBgColor(a.avg7FuelScore)} ${getWellnessColor(a.avg7FuelScore)}`}>
+                                    {a.avg7FuelScore}
+                                  </span>
+                                  {a.checkinDaysAgo !== null && a.checkinDaysAgo === 0 && (
+                                    <span className="text-green-500 text-[9px] font-medium">today</span>
+                                  )}
+                                  {a.checkinDaysAgo !== null && a.checkinDaysAgo === 1 && (
+                                    <span className="text-slate-500 text-[9px]">1d ago</span>
+                                  )}
+                                  {a.checkinDaysAgo !== null && a.checkinDaysAgo === 2 && (
+                                    <span className="text-slate-500 text-[9px]">2d ago</span>
+                                  )}
+                                  {a.checkinDaysAgo !== null && a.checkinDaysAgo >= 3 && (
+                                    <span className="text-red-400 text-[9px]">{a.checkinDaysAgo}d ago</span>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="text-slate-600 text-xs">—</span>
                               )}
@@ -1546,7 +1565,7 @@ export default function CoachDashboardPage() {
                 <h3 className="text-white font-semibold flex items-center gap-2">
                   <span className="text-emerald-400">⚡</span> Fuel Score Leaderboard
                 </h3>
-                <p className="text-slate-400 text-xs mt-0.5">Average Fuel Score from daily check-ins</p>
+                <p className="text-slate-400 text-xs mt-0.5">7-day average Fuel Score</p>
               </div>
 
               {fuelScoreLeaderboard.length === 0 ? (
@@ -1579,8 +1598,8 @@ export default function CoachDashboardPage() {
                           <p className="text-slate-500 text-xs truncate">{a.teamName}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className={`text-lg font-bold ${getWellnessColor(a.wellnessScore)}`}>
-                            {a.wellnessScore}%
+                          <p className={`text-lg font-bold ${getWellnessColor(a.avg7FuelScore)}`}>
+                            {a.avg7FuelScore}%
                           </p>
                         </div>
                       </div>
