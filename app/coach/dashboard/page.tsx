@@ -341,7 +341,7 @@ export default function CoachDashboardPage() {
   const [athletes, setAthletes] = useState<AthleteData[]>([])
   const [selectedTeam, setSelectedTeam] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<number>(1)
-  const [view, setView] = useState<'overview' | 'leaderboard' | 'alerts' | 'messages'>('overview')
+  const [view, setView] = useState<'overview' | 'leaderboard' | 'messages'>('overview')
   const [coachName, setCoachName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [pendingSupplements, setPendingSupplements] = useState<any[]>([])
@@ -358,6 +358,7 @@ export default function CoachDashboardPage() {
   }>>([])
   const [coachUserId, setCoachUserId] = useState<string>('')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showAlertPanel, setShowAlertPanel] = useState(false)
   const [sortColumn, setSortColumn] = useState<'name' | 'wellness' | 'streak' | 'compliance' | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [customMode, setCustomMode] = useState(false)
@@ -971,84 +972,180 @@ export default function CoachDashboardPage() {
     return alerts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
   }, [filteredAthletes])
 
-  // Top-level coach notification alerts
-  const coachNotifications = useMemo(() => {
-    const items: Array<{ id: string; type: 'danger' | 'warning' | 'info'; icon: string; message: string; action?: () => void }> = []
+  // Bell icon alert items — individual actionable alerts
+  const alertItems = useMemo(() => {
+    const items: Array<{ id: string; type: 'danger' | 'warning' | 'info'; icon: string; title: string; message: string; athleteId?: string }> = []
 
-    // Pending supplement requests
-    if (pendingSupplements.length > 0) {
-      const names = [...new Set(pendingSupplements.map(s => {
-        const a = athletes.find(at => at.id === s.athlete_id)
-        return a?.name || 'Unknown'
-      }))]
-      items.push({
-        id: 'pending_supplements',
-        type: 'warning',
-        icon: '💊',
-        message: `${pendingSupplements.length} supplement${pendingSupplements.length > 1 ? 's' : ''} pending your review from ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` +${names.length - 3} more` : ''}`,
-        action: () => {
-          // Navigate to the first athlete with a pending supplement
-          const firstPending = pendingSupplements[0]
-          if (firstPending?.athlete_id) {
-            router.push(`/coach/athlete/${firstPending.athlete_id}`)
-            return
-          }
-          setView('alerts')
-        },
-      })
-    }
+    // 1. New athlete signups (joined in last 3 days)
+    athletes.forEach(a => {
+      // Use totalDays as proxy — if athlete joined within 3 days
+      if (a.totalDays <= 3) {
+        items.push({
+          id: `new_signup_${a.id}`,
+          type: 'info',
+          icon: '🆕',
+          title: 'New Athlete',
+          message: `${a.name} just signed up`,
+          athleteId: a.id,
+        })
+      }
+    })
 
-    // Athletes with missed check-ins (2+ days)
-    const missedCheckin = athletes.filter(a => {
+    // 2. Fuel Score in Red Flag zone (below 50) for recent check-ins
+    athletes.forEach(a => {
+      if (a.recentCheckins.length >= 2) {
+        const last2 = a.recentCheckins.slice(0, 2)
+        if (last2.every(c => c.wellness_score < 50)) {
+          items.push({
+            id: `red_fuel_${a.id}`,
+            type: 'danger',
+            icon: '🚩',
+            title: 'Red Flag Fuel Score',
+            message: `${a.name}'s Fuel Score has been below 50 for multiple days`,
+            athleteId: a.id,
+          })
+        }
+      } else if (a.wellnessScore !== null && a.wellnessScore < 50) {
+        items.push({
+          id: `red_fuel_${a.id}`,
+          type: 'danger',
+          icon: '🚩',
+          title: 'Red Flag Fuel Score',
+          message: `${a.name}'s Fuel Score is ${a.wellnessScore} (below 50)`,
+          athleteId: a.id,
+        })
+      }
+    })
+
+    // 3. No macro plan assigned
+    athletes.forEach(a => {
+      if (!a.hasTargets) {
+        items.push({
+          id: `no_plan_${a.id}`,
+          type: 'warning',
+          icon: '📋',
+          title: 'No Macro Plan',
+          message: `${a.name} doesn't have a macro plan assigned`,
+          athleteId: a.id,
+        })
+      }
+    })
+
+    // 4. High stress for 3+ consecutive days
+    athletes.forEach(a => {
       const checkins = a.recentCheckins
-      if (checkins.length === 0) return true // never checked in
-      const latest = checkins[0]
-      const twoDaysAgo = new Date()
-      twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
-      const twoDaysAgoStr = getLocalDateString(twoDaysAgo)
-      return latest.date < twoDaysAgoStr
+      if (checkins.length >= 3) {
+        const last3 = checkins.slice(0, 3)
+        if (last3.every(c => c.stress >= 7)) {
+          let count = 0
+          for (const c of checkins) {
+            if (c.stress >= 7) count++
+            else break
+          }
+          items.push({
+            id: `high_stress_${a.id}`,
+            type: 'danger',
+            icon: '😰',
+            title: 'Sustained High Stress',
+            message: `${a.name} has reported high stress (7+) for ${count} days in a row`,
+            athleteId: a.id,
+          })
+        }
+      }
     })
-    if (missedCheckin.length > 0) {
-      items.push({
-        id: 'missed_checkins',
-        type: 'warning',
-        icon: '📋',
-        message: `${missedCheckin.length} athlete${missedCheckin.length > 1 ? 's' : ''} missed check-in (2+ days): ${missedCheckin.slice(0, 3).map(a => a.name).join(', ')}${missedCheckin.length > 3 ? ` +${missedCheckin.length - 3} more` : ''}`,
-        action: () => setView('alerts'),
-      })
-    }
 
-    // High stress/soreness today (7+ on scale)
-    const highStress = athletes.filter(a => {
-      if (a.recentCheckins.length === 0) return false
-      const latest = a.recentCheckins[0]
-      const today = getLocalDateString()
-      return latest.date === today && (latest.stress >= 7 || latest.soreness >= 7)
+    // 5. Low sleep for 3+ consecutive nights
+    athletes.forEach(a => {
+      const checkins = a.recentCheckins
+      if (checkins.length >= 3) {
+        const last3 = checkins.slice(0, 3)
+        if (last3.every(c => c.sleep_hours !== null && c.sleep_hours < 5)) {
+          let count = 0
+          for (const c of checkins) {
+            if (c.sleep_hours !== null && c.sleep_hours < 5) count++
+            else break
+          }
+          items.push({
+            id: `low_sleep_${a.id}`,
+            type: 'danger',
+            icon: '😴',
+            title: 'Sleep Deprivation',
+            message: `${a.name} has slept under 5 hours for ${count} nights in a row`,
+            athleteId: a.id,
+          })
+        }
+      }
     })
-    if (highStress.length > 0) {
-      items.push({
-        id: 'high_stress',
-        type: 'danger',
-        icon: '⚠️',
-        message: `${highStress.length} athlete${highStress.length > 1 ? 's' : ''} reporting high stress/soreness (7+) today: ${highStress.slice(0, 3).map(a => a.name).join(', ')}${highStress.length > 3 ? ` +${highStress.length - 3} more` : ''}`,
-        action: () => setView('alerts'),
-      })
-    }
 
-    // Unread chat messages
+    // 6. Energy decline (dropped 3+ points over last 3 check-ins)
+    athletes.forEach(a => {
+      const checkins = a.recentCheckins
+      if (checkins.length >= 3) {
+        const oldest = checkins[Math.min(2, checkins.length - 1)]
+        const latest = checkins[0]
+        const drop = oldest.energy - latest.energy
+        if (drop >= 3) {
+          items.push({
+            id: `energy_decline_${a.id}`,
+            type: 'warning',
+            icon: '⚡',
+            title: 'Energy Decline',
+            message: `${a.name}'s energy dropped from ${oldest.energy}/10 to ${latest.energy}/10`,
+            athleteId: a.id,
+          })
+        }
+      }
+    })
+
+    // 7. Unread messages (grouped by sender)
     if (unreadMessages.length > 0) {
-      const senderNames = [...new Set(unreadMessages.map(m => m.sender_name || 'Unknown'))]
-      items.push({
-        id: 'unread_messages',
-        type: 'info',
-        icon: '💬',
-        message: `${unreadMessages.length} unread message${unreadMessages.length > 1 ? 's' : ''} from ${senderNames.slice(0, 3).join(', ')}${senderNames.length > 3 ? ` +${senderNames.length - 3} more` : ''}`,
-        action: () => setView('messages'),
+      // Group by athlete
+      const grouped: Record<string, { name: string; count: number; athleteId: string }> = {}
+      for (const msg of unreadMessages) {
+        if (!grouped[msg.athlete_id]) {
+          grouped[msg.athlete_id] = { name: msg.sender_name || 'Unknown', count: 0, athleteId: msg.athlete_id }
+        }
+        grouped[msg.athlete_id].count++
+      }
+      Object.values(grouped).forEach(g => {
+        items.push({
+          id: `unread_msg_${g.athleteId}`,
+          type: 'info',
+          icon: '💬',
+          title: 'Unread Message',
+          message: `${g.count} unread message${g.count > 1 ? 's' : ''} from ${g.name}`,
+          athleteId: g.athleteId,
+        })
       })
     }
+
+    // 8. Pending supplement requests
+    if (pendingSupplements.length > 0) {
+      const byAthlete: Record<string, { name: string; count: number; athleteId: string }> = {}
+      for (const s of pendingSupplements) {
+        const a = athletes.find(at => at.id === s.athlete_id)
+        const name = a?.name || 'Unknown'
+        if (!byAthlete[s.athlete_id]) byAthlete[s.athlete_id] = { name, count: 0, athleteId: s.athlete_id }
+        byAthlete[s.athlete_id].count++
+      }
+      Object.values(byAthlete).forEach(g => {
+        items.push({
+          id: `supp_${g.athleteId}`,
+          type: 'warning',
+          icon: '💊',
+          title: 'Supplement Review',
+          message: `${g.count} supplement${g.count > 1 ? 's' : ''} pending review from ${g.name}`,
+          athleteId: g.athleteId,
+        })
+      })
+    }
+
+    // Sort: danger first, then warning, then info
+    const severityOrder = { danger: 0, warning: 1, info: 2 }
+    items.sort((a, b) => severityOrder[a.type] - severityOrder[b.type])
 
     return items.filter(a => !dismissedCoachAlerts.has(a.id))
-  }, [pendingSupplements, athletes, dismissedCoachAlerts, unreadMessages])
+  }, [athletes, pendingSupplements, dismissedCoachAlerts, unreadMessages])
 
   function dismissCoachAlert(id: string) {
     setDismissedCoachAlerts(prev => {
@@ -1173,6 +1270,85 @@ export default function CoachDashboardPage() {
               + Invite
             </button>
 
+            {/* Primary: Alerts Bell */}
+            <div className="relative">
+              <button
+                onClick={() => { setShowAlertPanel(!showAlertPanel); setShowMoreMenu(false) }}
+                className={`relative p-2 rounded-lg border transition-colors ${
+                  showAlertPanel
+                    ? 'bg-purple-600 text-white border-purple-500'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border-slate-700'
+                }`}
+                title="Alerts"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                {alertItems.length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                    {alertItems.length > 99 ? '99+' : alertItems.length}
+                  </span>
+                )}
+              </button>
+              {showAlertPanel && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setShowAlertPanel(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-96 max-h-[70vh] bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden flex flex-col">
+                    <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+                      <h3 className="text-white font-semibold text-sm">Alerts</h3>
+                      {alertItems.length > 0 && (
+                        <span className="text-slate-400 text-xs">{alertItems.length} active</span>
+                      )}
+                    </div>
+                    <div className="overflow-y-auto flex-1">
+                      {alertItems.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <div className="w-10 h-10 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          </div>
+                          <p className="text-slate-400 text-sm">All clear! No alerts right now.</p>
+                        </div>
+                      ) : (
+                        alertItems.map(alert => {
+                          const borderColor = alert.type === 'danger' ? 'border-l-red-500' : alert.type === 'warning' ? 'border-l-amber-500' : 'border-l-blue-500'
+                          const iconBg = alert.type === 'danger' ? 'bg-red-500/10' : alert.type === 'warning' ? 'bg-amber-500/10' : 'bg-blue-500/10'
+                          return (
+                            <div
+                              key={alert.id}
+                              className={`flex items-start gap-3 px-4 py-3 border-b border-slate-700/50 border-l-2 ${borderColor} hover:bg-slate-700/30 transition-colors cursor-pointer group`}
+                              onClick={() => {
+                                if (alert.athleteId) {
+                                  if (alert.id.startsWith('unread_msg_')) {
+                                    router.push(`/coach/athlete/${alert.athleteId}`)
+                                  } else {
+                                    router.push(`/coach/athlete/${alert.athleteId}`)
+                                  }
+                                }
+                                setShowAlertPanel(false)
+                              }}
+                            >
+                              <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0 text-sm`}>
+                                {alert.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-xs font-semibold">{alert.title}</p>
+                                <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">{alert.message}</p>
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); dismissCoachAlert(alert.id) }}
+                                className="text-slate-600 hover:text-slate-300 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100 mt-1"
+                                title="Dismiss"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                              </button>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Primary: Messages */}
             <button
               onClick={() => setView('messages')}
@@ -1256,41 +1432,6 @@ export default function CoachDashboardPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {/* Coach Notification Banner */}
-        {coachNotifications.length > 0 && (
-          <div className="mb-6 space-y-2">
-            {coachNotifications.map(alert => {
-              const bgColor = alert.type === 'danger' ? 'bg-red-500/10 border-red-500/30' : alert.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-blue-500/10 border-blue-500/30'
-              const textColor = alert.type === 'danger' ? 'text-red-300' : alert.type === 'warning' ? 'text-yellow-300' : 'text-blue-300'
-              return (
-                <div key={alert.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${bgColor}`}>
-                  <span className="text-lg flex-shrink-0">{alert.icon}</span>
-                  <p className={`text-sm flex-1 ${textColor}`}>{alert.message}</p>
-                  {alert.action && (
-                    <button
-                      onClick={alert.action}
-                      className={`text-xs font-medium px-3 py-1 rounded-lg transition-colors flex-shrink-0 ${
-                        alert.type === 'danger' ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30' :
-                        alert.type === 'warning' ? 'bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30' :
-                        'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                      }`}
-                    >
-                      View
-                    </button>
-                  )}
-                  <button
-                    onClick={() => dismissCoachAlert(alert.id)}
-                    className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
-                    title="Dismiss"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
         {/* Team Filter + View Tabs */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3 flex-wrap">
@@ -1362,7 +1503,6 @@ export default function CoachDashboardPage() {
             {[
               { key: 'overview', label: 'Overview' },
               { key: 'leaderboard', label: 'Leaderboard' },
-              { key: 'alerts', label: `Alerts${(redFlags.length + wellnessAlerts.length) > 0 ? ` (${redFlags.length + wellnessAlerts.length})` : ''}` },
               { key: 'messages', label: `Messages${unreadMessages.length > 0 ? ` (${unreadMessages.length})` : ''}` },
             ].map(tab => (
               <button
@@ -1708,127 +1848,6 @@ export default function CoachDashboardPage() {
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* Alerts View */}
-        {view === 'alerts' && (
-          <div className="space-y-6">
-            {(redFlags.length + wellnessAlerts.length) === 0 ? (
-              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center">
-                <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                </div>
-                <h3 className="text-white font-semibold mb-1">All Clear!</h3>
-                <p className="text-slate-400 text-sm">No athletes need attention right now.</p>
-              </div>
-            ) : (
-              <>
-                {/* Wellness Alerts Section */}
-                {wellnessAlerts.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 flex items-center gap-3">
-                      <svg className="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                      <p className="text-amber-400 text-sm font-medium">{wellnessAlerts.length} wellness alert{wellnessAlerts.length !== 1 ? 's' : ''} — athletes may need a check-in conversation</p>
-                    </div>
-
-                    {wellnessAlerts.map((alert, idx) => (
-                      <div
-                        key={`wellness-${idx}`}
-                        className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors cursor-pointer"
-                        onClick={() => router.push(`/coach/athlete/${alert.athlete.id}`)}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            alert.severity === 'high' ? 'bg-red-500/10' : alert.severity === 'medium' ? 'bg-amber-500/10' : 'bg-yellow-500/10'
-                          }`}>
-                            <svg className={`w-5 h-5 ${
-                              alert.severity === 'high' ? 'text-red-400' : alert.severity === 'medium' ? 'text-amber-400' : 'text-yellow-400'
-                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <p className="text-white font-medium">{alert.athlete.name}</p>
-                                <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
-                                  alert.severity === 'high' ? 'bg-red-500/20 text-red-400' : alert.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-yellow-500/20 text-yellow-400'
-                                }`}>{alert.severity}</span>
-                              </div>
-                              <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
-                            </div>
-                            <p className="text-slate-500 text-xs mb-2">{alert.athlete.teamName} · {formatUserContext(alert.athlete)}</p>
-                            <div className="flex items-center gap-2">
-                              <svg className={`w-3.5 h-3.5 flex-shrink-0 ${
-                                alert.severity === 'high' ? 'text-red-400' : 'text-amber-400'
-                              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                              <span className="text-slate-300 text-sm">{alert.message}</span>
-                            </div>
-                            {alert.athlete.wellnessScore !== null && (
-                              <div className="mt-2 flex items-center gap-2">
-                                <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold ${getWellnessBgColor(alert.athlete.wellnessScore)} ${getWellnessColor(alert.athlete.wellnessScore)}`}>
-                                  {alert.athlete.wellnessScore}
-                                </span>
-                                <span className="text-slate-500 text-xs">Fuel Score</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Nutrition Alerts Section */}
-                {redFlags.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
-                      <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-                      <p className="text-red-400 text-sm font-medium">{redFlags.length} nutrition alert{redFlags.length !== 1 ? 's' : ''} — logging compliance issues</p>
-                    </div>
-
-                    {redFlags.map(a => {
-                      const reasons: string[] = []
-                      if (a.lastLogDate === null) {
-                        reasons.push(`Never logged a meal (signed up ${a.totalDays} day${a.totalDays !== 1 ? 's' : ''} ago)`)
-                      } else if (a.daysSinceLastLog >= 3) {
-                        reasons.push(`Haven't logged in ${a.daysSinceLastLog} days`)
-                      }
-                      if (a.hasTargets && a.complianceRate < 30) reasons.push(`Only ${a.complianceRate}% compliance`)
-                      if (a.todayCalories > 0 && a.targetCalories > 0 && a.todayCalories < a.targetCalories * 0.5) reasons.push(`Under 50% of calorie target today`)
-
-                      return (
-                        <div
-                          key={a.id}
-                          className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-slate-600 transition-colors cursor-pointer"
-                          onClick={() => router.push(`/coach/athlete/${a.id}`)}
-                        >
-                          <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 font-bold flex-shrink-0">
-                              {a.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="text-white font-medium">{a.name}</p>
-                                <span className="text-purple-400 text-sm hover:text-purple-300">View →</span>
-                              </div>
-                              <p className="text-slate-500 text-xs mb-2">{a.teamName} · {formatUserContext(a)}</p>
-                              <div className="flex flex-col gap-1">
-                                {reasons.map((r, i) => (
-                                  <div key={i} className="flex items-center gap-2">
-                                    <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
-                                    <span className="text-slate-300 text-sm">{r}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </>
-            )}
           </div>
         )}
 
