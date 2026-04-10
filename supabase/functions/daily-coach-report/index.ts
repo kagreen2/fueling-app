@@ -53,6 +53,7 @@ interface AthleteReport {
   notes: string | null
   isNew: boolean
   daysSinceLastLog: number
+  lastLogDate: string | null
   recentCheckins: any[]
 }
 
@@ -171,7 +172,7 @@ function buildEmailHtml(
 
   // Missed rows — show how many days since last log
   const missedRows = missed.map(a => {
-    const daysInfo = a.daysSinceLastLog > 0
+    const daysInfo = a.lastLogDate !== null
       ? `<span style="color: #64748b; font-size: 12px; margin-left: 8px;">— Last logged ${a.daysSinceLastLog}d ago</span>`
       : `<span style="color: #64748b; font-size: 12px; margin-left: 8px;">— Never logged</span>`
     const mealDisplay = a.todayMealCount > 0
@@ -389,13 +390,13 @@ Deno.serve(async (req) => {
     const todayStr = ctFormatter.format(now)
     const formattedDate = formatDate(now)
 
-    // Compute date ranges
+    // Compute date ranges (use CT formatter for consistency with todayStr)
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+    const sevenDaysAgoStr = ctFormatter.format(sevenDaysAgo)
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+    const thirtyDaysAgoStr = ctFormatter.format(thirtyDaysAgo)
 
     // 1. Get all coaches
     const { data: coaches, error: coachError } = await supabase
@@ -510,29 +511,29 @@ Deno.serve(async (req) => {
           recentByAthlete[c.athlete_id].push(c)
         }
 
-        // 6. Get today's meal counts
-        const { data: mealData } = await supabase
-          .from('meal_logs')
-          .select('athlete_id')
+        // 6. Get today's meal counts from coach_meal_summary (aggregated view)
+        const { data: todayMealData } = await supabase
+          .from('coach_meal_summary')
+          .select('athlete_id, meal_count')
           .in('athlete_id', athleteIds)
           .eq('date', todayStr)
 
         const mealCountMap: Record<string, number> = {}
-        for (const m of mealData || []) {
-          mealCountMap[m.athlete_id] = (mealCountMap[m.athlete_id] || 0) + 1
+        for (const m of todayMealData || []) {
+          mealCountMap[m.athlete_id] = m.meal_count || 0
         }
 
         // 7. Get 30-day meal summaries for compliance calculation
         const { data: mealSummaries } = await supabase
-          .from('daily_meal_summary')
-          .select('athlete_id, date, total_calories, total_protein')
+          .from('coach_meal_summary')
+          .select('athlete_id, date, total_calories, total_protein, meal_count')
           .in('athlete_id', athleteIds)
           .gte('date', thirtyDaysAgoStr)
           .lte('date', todayStr)
 
         // 8. Get recommendations (targets)
         const { data: recs } = await supabase
-          .from('recommendations')
+          .from('nutrition_recommendations')
           .select('athlete_id, daily_calories, daily_protein_g')
           .in('athlete_id', athleteIds)
 
@@ -543,7 +544,7 @@ Deno.serve(async (req) => {
 
         // 9. Get last meal log date per athlete for "days since last log"
         const { data: lastLogs } = await supabase
-          .from('daily_meal_summary')
+          .from('coach_meal_summary')
           .select('athlete_id, date')
           .in('athlete_id', athleteIds)
           .order('date', { ascending: false })
@@ -568,7 +569,7 @@ Deno.serve(async (req) => {
             : null
 
           // Compliance: weighted blend of logging consistency + target adherence
-          // Compliance = 50% (days logged / total days) + 50% (days hitting targets / days logged)
+          // Compliance = 40% (days logged / total days) + 60% (days hitting targets / days logged)
           const targetCals = rec?.daily_calories || 0
           const targetPro = rec?.daily_protein_g || 0
           const hasTargets = targetCals > 0 && targetPro > 0
@@ -599,7 +600,7 @@ Deno.serve(async (req) => {
           }
 
           // Days since last log
-          const lastLog = lastLogMap[athlete.id]
+          const lastLog = lastLogMap[athlete.id] || null
           let daysSinceLastLog = daysSinceSignup
           if (lastLog) {
             const lastDate = new Date(lastLog + 'T12:00:00')
@@ -622,6 +623,7 @@ Deno.serve(async (req) => {
             notes: checkin?.notes ?? null,
             isNew,
             daysSinceLastLog,
+            lastLogDate: lastLog,
             recentCheckins: recent,
           }
         })
@@ -631,7 +633,7 @@ Deno.serve(async (req) => {
         for (const a of athleteReports) {
           // Haven't logged in 3+ days
           if (a.daysSinceLastLog >= 3) {
-            if (a.daysSinceLastLog === a.daysSinceLastLog && !lastLogMap[a.id]) {
+            if (a.lastLogDate === null) {
               redFlags.push({ athleteName: a.name, message: `Never logged a meal (signed up ${a.daysSinceLastLog} day${a.daysSinceLastLog !== 1 ? 's' : ''} ago)` })
             } else {
               redFlags.push({ athleteName: a.name, message: `Haven't logged in ${a.daysSinceLastLog} days` })
