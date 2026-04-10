@@ -517,10 +517,16 @@ export default function CoachDashboardPage() {
       const diffMs = new Date(customEnd + 'T12:00:00').getTime() - new Date(customStart + 'T12:00:00').getTime()
       effectiveRangeDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1)
     } else {
-      const rangeStart = new Date()
-      rangeStart.setDate(rangeStart.getDate() - timeRange)
-      rangeStartStr = getLocalDateString(rangeStart)
-      effectiveRangeDays = timeRange
+      if (timeRange === 1) {
+        // "Today" — only look at today's date
+        rangeStartStr = today
+        effectiveRangeDays = 1
+      } else {
+        const rangeStart = new Date()
+        rangeStart.setDate(rangeStart.getDate() - timeRange)
+        rangeStartStr = getLocalDateString(rangeStart)
+        effectiveRangeDays = timeRange
+      }
     }
     const effectiveEndStr = customMode && customEnd ? customEnd : today
 
