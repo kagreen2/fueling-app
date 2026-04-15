@@ -49,6 +49,29 @@ export default function MealsPage() {
   const [athleteId, setAthleteId] = useState<string | null>(null)
   const [showQuickAdd, setShowQuickAdd] = useState(true)
 
+  // Backdate support: allow logging meals for today, yesterday, or 2 days ago
+  const [selectedDate, setSelectedDate] = useState<string>('')
+
+  // Generate the date options (today, yesterday, 2 days ago)
+  const dateOptions = useMemo(() => {
+    const options: { label: string; value: string; dayLabel: string }[] = []
+    for (let i = 0; i < 3; i++) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const dayLabel = i === 0 ? 'Today' : i === 1 ? 'Yesterday' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      options.push({ label: dayLabel, value: dateStr, dayLabel })
+    }
+    return options
+  }, [])
+
+  // Initialize selectedDate to today on mount
+  useEffect(() => {
+    if (!selectedDate && dateOptions.length > 0) {
+      setSelectedDate(dateOptions[0].value)
+    }
+  }, [dateOptions])
+
   const [form, setForm] = useState({
     mealTitle: '',
     description: '',
@@ -135,8 +158,8 @@ export default function MealsPage() {
     setQuickLogging(meal.meal_title)
 
     try {
-      const { getLocalDateString } = await import('@/lib/utils/date')
-      const today = getLocalDateString()
+      // Use selectedDate for backdating support
+      const logDate = selectedDate || new Date().toISOString().split('T')[0]
 
       const { error } = await supabase.from('meal_logs').insert({
         athlete_id: athleteId,
@@ -151,7 +174,7 @@ export default function MealsPage() {
         ai_feedback: meal.ai_feedback,
         ai_next_step: meal.ai_next_step,
         meal_type: meal.meal_type,
-        date: today,
+        date: logDate,
         logged_at: new Date().toISOString(),
       })
 
@@ -259,9 +282,8 @@ export default function MealsPage() {
       }
     }
 
-    // Use local date to avoid timezone issues (e.g., 11pm CST = next day in UTC)
-    const { getLocalDateString } = await import('@/lib/utils/date')
-    const today = getLocalDateString()
+    // Use selectedDate for backdating support
+    const logDate = selectedDate || new Date().toISOString().split('T')[0]
     
     const { error: insertError } = await supabase.from('meal_logs').insert({
       athlete_id: athlete.id,
@@ -277,7 +299,7 @@ export default function MealsPage() {
       ai_next_step: analysis.nextStep,
       clarifying_question: analysis.clarifyingQuestion || null,
       meal_type: form.mealType || null,
-      date: today,
+      date: logDate,
       logged_at: new Date().toISOString(),
     })
 
@@ -294,12 +316,16 @@ export default function MealsPage() {
   }
 
   if (saved) {
+    const isBackdated = selectedDate && dateOptions.length > 0 && selectedDate !== dateOptions[0].value
+    const backdateLabel = dateOptions.find(d => d.value === selectedDate)?.label
     return (
       <main className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4 animate-bounce">🍽️</div>
           <h2 className="text-2xl font-bold text-white">Meal logged!</h2>
-          <p className="text-slate-400 text-sm mt-2">Great nutrition choice!</p>
+          <p className="text-slate-400 text-sm mt-2">
+            {isBackdated ? `Logged for ${backdateLabel}` : 'Great nutrition choice!'}
+          </p>
         </div>
       </main>
     )
@@ -326,6 +352,31 @@ export default function MealsPage() {
           >
             History
           </button>
+        </div>
+
+        {/* Date Selector Strip */}
+        <div className="max-w-lg mx-auto px-4 pb-3 pt-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 mr-1">Logging for:</span>
+            {dateOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSelectedDate(opt.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  selectedDate === opt.value
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {selectedDate && dateOptions.length > 0 && selectedDate !== dateOptions[0].value && (
+            <p className="text-xs text-amber-400/80 mt-1.5 flex items-center gap-1">
+              <span>⏪</span> Logging meals for a past day
+            </p>
+          )}
         </div>
       </div>
 
