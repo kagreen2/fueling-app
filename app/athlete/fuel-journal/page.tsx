@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -22,11 +22,20 @@ interface JournalEntry {
 
 export default function FuelJournalPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [athleteId, setAthleteId] = useState<string | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
+
+  // Get date from query params if provided
+  useEffect(() => {
+    const dateParam = searchParams.get('date')
+    if (dateParam) {
+      setExpandedDate(dateParam)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     loadJournalEntries()

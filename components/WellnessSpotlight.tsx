@@ -13,6 +13,7 @@ interface WellnessSpotlightProps {
   compact?: boolean
   role?: 'athlete' | 'coach'
   streak?: number
+  onScoreClick?: (date: string) => void
 }
 
 function getAthleteInsight(avg: number | null, trend: 'up' | 'down' | 'stable'): string {
@@ -63,8 +64,8 @@ function getCoachInsight(avg: number | null, trend: 'up' | 'down' | 'stable'): s
   return 'Red Flag — critical wellness level. High injury risk. Recommend reduced volume and direct check-in.'
 }
 
-export default function WellnessSpotlight({ checkins, compact = false, role = 'athlete', streak = 0 }: WellnessSpotlightProps) {
-  const { todayScore, avg7, trend, last7Scores, yesterdayScore } = useMemo(() => {
+export default function WellnessSpotlight({ checkins, compact = false, role = 'athlete', streak = 0, onScoreClick }: WellnessSpotlightProps) {
+  const { todayScore, avg7, trend, last7Scores, yesterdayScore, last4Dates } = useMemo(() => {
     const sorted = [...checkins]
       .filter(c => c.wellness_score !== null && c.wellness_score !== undefined)
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -74,6 +75,7 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
 
     const last7 = sorted.slice(0, 7)
     const last7Scores = last7.map(c => c.wellness_score as number).reverse()
+    const last4Dates = last7.slice(-4).map(c => c.date).reverse()
 
     const avg7 = last7.length > 0
       ? Math.round(last7.reduce((sum, c) => sum + (c.wellness_score || 0), 0) / last7.length)
@@ -92,7 +94,7 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
       else trend = 'stable'
     }
 
-    return { todayScore: today, avg7, trend, last7Scores, yesterdayScore: yesterday }
+    return { todayScore: today, avg7, trend, last7Scores, yesterdayScore: yesterday, last4Dates }
   }, [checkins])
 
   // Compact mode for coach table — number + trend arrow only
@@ -233,18 +235,23 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
             <div className="flex items-center justify-between gap-3">
               {last4.map((score, i) => {
                 const isLatest = i === last4.length - 1
+                const date = last4Dates[i]
                 return (
-                  <div key={i} className="flex flex-col items-center gap-1">
+                  <button
+                    key={i}
+                    onClick={() => onScoreClick?.(date)}
+                    className="flex flex-col items-center gap-1 hover:opacity-100 transition-opacity"
+                  >
                     <div
                       className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold border-2 ${getCircleClasses(score)} ${
                         isLatest ? `ring-2 ring-offset-2 ring-offset-slate-800 ${getRingClass(score)}` : 'opacity-75'
-                      }`}
+                      } hover:opacity-100 cursor-pointer transition-opacity`}
                     >
                       {score}
                     </div>
-                  </div>
+                  </button>
                 )
-              })}
+              })
             </div>
           </div>
         )
