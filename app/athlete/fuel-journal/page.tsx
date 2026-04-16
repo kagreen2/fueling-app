@@ -38,6 +38,9 @@ export default function FuelJournalPage() {
     const dateParam = searchParams.get('date')
     if (dateParam) {
       setExpandedDate(dateParam)
+      // Auto-switch to the correct month for this date
+      const [year, month] = dateParam.split('-')
+      setSelectedMonth(`${year}-${month}`)
     }
   }, [searchParams])
 
