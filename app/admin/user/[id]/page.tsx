@@ -204,8 +204,8 @@ export default function AdminUserProfilePage() {
 
         {/* User Profile Card */}
         <Card className="bg-slate-800/50 border-slate-700 mb-6">
-          <CardHeader className="border-b border-slate-700 pb-4">
-            <div className="flex items-center gap-4">
+          <div className="flex items-start justify-between mb-4 border-b border-slate-700 pb-4">
+            <div className="flex items-center gap-4 flex-1">
               <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center text-2xl font-bold text-yellow-400">
                 {profile.full_name.charAt(0).toUpperCase()}
               </div>
@@ -222,7 +222,7 @@ export default function AdminUserProfilePage() {
                 </div>
               </div>
             </div>
-          </CardHeader>
+          </div>
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -258,9 +258,9 @@ export default function AdminUserProfilePage() {
 
         {/* What's Missing Card */}
         <Card className="bg-slate-800/50 border-slate-700 mb-6">
-          <CardHeader className="border-b border-slate-700 pb-3">
+          <div className="border-b border-slate-700 pb-3 mb-4">
             <h2 className="text-white font-semibold">What&apos;s Missing</h2>
-          </CardHeader>
+          </div>
           <CardContent className="pt-4">
             <p className="text-slate-400 text-sm mb-4">
               This user needs to complete onboarding to set up the following:
@@ -288,9 +288,9 @@ export default function AdminUserProfilePage() {
 
         {/* Send Reminder Card */}
         <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader className="border-b border-slate-700 pb-3">
+          <div className="border-b border-slate-700 pb-3 mb-4">
             <h2 className="text-white font-semibold">Send Onboarding Reminder</h2>
-          </CardHeader>
+          </div>
           <CardContent className="pt-4">
             <p className="text-slate-400 text-sm mb-4">
               Send {profile.full_name.split(' ')[0]} an email encouraging them to finish setting up their profile. 

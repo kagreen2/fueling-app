@@ -747,7 +747,7 @@ export default function MealsPage() {
               </Button>
               <Button
                 onClick={() => {
-                  setForm({ mealTitle: '', description: '', photo: null })
+                  setForm({ mealTitle: '', description: '', photo: null, mealType: '' })
                   setPhotoPreview(null)
                   setAnalysis(null)
                 }}

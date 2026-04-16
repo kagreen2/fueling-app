@@ -373,7 +373,7 @@ export default function ProfilePage() {
           body: JSON.stringify({
             event: 'team_join',
             data: {
-              athleteName: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'An athlete',
+              athleteName: profile?.full_name || 'An athlete',
               teamId: team.id,
               teamName: team.name,
             },

@@ -251,7 +251,7 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
                     </div>
                   </button>
                 )
-              })
+              })}
             </div>
           </div>
         )

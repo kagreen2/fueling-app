@@ -383,7 +383,7 @@ export default function OnboardingPage() {
 
     // Send push notification to admin: new user signed up
     try {
-      const athleteName = `${form.firstName} ${form.lastName}`.trim()
+      const athleteName = user?.user_metadata?.full_name || 'New athlete'
       await fetch('/api/notifications/push-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -412,7 +412,7 @@ export default function OnboardingPage() {
           .single()
 
         if (joinedTeam) {
-          const athleteName = `${form.firstName} ${form.lastName}`.trim()
+          const athleteName = user?.user_metadata?.full_name || 'New athlete'
           await fetch('/api/notifications/push-event', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

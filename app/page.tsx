@@ -144,7 +144,7 @@ export default function Home() {
                   Start Dominating
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="lg"
                   onClick={() => setDemoOpen(true)}
                   className="text-base border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white px-8"

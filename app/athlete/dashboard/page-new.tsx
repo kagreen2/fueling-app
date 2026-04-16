@@ -56,7 +56,6 @@ const colorMap = {
   green: 'hover:border-green-500/50 hover:bg-slate-700/50',
   blue: 'hover:border-blue-500/50 hover:bg-slate-700/50',
   purple: 'hover:border-purple-500/50 hover:bg-slate-700/50',
-  purple: 'hover:border-purple-500/50 hover:bg-slate-700/50',
 }
 
 export default function AthleteDashboard() {

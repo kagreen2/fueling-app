@@ -244,17 +244,15 @@ export default function BiometricsPage() {
         {/* Latest Scan — Additional Details (only data NOT in summary cards above) */}
         {latestScan && (
           <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-semibold text-white">Latest Scan Details</h2>
-                  <p className="text-slate-400 text-xs">
-                    {new Date(latestScan.scan_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    {' · '}{latestScan.source === 'coach' ? 'Coach entered' : 'Self-reported'}
-                  </p>
-                </div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-semibold text-white">Latest Scan Details</h2>
+                <p className="text-slate-400 text-xs">
+                  {new Date(latestScan.scan_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  {' · '}{latestScan.source === 'coach' ? 'Coach entered' : 'Self-reported'}
+                </p>
               </div>
-            </CardHeader>
+            </div>
             <CardContent className="space-y-4">
               {/* Additional Body Comp metrics not in summary cards */}
               <div>
@@ -294,12 +292,10 @@ export default function BiometricsPage() {
         {/* New Scan Form */}
         {showForm && (
           <Card className="bg-slate-800/50 border-purple-500/50 border-2">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-white">New Body Composition Scan</h2>
-                <button onClick={() => { setShowForm(false); setScanPreview(null); setScanFile(null); setScanError(null) }} className="text-slate-400 hover:text-white">✕</button>
-              </div>
-            </CardHeader>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">New Body Composition Scan</h2>
+              <button onClick={() => { setShowForm(false); setScanPreview(null); setScanFile(null); setScanError(null) }} className="text-slate-400 hover:text-white">✕</button>
+            </div>
             <CardContent className="space-y-6">
 
               {/* Scan Type Selector */}
