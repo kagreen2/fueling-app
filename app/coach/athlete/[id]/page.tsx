@@ -55,6 +55,7 @@ export default function CoachAthleteDetailPage() {
   const supabase = createClient()
   const fromTeam = searchParams.get('from_team')
   const fromView = searchParams.get('from_view')
+  const cameFromCoachDashboard = fromTeam !== null || fromView !== null
 
   const [loading, setLoading] = useState(true)
   const [athlete, setAthlete] = useState<any>(null)
@@ -547,7 +548,7 @@ export default function CoachAthleteDetailPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <button
             onClick={() => {
-              const dashUrl = isAdmin ? '/admin' : '/coach/dashboard'
+              const dashUrl = (isAdmin && !cameFromCoachDashboard) ? '/admin' : '/coach/dashboard'
               const params = new URLSearchParams()
               if (fromTeam) params.set('team', fromTeam)
               if (fromView) params.set('view', fromView)
@@ -557,7 +558,7 @@ export default function CoachAthleteDetailPage() {
             className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-3 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            {isAdmin ? 'Back to Admin Dashboard' : 'Back to Dashboard'}
+            {(isAdmin && !cameFromCoachDashboard) ? 'Back to Admin Dashboard' : 'Back to Dashboard'}
           </button>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-lg font-bold flex-shrink-0">
