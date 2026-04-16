@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getZoneInfo } from '@/lib/fuel-score'
 import { useOrganization, useOrgStyles } from '@/lib/organizations'
@@ -337,15 +337,16 @@ function FuelDonut({ segments, total, checkedIn, noCheckin, large }: {
 
 export default function CoachDashboardPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const { org } = useOrganization()
   const styles = useOrgStyles()
   const [loading, setLoading] = useState(true)
   const [teams, setTeams] = useState<Team[]>([])
   const [athletes, setAthletes] = useState<AthleteData[]>([])
-  const [selectedTeam, setSelectedTeam] = useState<string>('all')
+  const [selectedTeam, setSelectedTeam] = useState<string>(searchParams.get('team') || 'all')
   const [timeRange, setTimeRange] = useState<number>(1)
-  const [view, setView] = useState<'overview' | 'leaderboard' | 'messages'>('overview')
+  const [view, setView] = useState<'overview' | 'leaderboard' | 'messages'>((searchParams.get('view') as any) || 'overview')
   const [coachName, setCoachName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [pendingSupplements, setPendingSupplements] = useState<any[]>([])
@@ -1335,9 +1336,9 @@ export default function CoachDashboardPage() {
                               onClick={() => {
                                 if (alert.athleteId) {
                                   if (alert.id.startsWith('unread_msg_')) {
-                                    router.push(`/coach/athlete/${alert.athleteId}`)
+                                    router.push(`/coach/athlete/${alert.athleteId}?from_team=${selectedTeam}&from_view=${view}`)
                                   } else {
-                                    router.push(`/coach/athlete/${alert.athleteId}`)
+                                    router.push(`/coach/athlete/${alert.athleteId}?from_team=${selectedTeam}&from_view=${view}`)
                                   }
                                 }
                                 setShowAlertPanel(false)
@@ -1567,7 +1568,7 @@ export default function CoachDashboardPage() {
           </div>
           <div
             className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 cursor-pointer hover:border-yellow-500/30 transition-colors"
-            onClick={() => stats.topCompliance && router.push(`/coach/athlete/${stats.topCompliance.id}`)}
+            onClick={() => stats.topCompliance && router.push(`/coach/athlete/${stats.topCompliance.id}?from_team=${selectedTeam}&from_view=${view}`)}
           >
             <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1.5">
               <span className="text-yellow-400">🏆</span> Top Compliance
@@ -1583,7 +1584,7 @@ export default function CoachDashboardPage() {
           </div>
           <div
             className="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 cursor-pointer hover:border-emerald-500/30 transition-colors"
-            onClick={() => stats.topFuelScore && router.push(`/coach/athlete/${stats.topFuelScore.id}`)}
+            onClick={() => stats.topFuelScore && router.push(`/coach/athlete/${stats.topFuelScore.id}?from_team=${selectedTeam}&from_view=${view}`)}
           >
             <p className="text-slate-400 text-[11px] font-semibold uppercase tracking-widest flex items-center gap-1.5">
               <span className="text-emerald-400">⚡</span> Top Fuel Score
@@ -1701,7 +1702,7 @@ export default function CoachDashboardPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-700/30">
                         {sortedAthletes.map(a => (
-                          <tr key={a.id} className="hover:bg-slate-700/20 transition-colors cursor-pointer" onClick={() => router.push(`/coach/athlete/${a.id}`)}>
+                          <tr key={a.id} className="hover:bg-slate-700/20 transition-colors cursor-pointer" onClick={() => router.push(`/coach/athlete/${a.id}?from_team=${selectedTeam}&from_view=${view}`)}>
                             <td className="px-6 py-3.5">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-sm font-bold flex-shrink-0">
@@ -1787,7 +1788,7 @@ export default function CoachDashboardPage() {
                       <div
                         key={a.id}
                         className="px-4 py-3 flex items-center gap-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
-                        onClick={() => router.push(`/coach/athlete/${a.id}`)}
+                        onClick={() => router.push(`/coach/athlete/${a.id}?from_team=${selectedTeam}&from_view=${view}`)}
                       >
                         <div className="w-8 text-center flex-shrink-0">
                           {medal ? (
@@ -1839,7 +1840,7 @@ export default function CoachDashboardPage() {
                       <div
                         key={a.id}
                         className="px-4 py-3 flex items-center gap-3 hover:bg-slate-700/30 transition-colors cursor-pointer"
-                        onClick={() => router.push(`/coach/athlete/${a.id}`)}
+                        onClick={() => router.push(`/coach/athlete/${a.id}?from_team=${selectedTeam}&from_view=${view}`)}
                       >
                         <div className="w-8 text-center flex-shrink-0">
                           {medal ? (
@@ -1927,7 +1928,7 @@ export default function CoachDashboardPage() {
                   <div
                     key={conv.athlete_id}
                     className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-purple-500/50 transition-all cursor-pointer group"
-                    onClick={() => router.push(`/coach/athlete/${conv.athlete_id}`)}
+                    onClick={() => router.push(`/coach/athlete/${conv.athlete_id}?from_team=${selectedTeam}&from_view=${view}`)}
                   >
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold flex-shrink-0">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import InBodyProgressCharts from '@/components/InBodyProgressCharts'
 import ChatPanel from '@/components/ChatPanel'
@@ -50,8 +50,11 @@ interface DayData {
 export default function CoachAthleteDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const athleteId = params.id as string
   const supabase = createClient()
+  const fromTeam = searchParams.get('from_team')
+  const fromView = searchParams.get('from_view')
 
   const [loading, setLoading] = useState(true)
   const [athlete, setAthlete] = useState<any>(null)
@@ -381,7 +384,11 @@ export default function CoachAthleteDetailPage() {
       }
 
       if (!hasAccess) {
-        router.push('/coach/dashboard')
+        const p = new URLSearchParams()
+        if (fromTeam) p.set('team', fromTeam)
+        if (fromView) p.set('view', fromView)
+        const q = p.toString()
+        router.push(q ? `/coach/dashboard?${q}` : '/coach/dashboard')
         return
       }
     }
@@ -394,7 +401,11 @@ export default function CoachAthleteDetailPage() {
       .single()
 
     if (!athleteData) {
-      router.push('/coach/dashboard')
+      const p = new URLSearchParams()
+      if (fromTeam) p.set('team', fromTeam)
+      if (fromView) p.set('view', fromView)
+      const q = p.toString()
+      router.push(q ? `/coach/dashboard?${q}` : '/coach/dashboard')
       return
     }
 
@@ -535,7 +546,14 @@ export default function CoachAthleteDetailPage() {
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <button
-            onClick={() => router.push(isAdmin ? '/admin' : '/coach/dashboard')}
+            onClick={() => {
+              const dashUrl = isAdmin ? '/admin' : '/coach/dashboard'
+              const params = new URLSearchParams()
+              if (fromTeam) params.set('team', fromTeam)
+              if (fromView) params.set('view', fromView)
+              const qs = params.toString()
+              router.push(qs ? `${dashUrl}?${qs}` : dashUrl)
+            }}
             className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-3 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
