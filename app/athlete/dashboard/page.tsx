@@ -766,7 +766,7 @@ export default function AthleteDashboard() {
             <div className="w-px h-8 bg-slate-700" />
             <div className="text-center">
               <p className="text-xl font-bold text-white">{stats.proteinStreak}</p>
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">🥩 Protein Streak</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Protein Streak</p>
             </div>
           </div>
         </div>
