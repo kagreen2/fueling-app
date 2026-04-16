@@ -236,6 +236,15 @@ export default function AthleteDashboard() {
     setTutorialStep(0)
   }
 
+  const reloadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const debouncedReload = useCallback(() => {
+    if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current)
+    reloadTimeoutRef.current = setTimeout(() => {
+      loadData()
+    }, 500)
+  }, [])
+
   useEffect(() => {
     loadData()
     
@@ -249,24 +258,23 @@ export default function AthleteDashboard() {
           schema: 'public',
           table: 'meal_logs',
         },
-        (payload) => {
-          // Reload data when a new meal is logged
-          loadData()
+        () => {
+          debouncedReload()
         }
       )
       .subscribe()
 
-    // Reload data when tab becomes visible (e.g., returning from check-in)
+    // Reload data when tab becomes visible (debounced)
     function handleVisibility() {
       if (document.visibilityState === 'visible') {
-        loadData()
+        debouncedReload()
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
 
-    // Reload data when window regains focus (covers client-side nav back to dashboard)
+    // Reload data when window regains focus (debounced)
     function handleFocus() {
-      loadData()
+      debouncedReload()
     }
     window.addEventListener('focus', handleFocus)
     
@@ -274,8 +282,9 @@ export default function AthleteDashboard() {
       subscription.unsubscribe()
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('focus', handleFocus)
+      if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current)
     }
-  }, [])
+  }, [debouncedReload])
 
   async function loadData() {
     try {
@@ -285,21 +294,19 @@ export default function AthleteDashboard() {
         return
       }
 
-      // Get profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
+      const { getLocalDateString } = await import('@/lib/utils/date')
+      const today = getLocalDateString()
+
+      // Fetch profile and athlete in parallel
+      const [profileResult, athleteResult] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('athletes').select('*').eq('profile_id', user.id).single(),
+      ])
+
+      const profileData = profileResult.data
+      const athleteData = athleteResult.data
 
       setProfile(profileData)
-
-      // Get athlete data
-      const { data: athleteData } = await supabase
-        .from('athletes')
-        .select('*')
-        .eq('profile_id', user.id)
-        .single()
 
       if (!athleteData) {
         router.push('/athlete/onboarding')
@@ -309,47 +316,7 @@ export default function AthleteDashboard() {
       setAthlete(athleteData)
       setUserId(user.id)
 
-      // Check for coach assignment (for chat)
-      const { data: coachAssignment } = await supabase
-        .from('athlete_coach_assignments')
-        .select('coach_id')
-        .eq('athlete_id', athleteData.id)
-        .limit(1)
-        .single()
-
-      if (coachAssignment) {
-        const { data: coachProf } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .eq('id', coachAssignment.coach_id)
-          .single()
-        if (coachProf) setCoachProfile(coachProf)
-      } else {
-        // Check team-based coach
-        const { data: teamMembership } = await supabase
-          .from('team_members')
-          .select('team_id')
-          .eq('athlete_id', athleteData.id)
-          .limit(1)
-          .single()
-
-        if (teamMembership) {
-          const { data: team } = await supabase
-            .from('teams')
-            .select('coach_id')
-            .eq('id', teamMembership.team_id)
-            .single()
-
-          if (team?.coach_id) {
-            const { data: coachProf } = await supabase
-              .from('profiles')
-              .select('id, full_name, email')
-              .eq('id', team.coach_id)
-              .single()
-            if (coachProf) setCoachProfile(coachProf)
-          }
-        }
-      }
+      // Coach profile will be loaded lazily
 
       // Get nutrition recommendations
       const { data: recsData } = await supabase
@@ -371,8 +338,6 @@ export default function AthleteDashboard() {
       }
 
       // Get today's meals (use local date to avoid timezone issues)
-      const { getLocalDateString } = await import('@/lib/utils/date')
-      const today = getLocalDateString()
       const { data: mealsData } = await supabase
         .from('meal_logs')
         .select('*')
