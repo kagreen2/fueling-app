@@ -28,6 +28,10 @@ export default function FuelJournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([])
   const [athleteId, setAthleteId] = useState<string | null>(null)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
 
   // Get date from query params if provided
   useEffect(() => {
@@ -156,6 +160,38 @@ export default function FuelJournalPage() {
           </p>
         </div>
 
+        {/* Month Filter */}
+        {entries.length > 0 && (() => {
+          const months = new Set<string>()
+          entries.forEach(entry => {
+            const [year, month] = entry.date.split('-')
+            months.add(`${year}-${month}`)
+          })
+          const sortedMonths = Array.from(months).sort().reverse()
+
+          return (
+            <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+              {sortedMonths.map(month => {
+                const [year, monthNum] = month.split('-')
+                const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                return (
+                  <button
+                    key={month}
+                    onClick={() => setSelectedMonth(month)}
+                    className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-all ${
+                      selectedMonth === month
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {monthName}
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })()}
+
         {/* Entries */}
         {entries.length === 0 ? (
           <Card>
@@ -176,7 +212,12 @@ export default function FuelJournalPage() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {entries.map((entry) => {
+            {entries
+              .filter(entry => {
+                const [year, month] = entry.date.split('-')
+                return `${year}-${month}` === selectedMonth
+              })
+              .map((entry) => {
               const isExpanded = expandedDate === entry.date
               const zoneLabel = getZoneLabel(entry.wellness_score)
               const zoneColor = getZoneColor(entry.wellness_score)
@@ -319,6 +360,20 @@ export default function FuelJournalPage() {
               )
             })}
           </div>
+        )}
+        
+        {/* No entries for selected month */}
+        {entries.length > 0 && entries.filter(e => {
+          const [year, month] = e.date.split('-')
+          return `${year}-${month}` === selectedMonth
+        }).length === 0 && (
+          <Card>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-slate-400">No entries for this month.</p>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </main>
