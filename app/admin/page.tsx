@@ -323,7 +323,19 @@ export default function AdminDashboard() {
     }
 
     // Unassigned athletes (no coach)
-    const uncoached = athletes.filter(a => !coachAssignments.find(ca => ca.athlete_id === a.id))
+    const uncoached = athletes.filter(a => {
+      // Check if athlete has a direct coach assignment
+      const hasDirectAssignment = coachAssignments.find(ca => ca.athlete_id === a.id)
+      if (hasDirectAssignment) return false
+      
+      // Check if athlete is on a team with a coach
+      const isOnTeamWithCoach = teamMembers.some(tm => 
+        tm.athlete_id === a.id && 
+        teams.some(t => t.id === tm.team_id && t.coach_id)
+      )
+      
+      return !isOnTeamWithCoach
+    })
     if (uncoached.length > 0) {
       items.push({
         id: 'uncoached_athletes',
