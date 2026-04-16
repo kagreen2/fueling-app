@@ -65,17 +65,48 @@ export default function CheckInPage() {
   const [error, setError] = useState<string | null>(null)
   const [userType, setUserType] = useState<'athlete' | 'member'>('athlete')
 
-  // Fetch user type on mount
+  const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false)
+
+  // Fetch user type and existing check-in on mount
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: athlete } = await supabase
           .from('athletes')
-          .select('user_type')
+          .select('id, user_type')
           .eq('profile_id', user.id)
           .single()
         if (athlete?.user_type) setUserType(athlete.user_type as 'athlete' | 'member')
+
+        // Check if there's already a check-in for today
+        if (athlete) {
+          const today = getLocalDateString()
+          const { data: existing } = await supabase
+            .from('daily_checkins')
+            .select('*')
+            .eq('athlete_id', athlete.id)
+            .eq('date', today)
+            .single()
+
+          if (existing) {
+            setAlreadyCheckedIn(true)
+            // Pre-fill the form with existing data
+            // Convert sleep_hours back to slider value (reverse of: 3 + (slider - 1) * 0.67)
+            const sleepSlider = existing.sleep_quality || Math.round(((existing.sleep_hours || 5) - 3) / 0.67 + 1)
+            setForm({
+              bodyWeight: existing.body_weight_lbs ? String(existing.body_weight_lbs) : '',
+              sleep: Math.min(10, Math.max(1, sleepSlider)),
+              soreness: existing.soreness || 5,
+              energy: existing.energy || 5,
+              hunger: existing.hunger || 5,
+              stress: existing.stress || 5,
+              hydration: existing.hydration_status || 5,
+              trainingTypes: existing.training_type ? existing.training_type.split(', ') : [],
+              notes: existing.notes || '',
+            })
+          }
+        }
       }
     })()
   }, [])
@@ -211,6 +242,7 @@ export default function CheckInPage() {
             <h1 className="text-2xl font-bold">Daily Check-in</h1>
             <p className="text-xs text-slate-400">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {alreadyCheckedIn && <span className="ml-2 text-green-400">✓ Already checked in today</span>}
             </p>
           </div>
         </div>
@@ -399,7 +431,7 @@ export default function CheckInPage() {
           size="lg"
           className="bg-purple-600 hover:bg-purple-700"
         >
-          Save Check-in
+          {alreadyCheckedIn ? 'Update Check-in' : 'Save Check-in'}
         </Button>
       </div>
     </main>
