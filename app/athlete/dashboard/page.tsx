@@ -80,6 +80,13 @@ const QUICK_ACTIONS: QuickAction[] = [
     description: 'AI nutrition coach',
     href: '/athlete/meal-assistant',
   },
+  {
+    id: 'fuel-journal',
+    icon: '📔',
+    label: 'Fuel Journal',
+    description: 'View your reflections',
+    href: '/athlete/fuel-journal',
+  },
 ]
 
 function greeting() {

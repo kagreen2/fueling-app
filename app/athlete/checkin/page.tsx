@@ -363,21 +363,23 @@ export default function CheckInPage() {
           </CardContent>
         </Card>
 
-        {/* Notes */}
+        {/* Journal Entry */}
         <Card className="mb-6">
-          <CardHeader title="Notes" />
-          <div className="px-4 -mt-2 mb-2">
-            <p className="text-slate-500 text-xs flex items-center gap-1">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-              Your notes are private and never shared with your coach.
+          <CardHeader title="📔 Fuel Journal" />
+          <div className="px-4 -mt-2 mb-3 space-y-2">
+            <p className="text-slate-300 text-sm font-medium">
+              Quick thoughts for your journal
+            </p>
+            <p className="text-slate-400 text-xs leading-relaxed">
+              Jot down how you're feeling, how training went, energy levels, or anything else you notice about your body. You'll look back on these to spot patterns and track your progress.
             </p>
           </div>
           <CardContent>
             <textarea
               value={form.notes}
               onChange={e => update('notes', e.target.value)}
-              placeholder="Anything else worth noting today..."
-              rows={3}
+              placeholder="E.g., 'Felt strong in the gym today, good energy. Slept well last night. Legs still sore from yesterday's session.'"
+              rows={4}
               className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 placeholder-slate-400 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 transition-all resize-none"
             />
           </CardContent>
