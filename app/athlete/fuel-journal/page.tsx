@@ -48,6 +48,19 @@ export default function FuelJournalPage() {
     loadJournalEntries()
   }, [])
 
+  // Scroll to and expand entry when entries load and date param is set
+  useEffect(() => {
+    if (entries.length > 0 && expandedDate) {
+      // Find the element and scroll it into view
+      const element = document.getElementById(`entry-${expandedDate}`)
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 100)
+      }
+    }
+  }, [entries, expandedDate])
+
   async function loadJournalEntries() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -233,7 +246,7 @@ export default function FuelJournalPage() {
               })
 
               return (
-                <div key={entry.date}>
+                <div key={entry.date} id={`entry-${entry.date}`}>
                   <button
                     onClick={() => setExpandedDate(isExpanded ? null : entry.date)}
                     className="w-full"
