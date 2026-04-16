@@ -239,8 +239,9 @@ export default function WellnessSpotlight({ checkins, compact = false, role = 'a
                 return (
                   <button
                     key={i}
+                    type="button"
                     onClick={() => onScoreClick?.(date)}
-                    className="flex flex-col items-center gap-1 hover:opacity-100 transition-opacity"
+                    className="flex flex-col items-center gap-1 hover:opacity-100 transition-opacity cursor-pointer"
                   >
                     <div
                       className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold border-2 ${getCircleClasses(score)} ${
