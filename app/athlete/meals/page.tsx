@@ -183,7 +183,7 @@ export default function MealsPage() {
         setTimeout(() => {
           setQuickLogSuccess(null)
           setSaved(true)
-          setTimeout(() => router.push('/athlete/dashboard'), 1500)
+          setTimeout(() => router.push('/athlete/meals'), 1500)
         }, 1000)
       }
     } catch (err) {
@@ -312,7 +312,7 @@ export default function MealsPage() {
 
     setSaved(true)
     setLoading(false)
-    setTimeout(() => router.push('/athlete/dashboard'), 1500)
+    setTimeout(() => router.push('/athlete/meals'), 1500)
   }
 
   if (saved) {
