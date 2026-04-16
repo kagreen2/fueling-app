@@ -47,7 +47,7 @@ export default function MealsPage() {
   const [quickLogging, setQuickLogging] = useState<string | null>(null)
   const [quickLogSuccess, setQuickLogSuccess] = useState<string | null>(null)
   const [athleteId, setAthleteId] = useState<string | null>(null)
-  const [showQuickAdd, setShowQuickAdd] = useState(true)
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
 
   // Backdate support: allow logging meals for today, yesterday, or 2 days ago
   const [selectedDate, setSelectedDate] = useState<string>('')
@@ -383,130 +383,127 @@ export default function MealsPage() {
       {/* Content */}
       <div className="max-w-lg mx-auto px-4 py-6 pb-20">
 
-        {/* Recent & Frequent Meals Quick-Add */}
-        {(recentMeals.length > 0 || frequentMeals.length > 0) && showQuickAdd && (
+        {/* Previously Logged Meals - Collapsible Dropdown */}
+        {(recentMeals.length > 0 || frequentMeals.length > 0) && (
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Quick Add</h3>
-              <button
-                onClick={() => setShowQuickAdd(false)}
-                className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                Hide
-              </button>
-            </div>
+            <button
+              onClick={() => setShowQuickAdd(!showQuickAdd)}
+              className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-purple-500/40 transition-all active:scale-[0.98]"
+            >
+              <span className="text-sm font-semibold text-slate-300">📋 Previously Logged Meals</span>
+              <span className={`text-slate-400 transition-transform ${showQuickAdd ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
 
-            {/* Recent Meals */}
-            {recentMeals.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-slate-500 mb-2 font-medium">Recent</p>
-                <div className="space-y-2">
-                  {recentMeals.map((meal, i) => (
-                    <button
-                      key={`recent-${i}`}
-                      onClick={() => quickLog(meal)}
-                      disabled={quickLogging === meal.meal_title || quickLogSuccess === meal.meal_title}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all active:scale-[0.98] ${
-                        quickLogSuccess === meal.meal_title
-                          ? 'bg-green-500/15 border-green-500/30'
-                          : quickLogging === meal.meal_title
-                          ? 'bg-slate-800 border-slate-700 opacity-60'
-                          : 'bg-slate-800/80 border-slate-700 hover:border-purple-500/40 hover:bg-slate-800'
-                      }`}
-                    >
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white truncate">
-                            {quickLogSuccess === meal.meal_title ? '\u2705 ' : ''}{meal.meal_title}
-                          </span>
-                          {meal.meal_type && (
-                            <span className="text-xs text-slate-500 flex-shrink-0">
-                              {meal.meal_type === 'breakfast' ? '\ud83c\udf05' : meal.meal_type === 'lunch' ? '\u2600\ufe0f' : meal.meal_type === 'dinner' ? '\ud83c\udf19' : '\ud83c\udf4e'}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {meal.calories} kcal \u00b7 {meal.protein}g P \u00b7 {meal.carbs}g C \u00b7 {meal.fat}g F
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 ml-3">
-                        {quickLogging === meal.meal_title ? (
-                          <span className="text-xs text-slate-400">\u23f3</span>
-                        ) : quickLogSuccess === meal.meal_title ? (
-                          <span className="text-xs text-green-400">Logged!</span>
-                        ) : (
-                          <span className="text-xs text-purple-400 font-medium px-2 py-1 bg-purple-500/10 rounded-lg">+ Log</span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            {/* Dropdown Content */}
+            {showQuickAdd && (
+              <div className="mt-2 p-4 rounded-xl border border-slate-700 bg-slate-800/30 space-y-4">
+                {/* Recent Meals */}
+                {recentMeals.length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wider">Recent</p>
+                    <div className="space-y-2">
+                      {recentMeals.map((meal, i) => (
+                        <button
+                          key={`recent-${i}`}
+                          onClick={() => quickLog(meal)}
+                          disabled={quickLogging === meal.meal_title || quickLogSuccess === meal.meal_title}
+                          className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all active:scale-[0.98] ${
+                            quickLogSuccess === meal.meal_title
+                              ? 'bg-green-500/15 border-green-500/30'
+                              : quickLogging === meal.meal_title
+                              ? 'bg-slate-700 border-slate-600 opacity-60'
+                              : 'bg-slate-700/50 border-slate-600 hover:border-purple-500/40 hover:bg-slate-700'
+                          }`}
+                        >
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-white truncate">
+                                {quickLogSuccess === meal.meal_title ? '\u2705 ' : ''}{meal.meal_title}
+                              </span>
+                              {meal.meal_type && (
+                                <span className="text-xs text-slate-500 flex-shrink-0">
+                                  {meal.meal_type === 'breakfast' ? '\ud83c\udf05' : meal.meal_type === 'lunch' ? '\u2600\ufe0f' : meal.meal_type === 'dinner' ? '\ud83c\udf19' : '\ud83c\udf4e'}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {meal.calories} kcal \u00b7 {meal.protein}g P \u00b7 {meal.carbs}g C \u00b7 {meal.fat}g F
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0 ml-3">
+                            {quickLogging === meal.meal_title ? (
+                              <span className="text-xs text-slate-400">\u23f3</span>
+                            ) : quickLogSuccess === meal.meal_title ? (
+                              <span className="text-xs text-green-400">Logged!</span>
+                            ) : (
+                              <span className="text-xs text-purple-400 font-medium px-2 py-1 bg-purple-500/10 rounded">+ Log</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Frequent Meals */}
+                {frequentMeals.length > 0 && (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wider">Frequently Logged</p>
+                    <div className="space-y-2">
+                      {frequentMeals.map((meal, i) => (
+                        <button
+                          key={`freq-${i}`}
+                          onClick={() => quickLog(meal)}
+                          disabled={quickLogging === meal.meal_title || quickLogSuccess === meal.meal_title}
+                          className={`w-full flex items-center justify-between p-3 rounded-lg border transition-all active:scale-[0.98] ${
+                            quickLogSuccess === meal.meal_title
+                              ? 'bg-green-500/15 border-green-500/30'
+                              : quickLogging === meal.meal_title
+                              ? 'bg-slate-700 border-slate-600 opacity-60'
+                              : 'bg-slate-700/50 border-slate-600 hover:border-purple-500/40 hover:bg-slate-700'
+                          }`}
+                        >
+                          <div className="flex-1 text-left min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-white truncate">
+                                {quickLogSuccess === meal.meal_title ? '\u2705 ' : ''}{meal.meal_title}
+                              </span>
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-slate-600 text-slate-400">
+                                {meal.count}x
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {meal.calories} kcal \u00b7 {meal.protein}g P \u00b7 {meal.carbs}g C \u00b7 {meal.fat}g F
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0 ml-3">
+                            {quickLogging === meal.meal_title ? (
+                              <span className="text-xs text-slate-400">\u23f3</span>
+                            ) : quickLogSuccess === meal.meal_title ? (
+                              <span className="text-xs text-green-400">Logged!</span>
+                            ) : (
+                              <span className="text-xs text-purple-400 font-medium px-2 py-1 bg-purple-500/10 rounded">+ Log</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-
-            {/* Frequent Meals */}
-            {frequentMeals.length > 0 && (
-              <div>
-                <p className="text-xs text-slate-500 mb-2 font-medium">Frequently Logged</p>
-                <div className="space-y-2">
-                  {frequentMeals.map((meal, i) => (
-                    <button
-                      key={`freq-${i}`}
-                      onClick={() => quickLog(meal)}
-                      disabled={quickLogging === meal.meal_title || quickLogSuccess === meal.meal_title}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all active:scale-[0.98] ${
-                        quickLogSuccess === meal.meal_title
-                          ? 'bg-green-500/15 border-green-500/30'
-                          : quickLogging === meal.meal_title
-                          ? 'bg-slate-800 border-slate-700 opacity-60'
-                          : 'bg-slate-800/80 border-slate-700 hover:border-purple-500/40 hover:bg-slate-800'
-                      }`}
-                    >
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white truncate">
-                            {quickLogSuccess === meal.meal_title ? '\u2705 ' : ''}{meal.meal_title}
-                          </span>
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
-                            {meal.count}x
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {meal.calories} kcal \u00b7 {meal.protein}g P \u00b7 {meal.carbs}g C \u00b7 {meal.fat}g F
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 ml-3">
-                        {quickLogging === meal.meal_title ? (
-                          <span className="text-xs text-slate-400">\u23f3</span>
-                        ) : quickLogSuccess === meal.meal_title ? (
-                          <span className="text-xs text-green-400">Logged!</span>
-                        ) : (
-                          <span className="text-xs text-purple-400 font-medium px-2 py-1 bg-purple-500/10 rounded-lg">+ Log</span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 mt-5 mb-2">
-              <div className="flex-1 border-t border-slate-700" />
-              <span className="text-xs text-slate-500 font-medium">or log a new meal</span>
-              <div className="flex-1 border-t border-slate-700" />
-            </div>
           </div>
         )}
 
-        {/* Show Quick Add toggle if hidden */}
-        {(recentMeals.length > 0 || frequentMeals.length > 0) && !showQuickAdd && (
-          <button
-            onClick={() => setShowQuickAdd(true)}
-            className="w-full mb-4 text-xs text-purple-400 hover:text-purple-300 transition-colors py-2"
-          >
-            Show Quick Add (Recent & Frequent Meals)
-          </button>
+        {/* Divider */}
+        {(recentMeals.length > 0 || frequentMeals.length > 0) && (
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex-1 border-t border-slate-700" />
+            <span className="text-xs text-slate-500 font-medium">or log a new meal</span>
+            <div className="flex-1 border-t border-slate-700" />
+          </div>
         )}
 
         {/* Photo Upload */}
