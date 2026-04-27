@@ -312,7 +312,6 @@ export default function MealsPage() {
 
     setSaved(true)
     setLoading(false)
-    setTimeout(() => router.push('/athlete/meals'), 1500)
   }
 
   if (saved) {
@@ -321,11 +320,23 @@ export default function MealsPage() {
     return (
       <main className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4 animate-bounce">🍽️</div>
+          <div className="text-6xl mb-4">🍽️</div>
           <h2 className="text-2xl font-bold text-white">Meal logged!</h2>
           <p className="text-slate-400 text-sm mt-2">
             {isBackdated ? `Logged for ${backdateLabel}` : 'Great nutrition choice!'}
           </p>
+          <button
+            onClick={() => window.location.href = '/athlete/meals'}
+            className="mt-6 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+          >
+            Log Another Meal
+          </button>
+          <button
+            onClick={() => window.location.href = '/athlete/dashboard'}
+            className="mt-3 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors block mx-auto"
+          >
+            Back to Dashboard
+          </button>
         </div>
       </main>
     )
