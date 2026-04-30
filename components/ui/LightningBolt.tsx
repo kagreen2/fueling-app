@@ -1,6 +1,7 @@
 /**
- * Green lightning bolt SVG — replaces the ⚡ emoji throughout the app
- * for consistent branding. Matches the Fuel Different green (#22C55E).
+ * Green lightning bolt SVG — the canonical Fuel Different brand bolt.
+ * Tall, narrow, solid-filled shape with angular notch in the middle-left.
+ * Matches the brand logo used across all marketing materials.
  *
  * Usage: <LightningBolt className="w-10 h-10" />
  */
@@ -8,15 +9,13 @@ export default function LightningBolt({ className = 'w-8 h-8' }: { className?: s
   return (
     <svg
       className={className}
-      viewBox="0 0 24 24"
+      viewBox="0 0 100 160"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path
-        d="M13 2L4.09 12.63a1 1 0 00.77 1.62H11l-1 7.25a.5.5 0 00.86.42L19.91 11.37a1 1 0 00-.77-1.62H13l1-7.25a.5.5 0 00-.86-.42z"
-        fill="#22C55E"
-        stroke="#16A34A"
-        strokeWidth="0.5"
+      <polygon
+        points="58,0 10,90 45,90 42,160 90,65 55,65 58,0"
+        fill="#4ade80"
       />
     </svg>
   )

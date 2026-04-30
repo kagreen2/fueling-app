@@ -14,8 +14,8 @@ const FUEL_SCORE_IMG = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669
 
 function LightningBolt({ className = 'w-8 h-8' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M13 2L4.09 12.63C3.74 13.05 3.56 13.26 3.56 13.5C3.56 13.7 3.65 13.89 3.82 14.01C3.99 14.13 4.25 14.13 4.77 14.13H12L11 22L19.91 11.37C20.26 10.95 20.44 10.74 20.44 10.5C20.44 10.3 20.35 10.11 20.18 9.99C20.01 9.87 19.75 9.87 19.23 9.87H12L13 2Z" fill="#22C55E" stroke="#22C55E" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg className={className} viewBox="0 0 100 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="58,0 10,90 45,90 42,160 90,65 55,65 58,0" fill="#4ade80" />
     </svg>
   )
 }
