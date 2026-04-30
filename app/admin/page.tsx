@@ -1318,11 +1318,11 @@ export default function AdminDashboard() {
                   {/* Add Athlete to Team */}
                   <div className="px-5 py-3 border-t border-slate-700/50 bg-slate-800/30">
                     {addingToTeamId === team.id ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-2">
                         <select
                           value={selectedAthleteForTeam}
                           onChange={e => setSelectedAthleteForTeam(e.target.value)}
-                          className="flex-1 bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600"
+                          className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600"
                         >
                           <option value="">Select an athlete to add...</option>
                           {athletes
@@ -1332,21 +1332,23 @@ export default function AdminDashboard() {
                               return p ? <option key={a.id} value={a.id}>{p.full_name} ({p.email})</option> : null
                             })}
                         </select>
-                        <button
-                          onClick={() => {
-                            if (selectedAthleteForTeam) handleAddToTeam(team.id, selectedAthleteForTeam)
-                          }}
-                          disabled={!selectedAthleteForTeam}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                          Add
-                        </button>
-                        <button
-                          onClick={() => { setAddingToTeamId(null); setSelectedAthleteForTeam('') }}
-                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
-                        >
-                          Cancel
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (selectedAthleteForTeam) handleAddToTeam(team.id, selectedAthleteForTeam)
+                            }}
+                            disabled={!selectedAthleteForTeam}
+                            className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            Add
+                          </button>
+                          <button
+                            onClick={() => { setAddingToTeamId(null); setSelectedAthleteForTeam('') }}
+                            className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
