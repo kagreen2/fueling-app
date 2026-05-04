@@ -318,6 +318,8 @@ export default function AthleteDashboard() {
 
       // Load coach profile via athlete_coach_assignments
       // coach_id in assignments is the user/profile ID directly
+      // Falls back to admin if no coach is assigned
+      let foundCoach = false
       try {
         const { data: assignment } = await supabase
           .from('athlete_coach_assignments')
@@ -335,11 +337,30 @@ export default function AthleteDashboard() {
 
           if (coachProf) {
             setCoachProfile(coachProf)
+            foundCoach = true
           }
         }
       } catch (e) {
-        // No coach assigned — chat button won't show, that's fine
-        console.log('No coach assignment found')
+        // No coach assigned — will fall back to admin
+        console.log('No coach assignment found, falling back to admin')
+      }
+
+      // Fallback: if no coach assigned, route messages to an admin
+      if (!foundCoach) {
+        try {
+          const { data: adminProf } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('role', ['super_admin', 'admin'])
+            .limit(1)
+            .single()
+
+          if (adminProf) {
+            setCoachProfile(adminProf)
+          }
+        } catch (e) {
+          console.log('No admin found for chat fallback')
+        }
       }
 
       // Get nutrition recommendations
