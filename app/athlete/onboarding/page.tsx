@@ -107,6 +107,7 @@ export default function OnboardingPage() {
     weightLbs: '',
     // Step 3/4 — Goals
     goalPhase: '',
+    goalWeight: '',  // Goal weight for fitness members (lbs)
     allergies: '',
     dietaryRestrictions: '',
     // Step 4/5 — Training
@@ -252,6 +253,7 @@ export default function OnboardingPage() {
       user_type: form.userType || 'athlete',
       activity_level: form.userType === 'member' ? (form.activityLevel || null) : null,
       training_style: form.userType === 'member' ? ((form.trainingStyle as unknown as string[]).length > 0 ? (form.trainingStyle as unknown as string[]).join(',') : null) : null,
+      goal_weight_lbs: form.userType === 'member' && form.goalWeight ? parseFloat(form.goalWeight) : null,
     }
 
     if (existing) {
@@ -844,6 +846,14 @@ export default function OnboardingPage() {
                   )}
                 </div>
               </div>
+
+              {form.userType === 'member' && (
+                <div>
+                  <label className="text-slate-300 text-sm font-medium mb-2 block">Goal weight (lbs) <span className="text-slate-500">(optional)</span></label>
+                  <input type="number" value={form.goalWeight} onChange={e => update('goalWeight', e.target.value)} placeholder="e.g. 165" className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500" />
+                  <p className="text-slate-500 text-xs mt-1">We'll track your progress toward this weight in your Body Comp tab.</p>
+                </div>
+              )}
 
               <div>
                 <label className="text-slate-300 text-sm font-medium mb-2 block">Allergies <span className="text-slate-500">(comma separated)</span></label>

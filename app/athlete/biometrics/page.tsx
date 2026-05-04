@@ -101,6 +101,8 @@ export default function BiometricsPage() {
   const [scanFile, setScanFile] = useState<File | null>(null)
   const [scanError, setScanError] = useState<string | null>(null)
   const [expandedScan, setExpandedScan] = useState<string | null>(null)
+  const [goalWeight, setGoalWeight] = useState<number | null>(null)
+  const [currentWeight, setCurrentWeight] = useState<number | null>(null)
 
   useEffect(() => { loadData() }, [])
 
@@ -109,11 +111,19 @@ export default function BiometricsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       setUserId(user.id)
-      const { data: athlete } = await supabase.from('athletes').select('id').eq('profile_id', user.id).single()
+      const { data: athlete } = await supabase.from('athletes').select('id, goal_weight_lbs, weight_lbs').eq('profile_id', user.id).single()
       if (!athlete) { router.push('/athlete/onboarding'); return }
       setAthleteId(athlete.id)
+      if (athlete.goal_weight_lbs) setGoalWeight(athlete.goal_weight_lbs)
+      if (athlete.weight_lbs) setCurrentWeight(athlete.weight_lbs)
       const { data: scansData } = await supabase.from('biometric_scans').select('*').eq('athlete_id', athlete.id).order('scan_date', { ascending: false })
-      if (scansData) setScans(scansData)
+      if (scansData) {
+        setScans(scansData)
+        // Update current weight from latest scan if available
+        if (scansData.length > 0 && scansData[0].weight_lbs) {
+          setCurrentWeight(scansData[0].weight_lbs)
+        }
+      }
       setLoading(false)
     } catch (error) { console.error('Error loading biometrics:', error); setLoading(false) }
   }
@@ -179,6 +189,18 @@ export default function BiometricsPage() {
       if (form.percent_body_fat) updates.body_fat_percentage = parseFloat(form.percent_body_fat)
       if (form.weight_lbs) updates.weight_lbs = parseFloat(form.weight_lbs)
       if (Object.keys(updates).length > 0) await supabase.from('athletes').update(updates).eq('id', athleteId)
+
+      // Auto-recalculate macros with the new body composition data
+      try {
+        await fetch('/api/recommendations/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ athlete_id: athleteId }),
+        })
+      } catch (recalcErr) {
+        console.error('Macro recalculation failed (non-blocking):', recalcErr)
+      }
+
       setForm({ ...emptyForm }); setScanPreview(null); setScanFile(null); setScanError(null); setShowForm(false); setSaving(false)
       loadData()
     } catch (err) { console.error('Save error:', err); alert('Failed to save scan data.'); setSaving(false) }
@@ -235,6 +257,49 @@ export default function BiometricsPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Goal Weight Progress Card */}
+        {goalWeight && currentWeight && (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white">Goal Weight Progress</h3>
+                <p className="text-xs text-slate-400">Tracking toward your target</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-purple-400">{currentWeight} lbs</p>
+                <p className="text-xs text-slate-500">→ {goalWeight} lbs</p>
+              </div>
+            </div>
+            {(() => {
+              const startWeight = scans.length > 0 ? (scans[scans.length - 1]?.weight_lbs || currentWeight) : currentWeight
+              const totalToLose = Math.abs(startWeight - goalWeight)
+              const lost = Math.abs(startWeight - currentWeight)
+              const progress = totalToLose > 0 ? Math.min(100, Math.max(0, (lost / totalToLose) * 100)) : 0
+              const remaining = Math.abs(currentWeight - goalWeight)
+              const isAtGoal = remaining < 1
+              return (
+                <div>
+                  <div className="w-full bg-slate-700 rounded-full h-3 mb-2">
+                    <div
+                      className={`h-3 rounded-full transition-all ${isAtGoal ? 'bg-green-500' : 'bg-purple-500'}`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500">{startWeight} lbs (start)</span>
+                    {isAtGoal ? (
+                      <span className="text-green-400 font-medium">🎉 Goal reached!</span>
+                    ) : (
+                      <span className="text-slate-400">{remaining.toFixed(1)} lbs to go</span>
+                    )}
+                    <span className="text-purple-400 font-medium">{goalWeight} lbs (goal)</span>
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+        )}
 
         {/* Progress Charts */}
         {scans.length >= 1 && (

@@ -7,12 +7,12 @@ import { useRouter } from 'next/navigation'
 interface BodyScan {
   id: string
   athlete_id: string
-  scanned_by: string | null
+  entered_by: string | null
   scan_date: string
   weight_lbs: number | null
   skeletal_muscle_mass_lbs: number | null
-  body_fat_lbs: number | null
-  body_fat_percent: number | null
+  body_fat_mass_lbs: number | null
+  percent_body_fat: number | null
   fat_free_mass_lbs: number | null
   dry_lean_mass_lbs: number | null
   total_body_water_lbs: number | null
@@ -21,12 +21,16 @@ interface BodyScan {
   ecw_tbw_ratio: number | null
   bmi: number | null
   bmr_calories: number | null
-  visceral_fat_level: number | null
+  visceral_fat_area_cm2: number | null
   inbody_score: number | null
   bone_mass_lbs: number | null
   notes: string | null
   source: string | null
   created_at: string | null
+  // Mapped fields for display
+  body_fat_percent: number | null
+  body_fat_lbs: number | null
+  visceral_fat_level: number | null
 }
 
 function fmt(val: number | null, decimals = 1): string {
@@ -216,14 +220,25 @@ export default function ProgressPage() {
         .single()
       if (profile) setAthleteName((profile as any).first_name || (profile as any).full_name || '')
 
+      // Look up athlete record to get the correct athlete_id
+      const { data: athlete } = await supabase.from('athletes').select('id').eq('profile_id', user.id).single()
+      const athleteId = athlete?.id || user.id  // fallback to user.id if no athlete record
+
       const { data, error } = await supabase
-        .from('body_scans')
+        .from('biometric_scans')
         .select('*')
-        .eq('athlete_id', user.id)
+        .eq('athlete_id', athleteId)
         .order('scan_date', { ascending: true })
 
       if (error) { setError(error.message); setLoading(false); return }
-      setScans(data || [])
+      // Map biometric_scans columns to the display interface
+      const mapped = (data || []).map((scan: any) => ({
+        ...scan,
+        body_fat_percent: scan.percent_body_fat ?? scan.body_fat_percent ?? null,
+        body_fat_lbs: scan.body_fat_mass_lbs ?? scan.body_fat_lbs ?? null,
+        visceral_fat_level: scan.visceral_fat_area_cm2 ?? scan.visceral_fat_level ?? null,
+      }))
+      setScans(mapped)
       setLoading(false)
     }
     load()
