@@ -316,7 +316,31 @@ export default function AthleteDashboard() {
       setAthlete(athleteData)
       setUserId(user.id)
 
-      // Coach profile will be loaded lazily
+      // Load coach profile via athlete_coach_assignments
+      // coach_id in assignments is the user/profile ID directly
+      try {
+        const { data: assignment } = await supabase
+          .from('athlete_coach_assignments')
+          .select('coach_id')
+          .eq('athlete_id', athleteData.id)
+          .limit(1)
+          .single()
+
+        if (assignment?.coach_id) {
+          const { data: coachProf } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .eq('id', assignment.coach_id)
+            .single()
+
+          if (coachProf) {
+            setCoachProfile(coachProf)
+          }
+        }
+      } catch (e) {
+        // No coach assigned — chat button won't show, that's fine
+        console.log('No coach assignment found')
+      }
 
       // Get nutrition recommendations
       const { data: recsData } = await supabase
