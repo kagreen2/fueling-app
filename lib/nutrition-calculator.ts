@@ -1,17 +1,27 @@
 /**
  * Evidence-Based Nutrition Calculator
- * Based on ISSN Position Stands, IOC Consensus Statement, and NCAA Guidelines
+ * Based on ISSN Position Stands, IOC Consensus Statement (2018), and NCAA Guidelines
  * 
- * KEY PRINCIPLES:
- * - Protein: 1.0-1.4 g per POUND of body weight
- * - Fat: 30% of total calories (hormonal health, joint support, satiety)
- * - Carbs: Remaining calories (fueling training & recovery)
- * - Activity level significantly impacts TDEE via ISSN/IOC activity factors
- * - Youth athletes (under 18) get a growth factor adjustment
+ * KEY PRINCIPLES (Updated — "Protein & Carbs First" Approach):
+ * 1. Protein: Set by GOAL PHASE (g/kg body weight) — ISSN Position Stand (Jäger et al., 2017)
+ * 2. Carbs: Set by TRAINING VOLUME (g/kg body weight) — IOC/Burke et al. (2011, 2018)
+ * 3. Fat: Fills remaining calories with a floor of 0.8 g/kg (hormonal health minimum)
+ * 
+ * Calorie calculation:
+ * - TDEE = BMR × Activity Factor + Goal Adjustment + Youth Growth (athletes only)
+ * - BMR source priority: InBody-measured (Katch-McArdle from FFM) > Mifflin-St Jeor estimate
  * 
  * Supports two user types:
  * - Athletes: Sport-specific multipliers, season phase, position adjustments, youth growth
  * - General Fitness: Activity-level and training-style based multipliers
+ * 
+ * References:
+ * - ISSN Position Stand: Protein and Exercise (Jäger et al., 2017)
+ * - ISSN Position Stand: Diets and Body Composition (Aragon et al., 2017)
+ * - IOC Consensus Statement on Sports Nutrition (2011, updated 2018)
+ * - Burke et al. Carbohydrate Periodization (2018)
+ * - Hector & Phillips: Protein during energy restriction (2018)
+ * - Helms et al.: Protein for physique athletes (2014)
  */
 
 interface AthleteProfile {
@@ -192,27 +202,134 @@ function getMemberActivityMultiplier(
 }
 
 /**
- * Get protein recommendation in grams per POUND of body weight
+ * Get protein recommendation in g/kg body weight based on goal phase
  * 
- * Fuel Different Protocol:
- * - Gain lean mass: 1.2-1.4 g/lb (using 1.3 midpoint)
- * - Lose body fat: 1.0-1.2 g/lb (using 1.1 midpoint)
- * - Maintain & perform: 1.0-1.2 g/lb (using 1.1 midpoint)
- * - In-season maintenance: 1.0-1.2 g/lb (using 1.1 midpoint)
- * - Recover & rebuild: 1.2-1.4 g/lb (using 1.3 midpoint)
+ * Evidence-based ranges (ISSN Position Stand — Jäger et al., 2017):
+ * - General exercising: 1.4–2.0 g/kg/day
+ * - Muscle gain (caloric surplus): 1.6–2.2 g/kg/day
+ * - Fat loss (caloric deficit): 2.0–2.4 g/kg/day (Hector & Phillips, 2018)
+ * - Extreme deficit / contest prep: 2.3–3.1 g/kg/day (Helms et al., 2014)
+ * - Recovery / rebuild: 1.8–2.2 g/kg/day
+ * 
+ * We use midpoints of each range for the recommendation.
  */
-function getProteinPerLb(goal_phase: string): number {
+function getProteinPerKg(goal_phase: string): number {
   const goal = goal_phase.toLowerCase()
   if (goal.includes('gain') || goal.includes('muscle') || goal.includes('lean_mass')) {
-    return 1.3  // Gain lean mass: 1.2-1.4 g/lb
+    return 2.0  // Gain lean mass: 1.6-2.2 g/kg midpoint (surplus — MPS maximization)
   } else if (goal.includes('recover') || goal.includes('rebuild')) {
-    return 1.3  // Recover & rebuild: 1.2-1.4 g/lb
+    return 2.0  // Recover & rebuild: 1.8-2.2 g/kg midpoint
   } else if (goal.includes('lose') || goal.includes('fat') || goal.includes('cut')) {
-    return 1.1  // Lose body fat: 1.0-1.2 g/lb
+    return 2.2  // Lose body fat: 2.0-2.4 g/kg midpoint (preserve lean mass in deficit)
   } else {
-    // maintain, in_season_maintenance, default
-    return 1.1  // Maintain & perform / In-season maintenance: 1.0-1.2 g/lb
+    // maintain, in_season_maintenance, general performance
+    return 1.8  // Maintain & perform: 1.4-2.0 g/kg upper midpoint (active athletes)
   }
+}
+
+/**
+ * Get carbohydrate recommendation in g/kg body weight based on training volume
+ * 
+ * IOC/Burke et al. (2011, 2018) Carbohydrate Periodization Guidelines:
+ * - Light activity (low intensity / skill-based, ≤3 days): 3–5 g/kg/day
+ * - Moderate exercise (~1 hr/day, 3-5 days): 5–7 g/kg/day
+ * - High volume (1-3 hr/day moderate-to-high, 5-6 days): 6–8 g/kg/day
+ * - Very high (4-5+ hr/day extreme, 6-7 days): 8–10 g/kg/day
+ * 
+ * Additional adjustments for:
+ * - Sport type (endurance sports need more carbs)
+ * - Season phase (in-season competition demands more glycogen)
+ * - Goal phase (deficit = lower carbs, surplus = higher carbs)
+ */
+function getCarbsPerKg(
+  training_days_per_week: number,
+  sport: string,
+  season_phase: string,
+  goal_phase: string,
+  user_type: 'athlete' | 'member',
+  training_style?: string
+): number {
+  let baseCarbsPerKg: number
+
+  if (user_type === 'member') {
+    // General fitness members — scale by training frequency
+    if (training_days_per_week >= 6) {
+      baseCarbsPerKg = 6.0  // Very active member
+    } else if (training_days_per_week >= 5) {
+      baseCarbsPerKg = 5.5
+    } else if (training_days_per_week >= 3) {
+      baseCarbsPerKg = 4.5  // Moderate
+    } else if (training_days_per_week >= 1) {
+      baseCarbsPerKg = 3.5  // Light
+    } else {
+      baseCarbsPerKg = 3.0  // Sedentary
+    }
+
+    // Training style adjustment for members
+    if (training_style) {
+      const styles = training_style.split(',').map(s => s.trim())
+      if (styles.includes('crossfit') || styles.includes('cardio')) {
+        baseCarbsPerKg += 0.5  // Higher glycolytic demand
+      } else if (styles.includes('strength')) {
+        baseCarbsPerKg += 0.0  // Strength training has moderate carb needs
+      } else if (styles.includes('yoga_pilates')) {
+        baseCarbsPerKg -= 0.5  // Lower glycolytic demand
+      }
+    }
+  } else {
+    // Athletes — scale by training frequency + sport type + season
+    if (training_days_per_week >= 6) {
+      baseCarbsPerKg = 7.0  // Very high volume athlete
+    } else if (training_days_per_week >= 5) {
+      baseCarbsPerKg = 6.0  // High volume
+    } else if (training_days_per_week >= 3) {
+      baseCarbsPerKg = 5.0  // Moderate volume
+    } else if (training_days_per_week >= 1) {
+      baseCarbsPerKg = 4.0  // Light / early offseason
+    } else {
+      baseCarbsPerKg = 3.5  // Rest / recovery period
+    }
+
+    // Sport-type carb adjustment (IOC Consensus)
+    const sportLower = sport.toLowerCase().replace(/\s+/g, '_')
+    const enduranceSports = [
+      'cross_country', 'track', 'track_and_field', 'swimming', 'rowing', 'cycling',
+      'triathlon', 'distance_running'
+    ]
+    const highIntensitySports = [
+      'football', 'rugby', 'hockey', 'basketball', 'soccer',
+      'lacrosse', 'wrestling', 'volleyball', 'tennis'
+    ]
+
+    if (enduranceSports.some(s => sportLower.includes(s))) {
+      baseCarbsPerKg += 1.5  // Endurance athletes need significantly more glycogen
+    } else if (highIntensitySports.some(s => sportLower.includes(s))) {
+      baseCarbsPerKg += 0.5  // High-intensity intermittent sports: moderate increase
+    }
+
+    // Season phase carb periodization
+    if (season_phase === 'in_season') {
+      baseCarbsPerKg += 0.5  // Competition demands: higher glycogen needs
+    } else if (season_phase === 'preseason') {
+      baseCarbsPerKg += 0.3  // Ramping up training load
+    } else if (season_phase === 'offseason') {
+      baseCarbsPerKg -= 0.5  // Lower training volume
+    } else if (season_phase === 'postseason') {
+      baseCarbsPerKg -= 0.5  // Active recovery
+    }
+  }
+
+  // Goal phase carb adjustment
+  const goal = goal_phase.toLowerCase()
+  if (goal.includes('lose') || goal.includes('fat') || goal.includes('cut')) {
+    baseCarbsPerKg -= 1.0  // Reduce carbs in deficit (protein stays high to preserve muscle)
+  } else if (goal.includes('gain') || goal.includes('muscle') || goal.includes('lean_mass')) {
+    baseCarbsPerKg += 0.5  // Slightly more carbs to fuel hypertrophy training
+  }
+
+  // Floor: minimum 3.0 g/kg for any active person (brain function + basic training fuel)
+  // Ceiling: cap at 10 g/kg (IOC max for extreme endurance)
+  return Math.max(3.0, Math.min(baseCarbsPerKg, 10.0))
 }
 
 /**
@@ -276,19 +393,22 @@ function getYouthGrowthCalories(age: number): number {
 /**
  * Main recommendation function
  * 
- * Macro distribution strategy (protein-first approach):
- * 1. Protein: 1.0-1.4 g per lb of body weight (non-negotiable, set first)
- * 2. Fat: 30% of total calories (hormonal health, joint support, essential fatty acids)
- * 3. Carbs: remaining calories (primary training fuel)
+ * NEW "Protein & Carbs First" macro distribution strategy:
+ * 1. Calculate TDEE (BMR × Activity Factor + adjustments)
+ * 2. Set Protein: g/kg based on goal phase (ISSN — Jäger et al., 2017)
+ * 3. Set Carbs: g/kg based on training volume (IOC — Burke et al., 2018)
+ * 4. Set Fat: remaining calories, with a floor of 0.8 g/kg (~20% minimum for hormonal health)
+ * 5. If protein + carbs + fat floor > TDEE, scale carbs down slightly to fit
  * 
  * Calorie calculation:
- * Athletes: TDEE = RMR × Activity Factor + Goal Adjustment + Youth Growth Factor + Position Adjustment
+ * Athletes: TDEE = RMR × Activity Factor × Position Adjustment + Youth Growth + Goal Adjustment
  * Members:  TDEE = RMR × Activity Factor + Goal Adjustment
  */
 export function calculateNutritionRecommendation(
   athlete: AthleteProfile
 ): NutritionRecommendation {
   const isAthlete = athlete.user_type !== 'member'
+  const weight_kg = athlete.weight_lbs * 0.453592
 
   // Step 1: Calculate RMR
   // If an InBody-measured BMR is available, use it (more accurate than any formula).
@@ -300,9 +420,9 @@ export function calculateNutritionRecommendation(
     athlete.sex
   )
   const rmr = athlete.inbody_bmr && athlete.inbody_bmr > 0 ? athlete.inbody_bmr : estimatedRmr
-  const rmrSource = athlete.inbody_bmr && athlete.inbody_bmr > 0 ? 'InBody 580 measured' : 'Mifflin-St Jeor estimate'
+  const rmrSource = athlete.inbody_bmr && athlete.inbody_bmr > 0 ? 'InBody measured (Katch-McArdle)' : 'Mifflin-St Jeor estimate'
 
-  // Step 2: Apply activity multiplier
+  // Step 2: Apply activity multiplier to get TDEE
   let activityMultiplier: number
   let activityDescription: string
 
@@ -338,7 +458,7 @@ export function calculateNutritionRecommendation(
     tdee += youthCalories
   }
 
-  // Step 5: Adjust for goal phase
+  // Step 5: Adjust for goal phase (caloric surplus/deficit)
   const goalPhase = athlete.goal_phase.toLowerCase()
   let goalAdjustmentCals = 0
   if (goalPhase.includes('gain') || goalPhase.includes('muscle') || goalPhase.includes('lean_mass')) {
@@ -348,77 +468,113 @@ export function calculateNutritionRecommendation(
   }
   tdee += goalAdjustmentCals
 
-  // Step 6: Calculate macros — PROTEIN FIRST approach
-  const proteinPerLb = getProteinPerLb(athlete.goal_phase)
-  const protein_g = Math.round(athlete.weight_lbs * proteinPerLb)
+  // Step 6: Calculate macros — PROTEIN & CARBS FIRST approach
+
+  // Protein: g/kg based on goal phase (ISSN)
+  const proteinPerKg = getProteinPerKg(athlete.goal_phase)
+  const protein_g = Math.round(weight_kg * proteinPerKg)
   const protein_cals = protein_g * 4
 
-  // Fat: 30% of TDEE (minimum 0.4g/lb for hormonal health)
-  const fat_from_pct = Math.round((tdee * 0.30) / 9)
-  const fat_min = Math.round(athlete.weight_lbs * 0.4)
-  const fat_g = Math.max(fat_from_pct, fat_min)
-  const fat_cals = fat_g * 9
+  // Carbs: g/kg based on training volume (IOC/Burke)
+  const carbsPerKg = getCarbsPerKg(
+    athlete.training_days_per_week,
+    athlete.sport,
+    athlete.season_phase,
+    athlete.goal_phase,
+    isAthlete ? 'athlete' : 'member',
+    athlete.training_style
+  )
+  let carbs_g = Math.round(weight_kg * carbsPerKg)
+  let carbs_cals = carbs_g * 4
 
-  // Carbs: remaining calories after protein and fat
-  const remaining_cals = tdee - protein_cals - fat_cals
-  const carbs_g = Math.max(Math.round(remaining_cals / 4), 100) // Floor of 100g carbs minimum
+  // Fat: remaining calories with a floor of 0.8 g/kg (hormonal health minimum)
+  const fatFloorGrams = Math.round(weight_kg * 0.8)
+  const fatFloorCals = fatFloorGrams * 9
+  let remaining_cals = tdee - protein_cals - carbs_cals
+  let fat_g: number
+
+  if (remaining_cals >= fatFloorCals) {
+    // Enough room — fat fills the remainder
+    fat_g = Math.round(remaining_cals / 9)
+  } else {
+    // Not enough room — set fat to floor and scale carbs down to fit
+    fat_g = fatFloorGrams
+    const available_for_carbs = tdee - protein_cals - fatFloorCals
+    if (available_for_carbs > 0) {
+      carbs_g = Math.round(available_for_carbs / 4)
+    } else {
+      // Extreme deficit scenario — keep minimum carbs for brain function (100g)
+      carbs_g = Math.max(100, Math.round(available_for_carbs / 4))
+    }
+    carbs_cals = carbs_g * 4
+  }
+
+  // Ensure fat doesn't exceed 35% of total calories (cap for health)
+  const maxFatFromPct = Math.round((tdee * 0.35) / 9)
+  if (fat_g > maxFatFromPct) {
+    fat_g = maxFatFromPct
+  }
+
+  // Ensure minimum carbs of 100g (brain function)
+  carbs_g = Math.max(carbs_g, 100)
 
   // Recalculate actual total calories from macros
   const totalCals = Math.round(protein_g * 4 + carbs_g * 4 + fat_g * 9)
 
   // Build methodology string
   const goalAdjustmentStr = goalAdjustmentCals > 0 ? `+${goalAdjustmentCals}` : `${goalAdjustmentCals}`
+  const proteinPerLb = (proteinPerKg * 0.453592).toFixed(2) // for display in familiar units
 
   let methodology: string
   if (isAthlete) {
     methodology = `
-ISSN/IOC Evidence-Based Calculation (Athlete):
-- RMR (${rmrSource}): ${Math.round(rmr)} cal${athlete.inbody_bmr && athlete.inbody_bmr > 0 ? ` (Mifflin-St Jeor estimate was ${Math.round(estimatedRmr)} cal)` : ''}
+ISSN/IOC Evidence-Based Calculation (Athlete — Protein & Carbs First):
+- BMR (${rmrSource}): ${Math.round(rmr)} cal${athlete.inbody_bmr && athlete.inbody_bmr > 0 ? ` (Mifflin-St Jeor estimate was ${Math.round(estimatedRmr)} cal)` : ''}
 - Activity Factor: ${activityMultiplier.toFixed(2)}x (${activityDescription})
 - Base TDEE: ${Math.round(rmr * activityMultiplier)} cal
 - Position Adjustment: ${positionAdjustment > 1 ? `+${((positionAdjustment - 1) * 100).toFixed(0)}%` : 'None'}
 - Youth Growth Factor: ${youthCalories > 0 ? `+${youthCalories} cal` : 'N/A (adult)'}
 - Goal Adjustment: ${goalAdjustmentStr} cal (${athlete.goal_phase})
 - Final TDEE: ${Math.round(tdee)} cal
-- Protein: ${proteinPerLb.toFixed(1)}g/lb × ${athlete.weight_lbs}lb = ${protein_g}g
-- Fat: 30% of TDEE = ${fat_g}g
-- Carbs: Remaining = ${carbs_g}g
+- Protein: ${proteinPerKg.toFixed(1)} g/kg × ${weight_kg.toFixed(1)}kg = ${protein_g}g (${Math.round(protein_cals)} cal)
+- Carbs: ${carbsPerKg.toFixed(1)} g/kg × ${weight_kg.toFixed(1)}kg = ${carbs_g}g (${carbs_g * 4} cal) [based on ${athlete.training_days_per_week} training days/week]
+- Fat: Remainder = ${fat_g}g (${fat_g * 9} cal) [floor: ${fatFloorGrams}g = 0.8 g/kg]
     `.trim()
   } else {
     methodology = `
-ISSN Evidence-Based Calculation (General Fitness):
-- RMR (${rmrSource}): ${Math.round(rmr)} cal${athlete.inbody_bmr && athlete.inbody_bmr > 0 ? ` (Mifflin-St Jeor estimate was ${Math.round(estimatedRmr)} cal)` : ''}
+ISSN/IOC Evidence-Based Calculation (General Fitness — Protein & Carbs First):
+- BMR (${rmrSource}): ${Math.round(rmr)} cal${athlete.inbody_bmr && athlete.inbody_bmr > 0 ? ` (Mifflin-St Jeor estimate was ${Math.round(estimatedRmr)} cal)` : ''}
 - Activity Factor: ${activityMultiplier.toFixed(2)}x (${activityDescription})
 - Base TDEE: ${Math.round(rmr * activityMultiplier)} cal
 - Goal Adjustment: ${goalAdjustmentStr} cal (${athlete.goal_phase})
 - Final TDEE: ${Math.round(tdee)} cal
-- Protein: ${proteinPerLb.toFixed(1)}g/lb × ${athlete.weight_lbs}lb = ${protein_g}g
-- Fat: 30% of TDEE = ${fat_g}g
-- Carbs: Remaining = ${carbs_g}g
+- Protein: ${proteinPerKg.toFixed(1)} g/kg × ${weight_kg.toFixed(1)}kg = ${protein_g}g (${Math.round(protein_cals)} cal)
+- Carbs: ${carbsPerKg.toFixed(1)} g/kg × ${weight_kg.toFixed(1)}kg = ${carbs_g}g (${carbs_g * 4} cal) [based on ${athlete.training_days_per_week} training days/week, ${athlete.training_style || 'mixed'} style]
+- Fat: Remainder = ${fat_g}g (${fat_g * 9} cal) [floor: ${fatFloorGrams}g = 0.8 g/kg]
     `.trim()
   }
 
   let notes: string
   if (isAthlete) {
     notes = `
-Based on ISSN Position Stands and IOC Consensus guidelines.
-Protein target: ${proteinPerLb.toFixed(1)}g per pound of body weight.
-Fat: 30% of total calories for hormonal health and essential fatty acids.
-Carbs: Primary fuel source for training and recovery.
+Based on ISSN Position Stands (Jäger 2017, Aragon 2017) and IOC Consensus (Burke 2018).
+Protein: ${proteinPerKg.toFixed(1)} g/kg/day — set by goal phase (${athlete.goal_phase}).
+Carbs: ${carbsPerKg.toFixed(1)} g/kg/day — set by training volume (${athlete.training_days_per_week} days/week, ${athlete.sport}, ${athlete.season_phase}).
+Fat: ${fat_g}g/day — fills remaining calories (min 0.8 g/kg for hormonal health).
 ${youthCalories > 0 ? `Youth athlete: +${youthCalories} cal added for growth and development.` : ''}
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
-${athlete.inbody_bmr ? `Using InBody 580 measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
-${athlete.season_phase === 'in_season' ? 'In-season: Elevated energy demands from competition + practice.' : ''}
+${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
+${athlete.season_phase === 'in_season' ? 'In-season: Elevated carb needs for competition + practice glycogen demands.' : ''}
     `.trim()
   } else {
     notes = `
-Based on ISSN Position Stands for general fitness populations.
-Protein target: ${proteinPerLb.toFixed(1)}g per pound of body weight.
-Fat: 30% of total calories for hormonal health and essential fatty acids.
-Carbs: Primary fuel source for training and recovery.
+Based on ISSN Position Stands (Jäger 2017, Aragon 2017) and IOC Consensus (Burke 2018).
+Protein: ${proteinPerKg.toFixed(1)} g/kg/day — set by goal phase (${athlete.goal_phase}).
+Carbs: ${carbsPerKg.toFixed(1)} g/kg/day — set by training volume (${athlete.training_days_per_week} days/week, ${athlete.training_style || 'mixed'} style).
+Fat: ${fat_g}g/day — fills remaining calories (min 0.8 g/kg for hormonal health).
 Activity level: ${athlete.activity_level || 'moderately active'} | Training style: ${athlete.training_style || 'mixed'}
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
-${athlete.inbody_bmr ? `Using InBody 580 measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
+${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
     `.trim()
   }
 
