@@ -711,6 +711,24 @@ export default function AdminDashboard() {
             ...prev.filter(a => a.athlete_id !== athleteId),
             newAssignment,
           ])
+
+          // Send welcome message from coach to athlete
+          try {
+            const athlete = athletes.find(a => a.id === athleteId)
+            const athleteProfile = profiles.find(p => p.id === athlete?.profile_id)
+            const coachProfile = profiles.find(p => p.id === team.coach_id)
+            const coachName = (coachProfile as any)?.first_name || (coachProfile as any)?.full_name?.split(' ')[0] || 'Your coach'
+            const athleteFirstName = (athleteProfile as any)?.first_name || (athleteProfile as any)?.full_name?.split(' ')[0] || ''
+            await supabase.from('chat_messages').insert({
+              sender_id: team.coach_id,
+              receiver_id: athlete?.profile_id,
+              athlete_id: athleteId,
+              message: `Hey${athleteFirstName ? ' ' + athleteFirstName : ''}! I'm ${coachName}, your nutrition coach. I'll be here to help you hit your goals. If you ever have questions about your macros, meals, or anything else \u2014 just message me here. Let's get after it! \u26A1`,
+              read: false,
+            })
+          } catch (e) {
+            console.error('Failed to send welcome message:', e)
+          }
         }
       }
 
@@ -747,6 +765,24 @@ export default function AdminDashboard() {
             ...prev.filter(a => a.athlete_id !== athleteId),
             data,
           ])
+
+          // Send welcome message from coach to athlete
+          try {
+            const athlete = athletes.find(a => a.id === athleteId)
+            const athleteProfile = profiles.find(p => p.id === athlete?.profile_id)
+            const coachProfile = profiles.find(p => p.id === coachId)
+            const coachName = (coachProfile as any)?.first_name || (coachProfile as any)?.full_name?.split(' ')[0] || 'Your coach'
+            const athleteFirstName = (athleteProfile as any)?.first_name || (athleteProfile as any)?.full_name?.split(' ')[0] || ''
+            await supabase.from('chat_messages').insert({
+              sender_id: coachId,
+              receiver_id: athlete?.profile_id,
+              athlete_id: athleteId,
+              message: `Hey${athleteFirstName ? ' ' + athleteFirstName : ''}! I'm ${coachName}, your nutrition coach. I'll be here to help you hit your goals. If you ever have questions about your macros, meals, or anything else \u2014 just message me here. Let's get after it! \u26A1`,
+              read: false,
+            })
+          } catch (e) {
+            console.error('Failed to send welcome message:', e)
+          }
         }
       }
     } catch (error) {

@@ -359,6 +359,27 @@ export default function ProfilePage() {
             athlete_id: athlete.id,
             coach_id: team.coach_id,
           }, { onConflict: 'athlete_id' })
+
+        // Send welcome message from coach
+        try {
+          const { data: coachProfile } = await supabase
+            .from('profiles')
+            .select('full_name, first_name')
+            .eq('id', team.coach_id)
+            .single()
+          const { data: { user } } = await supabase.auth.getUser()
+          const coachName = (coachProfile as any)?.first_name || (coachProfile as any)?.full_name?.split(' ')[0] || 'Your coach'
+          const athleteFirstName = user?.user_metadata?.full_name?.split(' ')[0] || ''
+          await supabase.from('chat_messages').insert({
+            sender_id: team.coach_id,
+            receiver_id: user?.id,
+            athlete_id: athlete.id,
+            message: `Hey${athleteFirstName ? ' ' + athleteFirstName : ''}! I'm ${coachName}, your nutrition coach. I'll be here to help you hit your goals. If you ever have questions about your macros, meals, or anything else \u2014 just message me here. Let's get after it! \u26A1`,
+            read: false,
+          })
+        } catch (e) {
+          console.error('Failed to send welcome message:', e)
+        }
       }
 
       setCurrentTeams(prev => [...prev, team])
