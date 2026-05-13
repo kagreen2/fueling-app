@@ -43,6 +43,8 @@ interface AthleteProfile {
   activity_level?: string
   /** Training style for general members */
   training_style?: string
+  /** Menstrual cycle phase for female users (opt-in) */
+  cycle_phase?: 'menstrual' | 'follicular' | 'ovulatory' | 'luteal'
 }
 
 interface NutritionRecommendation {
@@ -404,6 +406,20 @@ function getYouthGrowthCalories(age: number): number {
  * Athletes: TDEE = RMR × Activity Factor × Position Adjustment + Youth Growth + Goal Adjustment
  * Members:  TDEE = RMR × Activity Factor + Goal Adjustment
  */
+/**
+ * Inline cycle macro adjustments to avoid circular imports
+ * Mirrors getCycleMacroAdjustments from cycle-tracker.ts
+ */
+function getCycleMacroAdjustmentsInline(phase: string) {
+  switch (phase) {
+    case 'menstrual': return { calorieAdjustment: 0, carbMultiplier: 1.0, fatMultiplier: 1.0, proteinMultiplier: 1.0, note: 'Menstrual phase: standard macros, prioritize iron-rich foods' }
+    case 'follicular': return { calorieAdjustment: 0, carbMultiplier: 1.05, fatMultiplier: 0.95, proteinMultiplier: 1.0, note: 'Follicular phase: higher carb tolerance, efficient glycogen storage' }
+    case 'ovulatory': return { calorieAdjustment: 50, carbMultiplier: 1.05, fatMultiplier: 1.0, proteinMultiplier: 1.05, note: 'Ovulatory phase: peak performance, slightly elevated needs' }
+    case 'luteal': return { calorieAdjustment: 150, carbMultiplier: 0.92, fatMultiplier: 1.15, proteinMultiplier: 1.05, note: 'Luteal phase: BMR elevated ~150 kcal, shifted to higher fat oxidation (Webb, 1986)' }
+    default: return { calorieAdjustment: 0, carbMultiplier: 1.0, fatMultiplier: 1.0, proteinMultiplier: 1.0, note: '' }
+  }
+}
+
 export function calculateNutritionRecommendation(
   athlete: AthleteProfile
 ): NutritionRecommendation {
@@ -487,6 +503,18 @@ export function calculateNutritionRecommendation(
   let carbs_g = Math.round(weight_kg * carbsPerKg)
   let carbs_cals = carbs_g * 4
 
+  // Apply cycle phase adjustments for female users who opted in
+  let cycleNote = ''
+  if (athlete.sex === 'female' && athlete.cycle_phase) {
+    const cycleAdj = getCycleMacroAdjustmentsInline(athlete.cycle_phase)
+    tdee += cycleAdj.calorieAdjustment
+    protein_g = Math.round(protein_g * cycleAdj.proteinMultiplier)
+    protein_cals = protein_g * 4
+    carbs_g = Math.round(carbs_g * cycleAdj.carbMultiplier)
+    carbs_cals = carbs_g * 4
+    cycleNote = cycleAdj.note
+  }
+
   // Fat: remaining calories with a floor of 0.8 g/kg (hormonal health minimum)
   const fatFloorGrams = Math.round(weight_kg * 0.8)
   const fatFloorCals = fatFloorGrams * 9
@@ -565,6 +593,7 @@ ${youthCalories > 0 ? `Youth athlete: +${youthCalories} cal added for growth and
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
 ${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
 ${athlete.season_phase === 'in_season' ? 'In-season: Elevated carb needs for competition + practice glycogen demands.' : ''}
+${cycleNote ? `Cycle Phase Adjustment: ${cycleNote}` : ''}
     `.trim()
   } else {
     notes = `
@@ -575,6 +604,7 @@ Fat: ${fat_g}g/day — fills remaining calories (min 0.8 g/kg for hormonal healt
 Activity level: ${athlete.activity_level || 'moderately active'} | Training style: ${athlete.training_style || 'mixed'}
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
 ${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
+${cycleNote ? `Cycle Phase Adjustment: ${cycleNote}` : ''}
     `.trim()
   }
 

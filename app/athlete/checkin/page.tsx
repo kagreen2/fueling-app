@@ -8,6 +8,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { getLocalDateString } from '@/lib/utils/date'
 import { calculateCheckinScore, getZoneInfo } from '@/lib/fuel-score'
+import { getCyclePhase, type CyclePhaseInfo } from '@/lib/cycle-tracker'
 
 interface SliderFieldProps {
   label: string
@@ -64,8 +65,10 @@ export default function CheckInPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userType, setUserType] = useState<'athlete' | 'member'>('athlete')
-
   const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false)
+  const [cycleInfo, setCycleInfo] = useState<CyclePhaseInfo | null>(null)
+  const [showCycleSection, setShowCycleSection] = useState(false)
+  const [periodStartedToday, setPeriodStartedToday] = useState(false)
 
   // Fetch user type and existing check-in on mount
   useEffect(() => {
@@ -74,10 +77,16 @@ export default function CheckInPage() {
       if (user) {
         const { data: athlete } = await supabase
           .from('athletes')
-          .select('id, user_type')
+          .select('id, user_type, sex, cycle_tracking_enabled, last_period_start, avg_cycle_length')
           .eq('profile_id', user.id)
           .single()
         if (athlete?.user_type) setUserType(athlete.user_type as 'athlete' | 'member')
+        // Load cycle tracking info for female users who opted in
+        if (athlete?.cycle_tracking_enabled && athlete?.last_period_start) {
+          setShowCycleSection(true)
+          const phase = getCyclePhase(athlete.last_period_start, athlete.avg_cycle_length || 28)
+          setCycleInfo(phase)
+        }
 
         // Check if there's already a check-in for today
         if (athlete) {
@@ -375,6 +384,57 @@ export default function CheckInPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Cycle Tracking — Female users who opted in */}
+        {showCycleSection && cycleInfo && (
+          <Card className="mb-6">
+            <CardHeader title="Cycle Tracker" />
+            <CardContent>
+              <div className={`rounded-lg p-3 mb-3 ${cycleInfo.bgColor} border ${cycleInfo.borderColor}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{cycleInfo.emoji}</span>
+                    <div>
+                      <span className={`text-sm font-bold ${cycleInfo.color}`}>{cycleInfo.label} Phase</span>
+                      <span className="text-slate-400 text-xs ml-2">Day {cycleInfo.dayOfCycle}</span>
+                    </div>
+                  </div>
+                  <span className="text-slate-500 text-xs">{cycleInfo.daysUntilNextPeriod}d until next period</span>
+                </div>
+                <p className="text-slate-400 text-xs mt-2">{cycleInfo.description}</p>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+                <p className="text-purple-400 text-xs font-medium mb-1">🍽 Nutrition Tip</p>
+                <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.nutritionTip}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setPeriodStartedToday(!periodStartedToday)
+                    if (!periodStartedToday) {
+                      // Update last_period_start to today
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (user) {
+                        const today = getLocalDateString()
+                        await supabase.from('athletes').update({ last_period_start: today }).eq('profile_id', user.id)
+                        const newPhase = getCyclePhase(today, cycleInfo.dayOfCycle > 0 ? Math.round(cycleInfo.dayOfCycle + cycleInfo.daysUntilNextPeriod - 1) : 28)
+                        setCycleInfo(newPhase)
+                      }
+                    }
+                  }}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                    periodStartedToday
+                      ? 'bg-red-500/20 text-red-400 ring-2 ring-red-400/30'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  🩸 Period started today
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Body Stats — Moved to bottom, optional */}
         <Card className="mb-6">

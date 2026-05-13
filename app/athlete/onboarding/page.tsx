@@ -115,6 +115,11 @@ export default function OnboardingPage() {
     // Member-specific fields
     activityLevel: '',
     trainingStyle: [] as string[],
+    // Cycle tracking (female users, opt-in)
+    cycleTrackingEnabled: false,
+    lastPeriodStart: '',
+    avgCycleLength: '28',
+    cycleShareWithCoach: false,
   })
 
   const STEPS = form.userType === 'member' ? MEMBER_STEPS : ATHLETE_STEPS
@@ -254,6 +259,10 @@ export default function OnboardingPage() {
       activity_level: form.userType === 'member' ? (form.activityLevel || null) : null,
       training_style: form.userType === 'member' ? ((form.trainingStyle as unknown as string[]).length > 0 ? (form.trainingStyle as unknown as string[]).join(',') : null) : null,
       goal_weight_lbs: form.userType === 'member' && form.goalWeight ? parseFloat(form.goalWeight) : null,
+      cycle_tracking_enabled: form.sex === 'female' ? form.cycleTrackingEnabled : false,
+      last_period_start: form.cycleTrackingEnabled && form.lastPeriodStart ? form.lastPeriodStart : null,
+      avg_cycle_length: form.cycleTrackingEnabled ? (parseInt(form.avgCycleLength) || 28) : null,
+      cycle_share_with_coach: form.cycleTrackingEnabled ? form.cycleShareWithCoach : false,
     }
 
     if (existing) {
@@ -873,6 +882,81 @@ export default function OnboardingPage() {
                   <label className="text-slate-300 text-sm font-medium mb-2 block">Goal weight (lbs) <span className="text-slate-500">(optional)</span></label>
                   <input type="number" value={form.goalWeight} onChange={e => update('goalWeight', e.target.value)} placeholder="e.g. 165" className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500" />
                   <p className="text-slate-500 text-xs mt-1">We'll track your progress toward this weight in your Body Comp tab.</p>
+                </div>
+              )}
+
+              {/* Cycle Tracking Opt-in — Female users only */}
+              {form.sex === 'female' && (
+                <div className="bg-purple-500/5 border border-purple-500/20 rounded-xl p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <button
+                      type="button"
+                      onClick={() => update('cycleTrackingEnabled', !form.cycleTrackingEnabled)}
+                      className={`mt-0.5 w-6 h-6 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                        form.cycleTrackingEnabled
+                          ? 'bg-purple-600 border-purple-600'
+                          : 'border-slate-500 bg-slate-700'
+                      }`}
+                    >
+                      {form.cycleTrackingEnabled && (
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                    <div>
+                      <p className="text-white text-sm font-medium">Enable cycle-based nutrition tracking</p>
+                      <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                        Your menstrual cycle affects your metabolism, energy, and macro needs. We can optimize your nutrition recommendations based on your cycle phase. <span className="text-purple-400">This data is private and only visible to you unless you choose to share it.</span>
+                      </p>
+                    </div>
+                  </div>
+                  {form.cycleTrackingEnabled && (
+                    <div className="space-y-3 pt-2 border-t border-purple-500/20">
+                      <div>
+                        <label className="text-slate-300 text-xs font-medium mb-1 block">When did your last period start?</label>
+                        <input
+                          type="date"
+                          value={form.lastPeriodStart}
+                          onChange={e => update('lastPeriodStart', e.target.value)}
+                          className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-300 text-xs font-medium mb-1 block">Average cycle length (days)</label>
+                        <input
+                          type="number"
+                          value={form.avgCycleLength}
+                          onChange={e => update('avgCycleLength', e.target.value)}
+                          placeholder="28"
+                          min="21"
+                          max="40"
+                          className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder-slate-500"
+                        />
+                        <p className="text-slate-500 text-xs mt-1">Most cycles are 24-35 days. Default is 28.</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <button
+                          type="button"
+                          onClick={() => update('cycleShareWithCoach', !form.cycleShareWithCoach)}
+                          className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                            form.cycleShareWithCoach
+                              ? 'bg-purple-600 border-purple-600'
+                              : 'border-slate-500 bg-slate-700'
+                          }`}
+                        >
+                          {form.cycleShareWithCoach && (
+                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                        <p className="text-slate-400 text-xs leading-relaxed">
+                          Share cycle phase with my coach <span className="text-slate-500">(optional — helps them understand energy fluctuations)</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

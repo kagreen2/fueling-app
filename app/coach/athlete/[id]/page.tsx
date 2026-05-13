@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import InBodyProgressCharts from '@/components/InBodyProgressCharts'
 import ChatPanel from '@/components/ChatPanel'
 import WellnessSpotlight from '@/components/WellnessSpotlight'
+import { getCyclePhase, type CyclePhaseInfo } from '@/lib/cycle-tracker'
 import { getZoneInfo } from '@/lib/fuel-score'
 
 function getLocalDateString(date: Date = new Date()): string {
@@ -88,6 +89,7 @@ export default function CoachAthleteDetailPage() {
   const [biometricScanPreview, setBiometricScanPreview] = useState<string | null>(null)
   const [biometricScanFile, setBiometricScanFile] = useState<File | null>(null)
   const [biometricScanError, setBiometricScanError] = useState<string | null>(null)
+  const [cycleInfo, setCycleInfo] = useState<CyclePhaseInfo | null>(null)
   const [savingBiometric, setSavingBiometric] = useState(false)
   const SCAN_TYPES = [
     { value: 'inbody_580', label: 'InBody 580' },
@@ -412,6 +414,10 @@ export default function CoachAthleteDetailPage() {
 
     setAthlete(athleteData)
     setProfile(athleteData.profile)
+    // Load cycle phase for female athletes who opted in and share with coach
+    if (athleteData.sex === 'female' && athleteData.cycle_tracking_enabled && athleteData.last_period_start && athleteData.share_cycle_with_coach) {
+      setCycleInfo(getCyclePhase(athleteData.last_period_start, athleteData.avg_cycle_length || 28))
+    }
 
     // Get recommendations
     const { data: recsData } = await supabase
@@ -599,6 +605,31 @@ export default function CoachAthleteDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Cycle Phase Indicator — only shows if athlete opted in AND shares with coach */}
+        {cycleInfo && (
+          <div className={`border rounded-xl p-4 ${cycleInfo.borderColor} ${cycleInfo.bgColor}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{cycleInfo.emoji}</span>
+                <div>
+                  <h3 className={`text-sm font-bold ${cycleInfo.color}`}>{cycleInfo.label} Phase</h3>
+                  <p className="text-xs text-slate-400">Day {cycleInfo.dayOfCycle} • {cycleInfo.daysUntilNextPeriod}d until next period</p>
+                </div>
+              </div>
+              <span className="text-xs text-slate-500 italic">Shared by athlete</span>
+            </div>
+            <p className="text-slate-300 text-xs mt-2">{cycleInfo.description}</p>
+            <div className="bg-slate-800/50 rounded-lg p-2 mt-2">
+              <p className="text-purple-400 text-xs font-medium">🍽 Coaching Insight: {cycleInfo.nutritionTip}</p>
+            </div>
+            {cycleInfo.phase === 'luteal' && (
+              <p className="text-yellow-400/80 text-xs mt-2 italic">
+                Note: Weight may fluctuate 2-5 lbs due to water retention during luteal phase.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Wellness Spotlight */}
         <WellnessSpotlight checkins={recentCheckins} role="coach" />

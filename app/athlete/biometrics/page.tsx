@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import InBodyProgressCharts from '@/components/InBodyProgressCharts'
 import { getLocalDateString } from '@/lib/utils/date'
+import { getCyclePhase, type CyclePhaseInfo } from '@/lib/cycle-tracker'
 
 interface BiometricScan {
   id: string
@@ -103,6 +104,7 @@ export default function BiometricsPage() {
   const [expandedScan, setExpandedScan] = useState<string | null>(null)
   const [goalWeight, setGoalWeight] = useState<number | null>(null)
   const [currentWeight, setCurrentWeight] = useState<number | null>(null)
+  const [cycleInfo, setCycleInfo] = useState<CyclePhaseInfo | null>(null)
 
   useEffect(() => { loadData() }, [])
 
@@ -111,11 +113,14 @@ export default function BiometricsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       setUserId(user.id)
-      const { data: athlete } = await supabase.from('athletes').select('id, goal_weight_lbs, weight_lbs').eq('profile_id', user.id).single()
+      const { data: athlete } = await supabase.from('athletes').select('id, goal_weight_lbs, weight_lbs, sex, cycle_tracking_enabled, last_period_start, avg_cycle_length').eq('profile_id', user.id).single()
       if (!athlete) { router.push('/athlete/onboarding'); return }
       setAthleteId(athlete.id)
       if (athlete.goal_weight_lbs) setGoalWeight(athlete.goal_weight_lbs)
       if (athlete.weight_lbs) setCurrentWeight(athlete.weight_lbs)
+      if (athlete.cycle_tracking_enabled && athlete.last_period_start) {
+        setCycleInfo(getCyclePhase(athlete.last_period_start, athlete.avg_cycle_length || 28))
+      }
       const { data: scansData } = await supabase.from('biometric_scans').select('*').eq('athlete_id', athlete.id).order('scan_date', { ascending: false })
       if (scansData) {
         setScans(scansData)
@@ -257,6 +262,31 @@ export default function BiometricsPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Cycle Phase Card */}
+        {cycleInfo && (
+          <div className={`border rounded-xl p-4 ${cycleInfo.borderColor} ${cycleInfo.bgColor}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{cycleInfo.emoji}</span>
+                <div>
+                  <h3 className={`text-sm font-bold ${cycleInfo.color}`}>{cycleInfo.label} Phase</h3>
+                  <p className="text-xs text-slate-400">Day {cycleInfo.dayOfCycle} • {cycleInfo.daysUntilNextPeriod} days until next period</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-slate-300 text-xs mb-2">{cycleInfo.description}</p>
+            <div className="bg-slate-800/50 rounded-lg p-3">
+              <p className="text-purple-400 text-xs font-medium mb-1">🍽 Nutrition Insight</p>
+              <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.nutritionTip}</p>
+            </div>
+            {cycleInfo.phase === 'luteal' && (
+              <p className="text-yellow-400/80 text-xs mt-2 italic">
+                ⚠️ Weight may fluctuate 2-5 lbs due to water retention during this phase — this is normal and temporary.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Goal Weight Progress Card */}
         {goalWeight && currentWeight && (

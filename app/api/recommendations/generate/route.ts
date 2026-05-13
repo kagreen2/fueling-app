@@ -99,6 +99,20 @@ export async function POST(request: NextRequest) {
       age = 25
     }
 
+    // Calculate cycle phase for female users who opted in
+    let cyclePhase: 'menstrual' | 'follicular' | 'ovulatory' | 'luteal' | undefined
+    if (athlete.sex === 'female' && athlete.cycle_tracking_enabled && athlete.last_period_start) {
+      const lastPeriod = new Date(athlete.last_period_start)
+      const today = new Date()
+      const daysSince = Math.floor((today.getTime() - lastPeriod.getTime()) / (1000 * 60 * 60 * 24))
+      const cycleLength = athlete.avg_cycle_length || 28
+      const dayOfCycle = (daysSince % cycleLength) + 1
+      if (dayOfCycle <= 5) cyclePhase = 'menstrual'
+      else if (dayOfCycle <= 13) cyclePhase = 'follicular'
+      else if (dayOfCycle <= 16) cyclePhase = 'ovulatory'
+      else cyclePhase = 'luteal'
+    }
+
     // Prepare athlete profile for calculation
     const athleteProfile = {
       age,
@@ -115,6 +129,7 @@ export async function POST(request: NextRequest) {
       user_type: userType as 'athlete' | 'member',
       activity_level: athlete.activity_level || undefined,
       training_style: athlete.training_style || undefined,
+      cycle_phase: cyclePhase,
     }
 
     // Calculate evidence-based recommendations (pure math, no AI needed)
