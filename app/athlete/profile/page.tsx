@@ -38,6 +38,10 @@ interface AthleteData {
   user_type: string | null
   activity_level: string | null
   training_style: string | null
+  cycle_tracking_enabled: boolean | null
+  last_period_start: string | null
+  avg_cycle_length: number | null
+  share_cycle_with_coach: boolean | null
 }
 
 interface NutritionRecs {
@@ -125,6 +129,14 @@ export default function ProfilePage() {
   const [teamSuccess, setTeamSuccess] = useState('')
   const [currentTeams, setCurrentTeams] = useState<{ id: string; name: string; sport: string | null }[]>([])
 
+  // Cycle tracking state
+  const [cycleEnabled, setCycleEnabled] = useState(false)
+  const [lastPeriodStart, setLastPeriodStart] = useState('')
+  const [avgCycleLength, setAvgCycleLength] = useState('28')
+  const [shareWithCoach, setShareWithCoach] = useState(false)
+  const [cycleSaving, setCycleSaving] = useState(false)
+  const [cycleSuccess, setCycleSuccess] = useState('')
+
   // Edit form state
   const [editForm, setEditForm] = useState({
     full_name: '',
@@ -164,6 +176,14 @@ export default function ProfilePage() {
 
     if (athleteData) {
       setAthlete(athleteData)
+
+      // Load cycle tracking settings
+      if (athleteData.sex === 'female') {
+        setCycleEnabled(athleteData.cycle_tracking_enabled || false)
+        setLastPeriodStart(athleteData.last_period_start || '')
+        setAvgCycleLength(athleteData.avg_cycle_length?.toString() || '28')
+        setShareWithCoach(athleteData.share_cycle_with_coach || false)
+      }
 
       // Load nutrition recommendations
       const { data: recsData } = await supabase
@@ -846,6 +866,134 @@ export default function ProfilePage() {
                 )}
                 {teamSuccess && (
                   <p className="text-xs text-green-400">{teamSuccess}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cycle Tracking Settings — Female users only */}
+        {!editing && athlete && athlete.sex === 'female' && (
+          <Card className="mb-6 border-slate-700/50">
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-white">Cycle Tracking</p>
+                  <p className="text-xs text-slate-400 mt-1">Optimize your nutrition based on your menstrual cycle phase</p>
+                </div>
+
+                {/* Enable/Disable toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-300">Enable cycle tracking</p>
+                    <p className="text-xs text-slate-500">Adjusts macros based on your cycle phase</p>
+                  </div>
+                  <button
+                    onClick={() => setCycleEnabled(!cycleEnabled)}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${
+                      cycleEnabled ? 'bg-purple-600' : 'bg-slate-600'
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                      cycleEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {cycleEnabled && (
+                  <>
+                    {/* Last period start */}
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium mb-1">Last period start date</p>
+                      <input
+                        type="date"
+                        value={lastPeriodStart}
+                        onChange={e => setLastPeriodStart(e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                        className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors"
+                      />
+                    </div>
+
+                    {/* Average cycle length */}
+                    <div>
+                      <p className="text-xs text-slate-400 font-medium mb-1">Average cycle length (days)</p>
+                      <input
+                        type="number"
+                        value={avgCycleLength}
+                        onChange={e => setAvgCycleLength(e.target.value)}
+                        min="21"
+                        max="40"
+                        className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-600 transition-colors"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">Typical range: 21–35 days</p>
+                    </div>
+
+                    {/* Share with coach toggle */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-slate-300">Share with coach</p>
+                        <p className="text-xs text-slate-500">Let your coach see your cycle phase</p>
+                      </div>
+                      <button
+                        onClick={() => setShareWithCoach(!shareWithCoach)}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${
+                          shareWithCoach ? 'bg-purple-600' : 'bg-slate-600'
+                        }`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                          shareWithCoach ? 'translate-x-5' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-slate-500">
+                      Your cycle data is private. Only the current phase is shared with your coach if you opt in.
+                    </p>
+                  </>
+                )}
+
+                {/* Save button */}
+                <button
+                  onClick={async () => {
+                    if (!athlete) return
+                    setCycleSaving(true)
+                    setCycleSuccess('')
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (!user) return
+                    const { error } = await supabase
+                      .from('athletes')
+                      .update({
+                        cycle_tracking_enabled: cycleEnabled,
+                        last_period_start: cycleEnabled && lastPeriodStart ? lastPeriodStart : null,
+                        avg_cycle_length: cycleEnabled ? parseInt(avgCycleLength) || 28 : 28,
+                        share_cycle_with_coach: cycleEnabled ? shareWithCoach : false,
+                      })
+                      .eq('profile_id', user.id)
+                    setCycleSaving(false)
+                    if (!error) {
+                      setCycleSuccess('Cycle tracking settings saved!')
+                      // Trigger macro recalculation
+                      try {
+                        await fetch('/api/recommendations/generate', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ athleteId: athlete.id }),
+                        })
+                        setCycleSuccess('Settings saved and macros recalculated!')
+                      } catch (e) {
+                        console.error('Error recalculating:', e)
+                      }
+                      setTimeout(() => setCycleSuccess(''), 4000)
+                    }
+                  }}
+                  disabled={cycleSaving}
+                  className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  {cycleSaving ? 'Saving...' : 'Save Cycle Settings'}
+                </button>
+
+                {cycleSuccess && (
+                  <p className="text-xs text-green-400 text-center">{cycleSuccess}</p>
                 )}
               </div>
             </CardContent>
