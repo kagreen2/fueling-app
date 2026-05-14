@@ -69,6 +69,7 @@ export default function CheckInPage() {
   const [cycleInfo, setCycleInfo] = useState<CyclePhaseInfo | null>(null)
   const [showCycleSection, setShowCycleSection] = useState(false)
   const [periodStartedToday, setPeriodStartedToday] = useState(false)
+  const [previousPeriodStart, setPreviousPeriodStart] = useState<string | null>(null)
 
   // Fetch user type and existing check-in on mount
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function CheckInPage() {
         // Load cycle tracking info for female users who opted in
         if (athlete?.cycle_tracking_enabled && athlete?.last_period_start) {
           setShowCycleSection(true)
+          setPreviousPeriodStart(athlete.last_period_start)
           const phase = getCyclePhase(athlete.last_period_start, athlete.avg_cycle_length || 28)
           setCycleInfo(phase)
         }
@@ -411,15 +413,15 @@ export default function CheckInPage() {
                 <button
                   type="button"
                   onClick={async () => {
-                    setPeriodStartedToday(!periodStartedToday)
                     if (!periodStartedToday) {
-                      // Update last_period_start to today
+                      // Mark period as started today
                       const { data: { user } } = await supabase.auth.getUser()
                       if (user) {
                         const today = getLocalDateString()
                         await supabase.from('athletes').update({ last_period_start: today }).eq('profile_id', user.id)
                         const newPhase = getCyclePhase(today, cycleInfo.dayOfCycle > 0 ? Math.round(cycleInfo.dayOfCycle + cycleInfo.daysUntilNextPeriod - 1) : 28)
                         setCycleInfo(newPhase)
+                        setPeriodStartedToday(true)
                       }
                     }
                   }}
@@ -431,6 +433,24 @@ export default function CheckInPage() {
                 >
                   🩸 Period started today
                 </button>
+                {periodStartedToday && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      // Undo — revert to previous period start date
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (user && previousPeriodStart) {
+                        await supabase.from('athletes').update({ last_period_start: previousPeriodStart }).eq('profile_id', user.id)
+                        const revertedPhase = getCyclePhase(previousPeriodStart, cycleInfo.dayOfCycle > 0 ? Math.round(cycleInfo.dayOfCycle + cycleInfo.daysUntilNextPeriod - 1) : 28)
+                        setCycleInfo(revertedPhase)
+                        setPeriodStartedToday(false)
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all active:scale-95"
+                  >
+                    ↩ Undo
+                  </button>
+                )}
               </div>
             </CardContent>
           </Card>
