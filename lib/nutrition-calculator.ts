@@ -488,8 +488,8 @@ export function calculateNutritionRecommendation(
 
   // Protein: g/kg based on goal phase (ISSN)
   const proteinPerKg = getProteinPerKg(athlete.goal_phase)
-  const protein_g = Math.round(weight_kg * proteinPerKg)
-  const protein_cals = protein_g * 4
+  let protein_g = Math.round(weight_kg * proteinPerKg)
+  let protein_cals = protein_g * 4
 
   // Carbs: g/kg based on training volume (IOC/Burke)
   const carbsPerKg = getCarbsPerKg(
