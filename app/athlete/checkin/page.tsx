@@ -406,8 +406,20 @@ export default function CheckInPage() {
                 <p className="text-slate-400 text-xs mt-2">{cycleInfo.description}</p>
               </div>
               <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-                <p className="text-purple-400 text-xs font-medium mb-1">🍽 Nutrition Tip</p>
+                <p className="text-purple-400 text-xs font-medium mb-1">🍽 Nutrition</p>
                 <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.nutritionTip}</p>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+                <p className="text-blue-400 text-xs font-medium mb-1">🧊 Recovery</p>
+                <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.recoveryTip}</p>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+                <p className="text-green-400 text-xs font-medium mb-1">💊 Supplement Insight</p>
+                <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.supplementTip}</p>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+                <p className="text-yellow-400 text-xs font-medium mb-1">🏋️ Training</p>
+                <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.trainingInsight}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button

@@ -276,9 +276,17 @@ export default function BiometricsPage() {
               </div>
             </div>
             <p className="text-slate-300 text-xs mb-2">{cycleInfo.description}</p>
-            <div className="bg-slate-800/50 rounded-lg p-3">
-              <p className="text-purple-400 text-xs font-medium mb-1">🍽 Nutrition Insight</p>
+            <div className="bg-slate-800/50 rounded-lg p-3 mb-2">
+              <p className="text-purple-400 text-xs font-medium mb-1">🍽 Nutrition</p>
               <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.nutritionTip}</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-3 mb-2">
+              <p className="text-blue-400 text-xs font-medium mb-1">🧊 Recovery</p>
+              <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.recoveryTip}</p>
+            </div>
+            <div className="bg-slate-800/50 rounded-lg p-3">
+              <p className="text-green-400 text-xs font-medium mb-1">💊 Supplement</p>
+              <p className="text-slate-300 text-xs leading-relaxed">{cycleInfo.supplementTip}</p>
             </div>
             {cycleInfo.phase === 'luteal' && (
               <p className="text-yellow-400/80 text-xs mt-2 italic">
