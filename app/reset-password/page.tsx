@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 export default function ResetPasswordPage() {
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')

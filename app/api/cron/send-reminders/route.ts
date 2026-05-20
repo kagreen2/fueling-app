@@ -8,13 +8,6 @@ import {
   EVENING_REMINDERS,
 } from '@/lib/notifications/reminder-lines'
 
-// Configure web-push with VAPID keys
-webpush.setVapidDetails(
-  'mailto:crossfitironflag@gmail.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
-
 // Determine which reminder category to use based on the hour (Central Time)
 // Schedule: 9am check-in / 1pm meal / 3pm hydration / 8pm evening
 function getReminderCategory(hour: number): {
@@ -78,6 +71,20 @@ export async function GET(request: Request) {
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
+
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      console.error('Missing VAPID environment variables')
+      return NextResponse.json({ error: 'Push notification configuration is missing' }, { status: 500 })
+    }
+
+    webpush.setVapidDetails(
+      'mailto:crossfitironflag@gmail.com',
+      vapidPublicKey,
+      vapidPrivateKey
+    )
 
     // Create admin Supabase client
     const supabase = createClient(

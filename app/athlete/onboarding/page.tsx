@@ -134,7 +134,7 @@ export default function OnboardingPage() {
     })
   }
 
-  function update(field: string, value: string) {
+  function update(field: string, value: string | boolean | string[]) {
     setForm(prev => ({ ...prev, [field]: value }))
     // Clear team lookup when invite code changes
     if (field === 'inviteCode') {
@@ -323,7 +323,7 @@ export default function OnboardingPage() {
               const athleteFirstName = currentUser?.user_metadata?.full_name?.split(' ')[0] || ''
               await supabase.from('chat_messages').insert({
                 sender_id: team.coach_id,
-                receiver_id: userId!,
+                receiver_id: user.id,
                 athlete_id: athleteId,
                 message: `Hey${athleteFirstName ? ' ' + athleteFirstName : ''}! I'm ${coachName}, your nutrition coach. I'll be here to help you hit your goals. If you ever have questions about your macros, meals, or anything else \u2014 just message me here. Let's get after it! \u26A1`,
                 read: false,

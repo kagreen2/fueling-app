@@ -1,12 +1,27 @@
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 
-// Configure web-push with VAPID keys
-webpush.setVapidDetails(
-  'mailto:crossfitironflag@gmail.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
+let vapidConfigured = false
+
+function configureVapid(): boolean {
+  if (vapidConfigured) return true
+
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
+
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    console.error('Missing VAPID environment variables')
+    return false
+  }
+
+  webpush.setVapidDetails(
+    'mailto:crossfitironflag@gmail.com',
+    vapidPublicKey,
+    vapidPrivateKey
+  )
+  vapidConfigured = true
+  return true
+}
 
 interface PushPayload {
   title: string
@@ -22,6 +37,8 @@ interface PushPayload {
  */
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<boolean> {
   try {
+    if (!configureVapid()) return false
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
