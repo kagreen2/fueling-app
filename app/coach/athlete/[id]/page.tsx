@@ -74,6 +74,10 @@ export default function CoachAthleteDetailPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string>('')
 
+  // Password reset state
+  const [resetSending, setResetSending] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+
   // Supplements state
   const [supplements, setSupplements] = useState<any[]>([])
   const [supplementsLoading, setSupplementsLoading] = useState(true)
@@ -333,6 +337,24 @@ export default function CoachAthleteDetailPage() {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined })
   }
 
+  async function handlePasswordReset() {
+    if (!profile?.email) return
+    setResetSending(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+      if (error) {
+        alert(`Error sending reset: ${error.message}`)
+      } else {
+        setResetSent(true)
+      }
+    } catch (err) {
+      alert('Failed to send reset email')
+    }
+    setResetSending(false)
+  }
+
   async function loadAthleteData() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -583,7 +605,24 @@ export default function CoachAthleteDetailPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Athlete Info Card */}
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-          <h3 className="text-white font-semibold mb-3">Athlete Info</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white font-semibold">Athlete Info</h3>
+            {profile?.email && (
+              <div className="flex items-center gap-2">
+                {resetSent ? (
+                  <span className="text-green-400 text-xs">✓ Reset link sent to {profile.email}</span>
+                ) : (
+                  <button
+                    onClick={handlePasswordReset}
+                    disabled={resetSending}
+                    className="text-xs px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {resetSending ? 'Sending...' : '🔑 Reset Password'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-slate-500 text-xs uppercase tracking-wider">Weight</p>
