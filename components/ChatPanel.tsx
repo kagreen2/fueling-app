@@ -32,6 +32,8 @@ interface ChatPanelProps {
   senderRole?: string
   /** The other user's email (used for email notifications to coach) */
   otherUserEmail?: string
+  /** If true, don't auto-mark messages as read when panel opens (used on coach detail page) */
+  skipMarkRead?: boolean
 }
 
 function formatTime(dateStr: string): string {
@@ -61,6 +63,7 @@ export default function ChatPanel({
   senderName,
   senderRole,
   otherUserEmail,
+  skipMarkRead = false,
 }: ChatPanelProps) {
   const supabase = createClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -93,9 +96,9 @@ export default function ChatPanel({
     loadMessages()
   }, [loadMessages])
 
-  // Mark unread messages as read when panel is open
+  // Mark unread messages as read when panel is open (unless skipMarkRead is set)
   useEffect(() => {
-    if (!isOpen || messages.length === 0) return
+    if (skipMarkRead || !isOpen || messages.length === 0) return
 
     const unreadIds = messages
       .filter(m => m.receiver_id === currentUserId && !m.read)
@@ -112,7 +115,7 @@ export default function ChatPanel({
           )
         })
     }
-  }, [isOpen, messages, currentUserId, supabase])
+  }, [isOpen, messages, currentUserId, supabase, skipMarkRead])
 
   // Scroll to bottom when messages change
   useEffect(() => {

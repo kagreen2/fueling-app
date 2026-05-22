@@ -360,7 +360,15 @@ export default function CoachDashboardPage() {
     created_at: string
     sender_name?: string
     sender_email?: string
-  }>>([])
+  }>>([])  
+  const [allConversations, setAllConversations] = useState<Array<{
+    athlete_id: string
+    athlete_name: string
+    last_message: string
+    last_message_time: string
+    unread_count: number
+    total_count: number
+  }>>([])  
   const [coachUserId, setCoachUserId] = useState<string>('')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showAlertPanel, setShowAlertPanel] = useState(false)
@@ -762,8 +770,9 @@ export default function CoachDashboardPage() {
       setPendingSupplements(pendingSupps || [])
     }
 
-    // Load unread chat messages for this coach
+    // Load chat messages for this coach (both unread for badge + all recent for inbox)
     try {
+      // 1. Unread messages (for badge count)
       const { data: unreadMsgs } = await supabase
         .from('chat_messages')
         .select('*')
@@ -772,7 +781,6 @@ export default function CoachDashboardPage() {
         .order('created_at', { ascending: false })
 
       if (unreadMsgs && unreadMsgs.length > 0) {
-        // Enrich with sender names from athletes list
         const enriched = unreadMsgs.map(msg => {
           const athlete = athleteDataList.find(a => a.id === msg.athlete_id)
           return {
@@ -785,9 +793,47 @@ export default function CoachDashboardPage() {
       } else {
         setUnreadMessages([])
       }
+
+      // 2. All recent conversations (for inbox view) — get last 50 messages involving this coach
+      const { data: allMsgs } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
+        .order('created_at', { ascending: false })
+        .limit(200)
+
+      if (allMsgs && allMsgs.length > 0) {
+        // Group by athlete_id to build conversation list
+        const convMap: Record<string, { athlete_id: string; messages: typeof allMsgs }> = {}
+        for (const msg of allMsgs) {
+          if (!convMap[msg.athlete_id]) {
+            convMap[msg.athlete_id] = { athlete_id: msg.athlete_id, messages: [] }
+          }
+          convMap[msg.athlete_id].messages.push(msg)
+        }
+
+        const conversations = Object.values(convMap).map(conv => {
+          const athlete = athleteDataList.find(a => a.id === conv.athlete_id)
+          const lastMsg = conv.messages[0] // already sorted desc
+          const unreadCount = conv.messages.filter(m => m.receiver_id === user.id && !m.read).length
+          return {
+            athlete_id: conv.athlete_id,
+            athlete_name: athlete?.name || 'Unknown',
+            last_message: lastMsg.message,
+            last_message_time: lastMsg.created_at,
+            unread_count: unreadCount,
+            total_count: conv.messages.length,
+          }
+        }).sort((a, b) => new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime())
+
+        setAllConversations(conversations)
+      } else {
+        setAllConversations([])
+      }
     } catch {
       // chat_messages table might not exist yet
       setUnreadMessages([])
+      setAllConversations([])
     }
 
     setLoading(false)
@@ -1870,51 +1916,29 @@ export default function CoachDashboardPage() {
           </div>
         )}
 
-        {/* Messages View */}
+        {/* Messages View — Full Inbox */}
         {view === 'messages' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-white font-semibold text-lg">Messages</h3>
               {unreadMessages.length > 0 && (
-                <span className="text-sm text-slate-400">{unreadMessages.length} unread</span>
+                <span className="text-sm bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-medium">{unreadMessages.length} unread</span>
               )}
             </div>
 
-            {(() => {
-              // Group messages by athlete
-              const grouped = unreadMessages.reduce((acc, msg) => {
-                if (!acc[msg.athlete_id]) {
-                  acc[msg.athlete_id] = {
-                    athlete_id: msg.athlete_id,
-                    sender_name: msg.sender_name || 'Unknown',
-                    messages: [],
-                  }
-                }
-                acc[msg.athlete_id].messages.push(msg)
-                return acc
-              }, {} as Record<string, { athlete_id: string; sender_name: string; messages: typeof unreadMessages }>)
-
-              const conversations = Object.values(grouped).sort(
-                (a, b) => new Date(b.messages[0].created_at).getTime() - new Date(a.messages[0].created_at).getTime()
-              )
-
-              if (conversations.length === 0) {
-                return (
-                  <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center">
-                    <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                    </div>
-                    <h3 className="text-white font-semibold mb-1">All Caught Up!</h3>
-                    <p className="text-slate-400 text-sm">No unread messages from your athletes. Messages will appear here when athletes send you a chat.</p>
-                  </div>
-                )
-              }
-
-              return conversations.map(conv => {
-                const latestMsg = conv.messages[0]
+            {allConversations.length === 0 ? (
+              <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8 text-center">
+                <div className="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                </div>
+                <h3 className="text-white font-semibold mb-1">No Conversations Yet</h3>
+                <p className="text-slate-400 text-sm">Messages will appear here when athletes send you a chat. You can also start a conversation from any athlete's profile.</p>
+              </div>
+            ) : (
+              allConversations.map(conv => {
                 const athlete = athletes.find(a => a.id === conv.athlete_id)
                 const timeAgo = (() => {
-                  const diff = Date.now() - new Date(latestMsg.created_at).getTime()
+                  const diff = Date.now() - new Date(conv.last_message_time).getTime()
                   const mins = Math.floor(diff / 60000)
                   if (mins < 1) return 'Just now'
                   if (mins < 60) return `${mins}m ago`
@@ -1924,23 +1948,33 @@ export default function CoachDashboardPage() {
                   return `${days}d ago`
                 })()
 
+                const hasUnread = conv.unread_count > 0
+
                 return (
                   <div
                     key={conv.athlete_id}
-                    className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 hover:border-purple-500/50 transition-all cursor-pointer group"
+                    className={`border rounded-xl p-4 transition-all cursor-pointer group ${
+                      hasUnread
+                        ? 'bg-purple-500/5 border-purple-500/30 hover:border-purple-500/60'
+                        : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                    }`}
                     onClick={() => router.push(`/coach/athlete/${conv.athlete_id}?from_team=${selectedTeam}&from_view=${view}`)}
                   >
                     <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold flex-shrink-0">
-                        {conv.sender_name.charAt(0).toUpperCase()}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${
+                        hasUnread ? 'bg-purple-500/20 text-purple-400' : 'bg-slate-700 text-slate-400'
+                      }`}>
+                        {conv.athlete_name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <p className="text-white font-medium">{conv.sender_name}</p>
-                            <span className="bg-red-500/20 text-red-400 text-[10px] font-semibold px-1.5 py-0.5 rounded">
-                              {conv.messages.length} new
-                            </span>
+                            <p className={`font-medium ${hasUnread ? 'text-white' : 'text-slate-300'}`}>{conv.athlete_name}</p>
+                            {hasUnread && (
+                              <span className="bg-red-500/20 text-red-400 text-[10px] font-semibold px-1.5 py-0.5 rounded">
+                                {conv.unread_count} new
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-slate-500 text-xs">{timeAgo}</span>
@@ -1950,13 +1984,13 @@ export default function CoachDashboardPage() {
                         {athlete && (
                           <p className="text-slate-500 text-xs mb-1.5">{athlete.teamName} · {formatUserContext(athlete)}</p>
                         )}
-                        <p className="text-slate-300 text-sm truncate">{latestMsg.message}</p>
+                        <p className={`text-sm truncate ${hasUnread ? 'text-slate-200' : 'text-slate-400'}`}>{conv.last_message}</p>
                       </div>
                     </div>
                   </div>
                 )
               })
-            })()}
+            )}
           </div>
         )}
       </div>

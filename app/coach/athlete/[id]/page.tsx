@@ -1361,6 +1361,7 @@ export default function CoachAthleteDetailPage() {
               otherUserId={athlete.profile_id}
               otherUserName={profile.full_name || 'Athlete'}
               otherUserRole={athlete.user_type === 'member' ? 'General Fitness' : 'Athlete'}
+              skipMarkRead
             />
           </div>
         )}
