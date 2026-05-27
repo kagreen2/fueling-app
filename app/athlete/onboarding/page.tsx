@@ -262,7 +262,6 @@ export default function OnboardingPage() {
       cycle_tracking_enabled: form.sex === 'female' ? form.cycleTrackingEnabled : false,
       last_period_start: form.cycleTrackingEnabled && form.lastPeriodStart ? form.lastPeriodStart : null,
       avg_cycle_length: form.cycleTrackingEnabled ? (parseInt(form.avgCycleLength) || 28) : null,
-      cycle_share_with_coach: form.cycleTrackingEnabled ? form.cycleShareWithCoach : false,
     }
 
     if (existing) {
