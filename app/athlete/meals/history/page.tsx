@@ -49,6 +49,8 @@ export default function MealHistoryPage() {
   const [loggedSuccess, setLoggedSuccess] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [relogPicker, setRelogPicker] = useState<string | null>(null) // meal.id when picker is open
+  const [relogMealType, setRelogMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast')
 
   useEffect(() => {
     loadMeals()
@@ -175,7 +177,7 @@ export default function MealHistoryPage() {
     }
   }
 
-  async function logAgain(meal: MealLog) {
+  async function logAgain(meal: MealLog, overrideMealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack') {
     setLoggingAgain(meal.id)
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -204,13 +206,14 @@ export default function MealHistoryPage() {
         confidence: meal.confidence,
         ai_feedback: meal.ai_feedback,
         ai_next_step: meal.ai_next_step,
-        meal_type: meal.meal_type,
+        meal_type: overrideMealType || meal.meal_type,
         date: today,
         logged_at: new Date().toISOString(),
       })
 
       if (!error) {
         setLoggedSuccess(meal.id)
+        setRelogPicker(null)
         // Refresh the meals list
         loadMeals()
         setTimeout(() => setLoggedSuccess(null), 2000)
@@ -499,11 +502,59 @@ export default function MealHistoryPage() {
                                 )}
 
                                 {/* Action Buttons */}
-                                <div className="flex gap-2 mt-2">
+                                <div className="flex flex-col gap-2 mt-2">
+                                  {/* Meal type picker (shown when re-logging) */}
+                                  {relogPicker === meal.id && (
+                                    <div className="bg-slate-800 border border-slate-600 rounded-lg p-3" onClick={(e) => e.stopPropagation()}>
+                                      <p className="text-slate-300 text-xs font-medium mb-2">Log as:</p>
+                                      <div className="grid grid-cols-4 gap-1.5 mb-3">
+                                        {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map(type => (
+                                          <button
+                                            key={type}
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              setRelogMealType(type)
+                                            }}
+                                            className={`py-2 px-1 rounded-md text-xs font-medium capitalize transition-all ${
+                                              relogMealType === type
+                                                ? 'bg-purple-600 text-white'
+                                                : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                                            }`}
+                                          >
+                                            {type}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            logAgain(meal, relogMealType)
+                                          }}
+                                          disabled={loggingAgain === meal.id}
+                                          className="flex-1 py-2 rounded-lg font-semibold text-sm bg-purple-600 hover:bg-purple-700 text-white transition-colors"
+                                        >
+                                          {loggingAgain === meal.id ? '⏳ Logging...' : '✓ Log It'}
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setRelogPicker(null)
+                                          }}
+                                          className="px-4 py-2 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="flex gap-2">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      logAgain(meal)
+                                      setRelogMealType(meal.meal_type || 'breakfast')
+                                      setRelogPicker(meal.id)
                                     }}
                                     disabled={loggingAgain === meal.id || loggedSuccess === meal.id}
                                     className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-[0.97] ${
@@ -553,6 +604,7 @@ export default function MealHistoryPage() {
                                       🗑️
                                     </button>
                                   )}
+                                  </div>
                                 </div>
                               </div>
                             )}
