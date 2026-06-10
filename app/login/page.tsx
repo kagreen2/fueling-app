@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
@@ -36,6 +36,17 @@ export default function LoginPage( ) {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Check for error from auth callback (e.g., expired reset link)
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const callbackError = searchParams.get('error')
+    if (callbackError) {
+      setError(callbackError === 'otp_expired' || callbackError.includes('expired')
+        ? 'Your password reset link has expired. Please request a new one.'
+        : callbackError)
+    }
+  }, [searchParams])
 
   // Forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false)
@@ -103,7 +114,7 @@ export default function LoginPage( ) {
     setResetError('')
 
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     })
 
     if (error) {
