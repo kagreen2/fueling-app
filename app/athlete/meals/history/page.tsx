@@ -51,6 +51,17 @@ export default function MealHistoryPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [relogPicker, setRelogPicker] = useState<string | null>(null) // meal.id when picker is open
   const [relogMealType, setRelogMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast')
+  const [editingMeal, setEditingMeal] = useState<string | null>(null) // meal.id being edited
+  const [editForm, setEditForm] = useState<{
+    meal_title: string
+    description: string
+    calories: string
+    protein: string
+    carbs: string
+    fat: string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  }>({ meal_title: '', description: '', calories: '', protein: '', carbs: '', fat: '', meal_type: 'breakfast' })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadMeals()
@@ -242,6 +253,55 @@ export default function MealHistoryPage() {
     setDeleting(null)
   }
 
+  function startEdit(meal: MealLog) {
+    setEditForm({
+      meal_title: meal.meal_title || '',
+      description: meal.description || '',
+      calories: String(meal.calories || 0),
+      protein: String(meal.protein || 0),
+      carbs: String(meal.carbs || 0),
+      fat: String(meal.fat || 0),
+      meal_type: meal.meal_type || 'breakfast',
+    })
+    setEditingMeal(meal.id)
+  }
+
+  async function saveEdit(mealId: string) {
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('meal_logs')
+        .update({
+          meal_title: editForm.meal_title,
+          description: editForm.description || null,
+          calories: parseFloat(editForm.calories) || 0,
+          protein: parseFloat(editForm.protein) || 0,
+          carbs: parseFloat(editForm.carbs) || 0,
+          fat: parseFloat(editForm.fat) || 0,
+          meal_type: editForm.meal_type,
+        })
+        .eq('id', mealId)
+
+      if (!error) {
+        // Update local state
+        setMeals(prev => prev.map(m => m.id === mealId ? {
+          ...m,
+          meal_title: editForm.meal_title,
+          description: editForm.description || null,
+          calories: parseFloat(editForm.calories) || 0,
+          protein: parseFloat(editForm.protein) || 0,
+          carbs: parseFloat(editForm.carbs) || 0,
+          fat: parseFloat(editForm.fat) || 0,
+          meal_type: editForm.meal_type,
+        } : m))
+        setEditingMeal(null)
+      }
+    } catch (err) {
+      console.error('Error saving meal edit:', err)
+    }
+    setSaving(false)
+  }
+
   const totalMealsCount = meals.length
   const totalDays = dayGroups.length
 
@@ -430,6 +490,116 @@ export default function MealHistoryPage() {
                             {/* Expanded Details */}
                             {isMealExpanded && (
                               <div className="mt-4 pt-4 border-t border-slate-700/50 space-y-3">
+
+                                {/* Edit Mode */}
+                                {editingMeal === meal.id ? (
+                                  <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
+                                    {/* Meal Title */}
+                                    <div>
+                                      <label className="text-xs text-slate-400 font-medium mb-1 block">Meal Name</label>
+                                      <input
+                                        type="text"
+                                        value={editForm.meal_title}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, meal_title: e.target.value }))}
+                                        className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                      />
+                                    </div>
+
+                                    {/* Meal Type */}
+                                    <div>
+                                      <label className="text-xs text-slate-400 font-medium mb-1 block">Category</label>
+                                      <div className="grid grid-cols-4 gap-1.5">
+                                        {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map(type => (
+                                          <button
+                                            key={type}
+                                            type="button"
+                                            onClick={() => setEditForm(prev => ({ ...prev, meal_type: type }))}
+                                            className={`py-2 px-1 rounded-md text-xs font-medium capitalize transition-all ${
+                                              editForm.meal_type === type
+                                                ? 'bg-purple-600 text-white'
+                                                : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                                            }`}
+                                          >
+                                            {type}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Macros */}
+                                    <div>
+                                      <label className="text-xs text-slate-400 font-medium mb-1 block">Macros</label>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <label className="text-[10px] text-slate-500 uppercase">Calories</label>
+                                          <input
+                                            type="number"
+                                            value={editForm.calories}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, calories: e.target.value }))}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[10px] text-slate-500 uppercase">Protein (g)</label>
+                                          <input
+                                            type="number"
+                                            value={editForm.protein}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, protein: e.target.value }))}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[10px] text-slate-500 uppercase">Carbs (g)</label>
+                                          <input
+                                            type="number"
+                                            value={editForm.carbs}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, carbs: e.target.value }))}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[10px] text-slate-500 uppercase">Fat (g)</label>
+                                          <input
+                                            type="number"
+                                            value={editForm.fat}
+                                            onChange={(e) => setEditForm(prev => ({ ...prev, fat: e.target.value }))}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Description */}
+                                    <div>
+                                      <label className="text-xs text-slate-400 font-medium mb-1 block">Description</label>
+                                      <textarea
+                                        value={editForm.description}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                                        rows={2}
+                                        className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500 resize-none"
+                                        placeholder="What did you eat?"
+                                      />
+                                    </div>
+
+                                    {/* Save / Cancel */}
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => saveEdit(meal.id)}
+                                        disabled={saving || !editForm.meal_title.trim()}
+                                        className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-purple-600 hover:bg-purple-700 text-white transition-colors disabled:opacity-50"
+                                      >
+                                        {saving ? '⏳ Saving...' : '✓ Save Changes'}
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingMeal(null)}
+                                        className="px-4 py-2.5 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                <>
                                 {/* Photo */}
                                 {meal.photo_url && (
                                   <img
@@ -553,6 +723,15 @@ export default function MealHistoryPage() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
+                                      startEdit(meal)
+                                    }}
+                                    className="py-2.5 px-4 rounded-lg font-semibold text-sm bg-slate-600/50 text-slate-200 border border-slate-500/30 hover:bg-slate-600 hover:border-slate-500/50 transition-all active:scale-[0.97]"
+                                  >
+                                    ✏️ Edit
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
                                       setRelogMealType(meal.meal_type || 'breakfast')
                                       setRelogPicker(meal.id)
                                     }}
@@ -606,6 +785,8 @@ export default function MealHistoryPage() {
                                   )}
                                   </div>
                                 </div>
+                                </>
+                                )}
                               </div>
                             )}
                           </CardContent>
