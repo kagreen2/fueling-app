@@ -417,8 +417,14 @@ export default function BiometricsPage() {
                   <p className="text-slate-500 text-[10px] mb-4 leading-snug max-w-md mx-auto">By uploading your body composition scan, you consent to Fuel Different collecting, processing, and securely storing your body composition data to provide personalized nutrition recommendations. This data is shared only with your assigned coach and is never sold. You may request deletion at any time. <a href="/privacy" target="_blank" className="text-purple-400 underline">Privacy Policy</a></p>
                   {!scanPreview ? (
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <Button onClick={() => fileInputRef.current?.click()} className="bg-purple-600 hover:bg-purple-700">📷 Take Photo / Upload</Button>
-                      <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" />
+                      <label className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg cursor-pointer transition-colors text-sm">
+                        📷 Take Photo
+                        <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" />
+                      </label>
+                      <label className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-lg cursor-pointer transition-colors text-sm border border-slate-600">
+                        🖼️ Photo Library
+                        <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                      </label>
                     </div>
                   ) : (
                     <div className="mt-3 space-y-3">
