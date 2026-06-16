@@ -439,6 +439,7 @@ export default function AdminDashboard() {
                            user.email.toLowerCase().includes(searchQuery.toLowerCase())
       let matchesRole = false
       if (filterRole === 'all') matchesRole = true
+      else if (filterRole === 'free') matchesRole = (user.role === 'athlete' || user.role === 'member') && !user.subscription_status
       else if (filterRole === 'canceled') matchesRole = user.subscription_status === 'canceled' || user.subscription_status === 'past_due'
       else if (filterRole === 'admin') matchesRole = ['admin', 'super_admin'].includes(user.role)
       else matchesRole = user.role === filterRole
@@ -1497,6 +1498,7 @@ export default function AdminDashboard() {
                 <option value="athlete">Athletes</option>
                 <option value="coach">Coaches</option>
                 <option value="admin">Admins</option>
+                <option value="free">Free / Comped</option>
                 <option value="canceled">Canceled / Inactive</option>
               </select>
             </div>
@@ -1547,7 +1549,7 @@ export default function AdminDashboard() {
                           ) : user.role === 'coach' || ['admin', 'super_admin'].includes(user.role) ? (
                             <span className="text-xs px-2 py-1 rounded bg-slate-600/30 text-slate-400">—</span>
                           ) : (
-                            <span className="text-xs px-2 py-1 rounded bg-slate-600/30 text-slate-400">Unpaid</span>
+                            <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400 font-medium">Free</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-slate-400 text-sm hidden md:table-cell">{user.phone || '\u2014'}</td>
@@ -1688,9 +1690,9 @@ export default function AdminDashboard() {
                             editingUser.subscription_status === 'active' ? 'bg-green-500/20 text-green-400' :
                             editingUser.subscription_status === 'canceled' ? 'bg-red-500/20 text-red-400' :
                             editingUser.subscription_status === 'past_due' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-slate-600/30 text-slate-400'
+                            'bg-blue-500/20 text-blue-400'
                           }`}>
-                            {editingUser.subscription_status ? editingUser.subscription_status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unpaid'}
+                            {editingUser.subscription_status ? editingUser.subscription_status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Free'}
                           </span>
                           {(editingUser.subscription_status === 'canceled' || editingUser.subscription_status === 'past_due') && (
                             <button
@@ -1954,17 +1956,19 @@ export default function AdminDashboard() {
                 <p className="text-2xl font-bold text-white">{teams.length}</p>
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Athletes & Members</p>
-                <p className="text-2xl font-bold text-white">{profiles.filter(p => p.role === 'athlete' || p.role === 'member').length}</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Paying Members</p>
+                <p className="text-2xl font-bold text-white">{profiles.filter(p => (p.role === 'athlete' || p.role === 'member') && p.subscription_status === 'active').length}</p>
+                <p className="text-xs text-slate-500">active subscriptions</p>
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Price/Member</p>
-                <p className="text-2xl font-bold text-green-400">$20</p>
-                <p className="text-xs text-slate-500">per month</p>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Free Members</p>
+                <p className="text-2xl font-bold text-blue-400">{profiles.filter(p => (p.role === 'athlete' || p.role === 'member') && !p.subscription_status).length}</p>
+                <p className="text-xs text-slate-500">coupon / comped</p>
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Est. Monthly Revenue</p>
-                <p className="text-2xl font-bold text-green-400">${(profiles.filter(p => p.role === 'athlete' || p.role === 'member').length * 20).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-green-400">${(profiles.filter(p => (p.role === 'athlete' || p.role === 'member') && p.subscription_status === 'active').length * 20).toLocaleString()}</p>
+                <p className="text-xs text-slate-500">paying members × $20</p>
               </div>
             </div>
 
