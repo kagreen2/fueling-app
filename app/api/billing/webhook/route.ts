@@ -139,6 +139,59 @@ export async function POST(req: NextRequest) {
               subscription_status: 'canceled',
             })
             .eq('id', userId)
+
+          // Send cancellation email notification to admin
+          try {
+            const { data: canceledProfile } = await supabaseAdmin
+              .from('profiles')
+              .select('full_name, email')
+              .eq('id', userId)
+              .single()
+
+            const RESEND_API_KEY = process.env.RESEND_API_KEY
+            const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kelly@crossfitironflag.com'
+
+            if (RESEND_API_KEY && canceledProfile) {
+              const athleteName = canceledProfile.full_name || canceledProfile.email || 'Unknown athlete'
+              const athleteEmail = canceledProfile.email || 'N/A'
+              const cancelDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${RESEND_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: 'Fuel Different <notifications@fueldifferent.app>',
+                  to: ADMIN_EMAIL,
+                  subject: `⚠️ Subscription Canceled — ${athleteName}`,
+                  html: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #e2e8f0; padding: 40px 20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; margin: 0 auto;">
+    <tr>
+      <td style="background: linear-gradient(135deg, #1e293b, #334155); border-radius: 16px; padding: 32px; border: 1px solid #475569;">
+        <h2 style="color: #f87171; margin: 0 0 16px 0; font-size: 20px;">⚠️ Subscription Canceled</h2>
+        <p style="color: #cbd5e1; margin: 0 0 20px 0; font-size: 15px;">An athlete has canceled their subscription:</p>
+        <table style="width: 100%; background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+          <tr><td style="color: #94a3b8; font-size: 13px; padding: 4px 0;">Name</td><td style="color: #ffffff; font-size: 14px; font-weight: 600; padding: 4px 0;">${athleteName}</td></tr>
+          <tr><td style="color: #94a3b8; font-size: 13px; padding: 4px 0;">Email</td><td style="color: #ffffff; font-size: 14px; padding: 4px 0;">${athleteEmail}</td></tr>
+          <tr><td style="color: #94a3b8; font-size: 13px; padding: 4px 0;">Canceled</td><td style="color: #f87171; font-size: 14px; padding: 4px 0;">${cancelDate}</td></tr>
+        </table>
+        <p style="color: #94a3b8; font-size: 13px; margin: 0;">Their access has been revoked. They'll be redirected to the payment page if they try to log in.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+                }),
+              })
+            }
+          } catch (emailErr) {
+            console.error('Failed to send cancellation email notification:', emailErr)
+          }
         }
 
         // ---- TEAM ----
@@ -147,6 +200,56 @@ export async function POST(req: NextRequest) {
             status: 'canceled',
             updated_at: new Date().toISOString(),
           }).eq('team_id', teamId)
+
+          // Send team cancellation email notification to admin
+          try {
+            const { data: team } = await supabaseAdmin
+              .from('teams')
+              .select('name')
+              .eq('id', teamId)
+              .single()
+
+            const RESEND_API_KEY = process.env.RESEND_API_KEY
+            const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kelly@crossfitironflag.com'
+
+            if (RESEND_API_KEY && team) {
+              const cancelDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${RESEND_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: 'Fuel Different <notifications@fueldifferent.app>',
+                  to: ADMIN_EMAIL,
+                  subject: `⚠️ Team Subscription Canceled — ${team.name}`,
+                  html: `
+<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #e2e8f0; padding: 40px 20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; margin: 0 auto;">
+    <tr>
+      <td style="background: linear-gradient(135deg, #1e293b, #334155); border-radius: 16px; padding: 32px; border: 1px solid #475569;">
+        <h2 style="color: #f87171; margin: 0 0 16px 0; font-size: 20px;">⚠️ Team Subscription Canceled</h2>
+        <p style="color: #cbd5e1; margin: 0 0 20px 0; font-size: 15px;">A team subscription has been canceled:</p>
+        <table style="width: 100%; background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+          <tr><td style="color: #94a3b8; font-size: 13px; padding: 4px 0;">Team</td><td style="color: #ffffff; font-size: 14px; font-weight: 600; padding: 4px 0;">${team.name}</td></tr>
+          <tr><td style="color: #94a3b8; font-size: 13px; padding: 4px 0;">Canceled</td><td style="color: #f87171; font-size: 14px; padding: 4px 0;">${cancelDate}</td></tr>
+        </table>
+        <p style="color: #94a3b8; font-size: 13px; margin: 0;">All athletes on this team will lose access until the subscription is renewed.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+                }),
+              })
+            }
+          } catch (emailErr) {
+            console.error('Failed to send team cancellation email notification:', emailErr)
+          }
         }
         break
       }
