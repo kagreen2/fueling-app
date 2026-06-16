@@ -15,6 +15,7 @@ interface Profile {
   email: string
   phone: string | null
   role: string
+  subscription_status: string | null
   created_at: string
 }
 
@@ -161,6 +162,7 @@ export default function AdminDashboard() {
   const [sendingReset, setSendingReset] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<Profile | null>(null)
   const [deletingUser, setDeletingUser] = useState(false)
+  const [reactivatingUser, setReactivatingUser] = useState<string | null>(null)
 
   // Team management state
   const [showCreateTeam, setShowCreateTeam] = useState(false)
@@ -435,8 +437,11 @@ export default function AdminDashboard() {
     return profiles.filter(user => {
       const matchesSearch = user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            user.email.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesRole = filterRole === 'all' || user.role === filterRole ||
-                         (filterRole === 'admin' && ['admin', 'super_admin'].includes(user.role))
+      let matchesRole = false
+      if (filterRole === 'all') matchesRole = true
+      else if (filterRole === 'canceled') matchesRole = user.subscription_status === 'canceled' || user.subscription_status === 'past_due'
+      else if (filterRole === 'admin') matchesRole = ['admin', 'super_admin'].includes(user.role)
+      else matchesRole = user.role === filterRole
       return matchesSearch && matchesRole
     })
   }, [profiles, searchQuery, filterRole])
@@ -522,6 +527,28 @@ export default function AdminDashboard() {
       console.error('Error sending reset:', error)
     }
     setSendingReset(false)
+  }
+
+  async function reactivateUser(userId: string) {
+    setReactivatingUser(userId)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ subscription_status: 'active' })
+        .eq('id', userId)
+
+      if (!error) {
+        setProfiles(prev => prev.map(u => u.id === userId ? { ...u, subscription_status: 'active' } : u))
+        alert('User reactivated successfully! They can now access the app.')
+      } else {
+        console.error('Error reactivating user:', error)
+        alert('Failed to reactivate user. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error reactivating user:', error)
+      alert('Failed to reactivate user. Please try again.')
+    }
+    setReactivatingUser(null)
   }
 
   async function handleDeleteUser() {
@@ -1470,6 +1497,7 @@ export default function AdminDashboard() {
                 <option value="athlete">Athletes</option>
                 <option value="coach">Coaches</option>
                 <option value="admin">Admins</option>
+                <option value="canceled">Canceled / Inactive</option>
               </select>
             </div>
 
@@ -1479,6 +1507,7 @@ export default function AdminDashboard() {
                   <thead>
                     <tr className="border-b border-slate-700 text-left">
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">User</th>
+                      <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Phone</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Role</th>
                       <th className="px-4 py-3 text-xs font-medium text-slate-400 uppercase tracking-wider hidden md:table-cell">Joined</th>
@@ -1507,6 +1536,19 @@ export default function AdminDashboard() {
                               <p className="text-slate-500 text-xs">{user.email}</p>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {user.subscription_status === 'canceled' ? (
+                            <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 font-medium">Canceled</span>
+                          ) : user.subscription_status === 'past_due' ? (
+                            <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 font-medium">Past Due</span>
+                          ) : user.subscription_status === 'active' ? (
+                            <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400 font-medium">Active</span>
+                          ) : user.role === 'coach' || ['admin', 'super_admin'].includes(user.role) ? (
+                            <span className="text-xs px-2 py-1 rounded bg-slate-600/30 text-slate-400">—</span>
+                          ) : (
+                            <span className="text-xs px-2 py-1 rounded bg-slate-600/30 text-slate-400">Unpaid</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-slate-400 text-sm hidden md:table-cell">{user.phone || '\u2014'}</td>
                         <td className="px-4 py-3">
@@ -1543,6 +1585,15 @@ export default function AdminDashboard() {
                                   View
                                 </button>
                               )
+                            )}
+                            {(user.subscription_status === 'canceled' || user.subscription_status === 'past_due') && (
+                              <button
+                                onClick={() => reactivateUser(user.id)}
+                                disabled={reactivatingUser === user.id}
+                                className="text-green-400 hover:text-green-300 text-sm font-medium transition-colors disabled:opacity-50"
+                              >
+                                {reactivatingUser === user.id ? 'Reactivating...' : 'Reactivate'}
+                              </button>
                             )}
                           </div>
                         </td>
@@ -1627,6 +1678,34 @@ export default function AdminDashboard() {
                         </select>
                       )}
                     </div>
+
+                    {/* Subscription Status */}
+                    {editingUser.role === 'athlete' || editingUser.role === 'member' ? (
+                      <div className="pt-2 border-t border-slate-700">
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Subscription Status</label>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs px-2.5 py-1 rounded font-medium ${
+                            editingUser.subscription_status === 'active' ? 'bg-green-500/20 text-green-400' :
+                            editingUser.subscription_status === 'canceled' ? 'bg-red-500/20 text-red-400' :
+                            editingUser.subscription_status === 'past_due' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-slate-600/30 text-slate-400'
+                          }`}>
+                            {editingUser.subscription_status ? editingUser.subscription_status.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unpaid'}
+                          </span>
+                          {(editingUser.subscription_status === 'canceled' || editingUser.subscription_status === 'past_due') && (
+                            <button
+                              onClick={() => { reactivateUser(editingUser.id); setEditingUser({ ...editingUser, subscription_status: 'active' }) }}
+                              disabled={reactivatingUser === editingUser.id}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 hover:text-green-300 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                              {reactivatingUser === editingUser.id ? 'Reactivating...' : 'Reactivate'}
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1.5">Reactivating grants immediate app access without requiring new payment.</p>
+                      </div>
+                    ) : null}
 
                     {/* Password Reset */}
                     <div className="pt-2 border-t border-slate-700">
