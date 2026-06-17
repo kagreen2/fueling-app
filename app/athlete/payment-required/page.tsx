@@ -118,7 +118,7 @@ export default function PaymentRequiredPage( ) {
                 <p className="text-slate-400 text-sm">Monthly athlete plan</p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-white">$20</div>
+                <div className="text-2xl font-bold text-white">$25</div>
                 <div className="text-slate-400 text-sm">/month</div>
               </div>
             </div>
@@ -160,7 +160,7 @@ export default function PaymentRequiredPage( ) {
             disabled={loading}
             className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-semibold py-3 rounded-xl text-lg transition-colors"
           >
-            {loading ? 'Preparing checkout...' : 'Subscribe — $20/month'}
+            {loading ? 'Preparing checkout...' : 'Subscribe — $25/month'}
           </Button>
 
           <p className="text-xs text-slate-500 text-center mt-3">

@@ -523,7 +523,7 @@ export default function ProfilePage() {
                   <p className="text-sm font-medium text-white">Subscription</p>
                   <p className="text-xs text-slate-400 mt-1">
                     {profile?.subscription_status === 'active'
-                      ? 'Active — $20/month'
+                      ? 'Active — $25/month'
                       : profile?.subscription_status === 'past_due'
                       ? 'Past due — please update payment'
                       : 'Inactive'}

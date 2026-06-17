@@ -217,7 +217,7 @@ export default function BillingPage() {
             </div>
           </div>
           <div className="flex items-baseline gap-1 mb-3">
-            <span className="text-4xl font-bold text-white">$20</span>
+            <span className="text-4xl font-bold text-white">$25</span>
             <span className="text-slate-400">/athlete/month</span>
           </div>
           <ul className="space-y-2 text-sm text-slate-300">
@@ -297,7 +297,7 @@ export default function BillingPage() {
                             </div>
                             <div>
                               <p className="text-slate-500 text-xs mb-1">Monthly Cost</p>
-                              <p className="text-white font-semibold">${(sub.athlete_count * 20).toLocaleString()}</p>
+                              <p className="text-white font-semibold">${(sub.athlete_count * 25).toLocaleString()}</p>
                             </div>
                             <div>
                               <p className="text-slate-500 text-xs mb-1">Renews</p>
@@ -332,7 +332,7 @@ export default function BillingPage() {
                           </p>
                           {count > 0 && (
                             <p className="text-lg font-bold text-white mt-2">
-                              ${(count * 20).toLocaleString()}<span className="text-slate-400 text-sm font-normal">/month</span>
+                              ${(count * 25).toLocaleString()}<span className="text-slate-400 text-sm font-normal">/month</span>
                             </p>
                           )}
                         </div>
@@ -349,7 +349,7 @@ export default function BillingPage() {
                           ) : count === 0 ? (
                             'Add athletes first'
                           ) : (
-                            `Subscribe — $${(count * 20).toLocaleString()}/month`
+                            `Subscribe — $${(count * 25).toLocaleString()}/month`
                           )}
                         </button>
                       </div>

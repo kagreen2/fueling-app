@@ -1967,8 +1967,8 @@ export default function AdminDashboard() {
               </div>
               <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Est. Monthly Revenue</p>
-                <p className="text-2xl font-bold text-green-400">${(profiles.filter(p => (p.role === 'athlete' || p.role === 'member') && p.subscription_status === 'active').length * 20).toLocaleString()}</p>
-                <p className="text-xs text-slate-500">paying members × $20</p>
+                <p className="text-2xl font-bold text-green-400">${(profiles.filter(p => (p.role === 'athlete' || p.role === 'member') && p.subscription_status === 'active').length * 25).toLocaleString()}</p>
+                <p className="text-xs text-slate-500">paying members × $25</p>
               </div>
             </div>
 
@@ -2003,7 +2003,7 @@ export default function AdminDashboard() {
                           <td className="px-5 py-3 text-center">
                             <span className="px-2 py-1 bg-slate-700 text-slate-400 text-xs font-medium rounded-full">Check Stripe</span>
                           </td>
-                          <td className="px-5 py-3 text-right text-white font-medium hidden sm:table-cell">${(memberCount * 20).toLocaleString()}</td>
+                          <td className="px-5 py-3 text-right text-white font-medium hidden sm:table-cell">${(memberCount * 25).toLocaleString()}</td>
                         </tr>
                       )
                     })}

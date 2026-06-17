@@ -309,7 +309,7 @@ export default function SignupPage( ) {
           {isAthleteOrMember && (
             <div className="border rounded-xl px-4 py-3" style={{ backgroundColor: (form.role === 'member' ? '#3B82F6' : styles.colors.primary) + '0d', borderColor: (form.role === 'member' ? '#3B82F6' : styles.colors.primary) + '33' }}>
               <p className="text-sm" style={{ color: (form.role === 'member' ? '#93C5FD' : styles.colors.primary) + 'cc' }}>
-                After creating your account, you&apos;ll be directed to complete payment ($20/month). Have a promo code? You can enter it at checkout.
+                After creating your account, you&apos;ll be directed to complete payment ($25/month). Have a promo code? You can enter it at checkout.
               </p>
             </div>
           )}

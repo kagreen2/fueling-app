@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
             athlete_count: athleteCount,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            amount_per_athlete: 2000,
+            amount_per_athlete: 2500,
             updated_at: new Date().toISOString(),
           }, { onConflict: 'team_id' })
         }

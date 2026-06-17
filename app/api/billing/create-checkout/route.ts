@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
               name: `Fuel Different — ${team.name}`,
               description: `Monthly nutrition tracking for ${athleteCount} athletes`,
             },
-            unit_amount: 2000, // $20.00 in cents
+            unit_amount: 2500, // $25.00 in cents
             recurring: {
               interval: 'month',
             },
