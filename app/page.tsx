@@ -491,6 +491,122 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Pricing Comparison */}
+      <section id="pricing" className="py-24 px-4 border-t border-slate-800/60">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+              More Features. <span className="text-green-400">Less Cost.</span>
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+              Other apps make you choose between tracking and coaching. We give you both — plus AI, body comp, and sport-specific science — for less than a single session with a nutritionist.
+            </p>
+          </div>
+
+          {/* Comparison Table */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-700/50">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-700/60 bg-slate-800/40">
+                  <th className="text-left py-4 px-4 text-slate-400 font-medium w-44">Feature</th>
+                  <th className="py-4 px-3 text-center min-w-[110px]">
+                    <div className="inline-flex flex-col items-center gap-0.5">
+                      <div className="flex items-center gap-1">
+                        <LightningBolt className="w-4 h-4" />
+                        <span className="text-green-400 font-bold text-sm">Fuel Different</span>
+                      </div>
+                      <span className="text-green-400/70 text-xs font-normal">$25/mo</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-3 text-center min-w-[100px]">
+                    <div className="inline-flex flex-col items-center gap-0.5">
+                      <span className="text-slate-300 font-medium text-sm">MyFitnessPal</span>
+                      <span className="text-slate-500 text-xs font-normal">$20/mo</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-3 text-center min-w-[100px]">
+                    <div className="inline-flex flex-col items-center gap-0.5">
+                      <span className="text-slate-300 font-medium text-sm">Cal AI</span>
+                      <span className="text-slate-500 text-xs font-normal">$10/mo</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-3 text-center min-w-[100px]">
+                    <div className="inline-flex flex-col items-center gap-0.5">
+                      <span className="text-slate-300 font-medium text-sm">MacroFactor</span>
+                      <span className="text-slate-500 text-xs font-normal">$12/mo</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-3 text-center min-w-[100px] hidden md:table-cell">
+                    <div className="inline-flex flex-col items-center gap-0.5">
+                      <span className="text-slate-300 font-medium text-sm">Cronometer</span>
+                      <span className="text-slate-500 text-xs font-normal">$11/mo</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-300">
+                {[
+                  { feature: 'AI photo meal analysis',           fd: true,  mfp: true,  cal: true,  mf: false, cron: false },
+                  { feature: 'Sport-specific macro targets',     fd: true,  mfp: false, cal: false, mf: false, cron: false },
+                  { feature: 'Coach dashboard & messaging',      fd: true,  mfp: false, cal: false, mf: false, cron: false },
+                  { feature: 'Body comp (InBody) integration',   fd: true,  mfp: false, cal: false, mf: false, cron: false },
+                  { feature: 'Supplement safety screening',      fd: true,  mfp: false, cal: false, mf: false, cron: false },
+                  { feature: 'Season & goal periodization',      fd: true,  mfp: false, cal: false, mf: false, cron: false },
+                  { feature: 'Team management & invite codes',   fd: true,  mfp: false, cal: false, mf: false, cron: false },
+                  { feature: 'Daily wellness check-ins',         fd: true,  mfp: false, cal: false, mf: true,  cron: false },
+                  { feature: 'Macro & calorie tracking',         fd: true,  mfp: true,  cal: true,  mf: true,  cron: true  },
+                  { feature: 'Micronutrient tracking',           fd: false, mfp: true,  cal: false, mf: false, cron: true  },
+                ].map((row, i) => (
+                  <tr key={i} className={`border-b border-slate-800/40 ${i % 2 === 0 ? 'bg-slate-800/10' : ''}`}>
+                    <td className="py-3.5 px-4 text-slate-300 font-medium">{row.feature}</td>
+                    <td className="py-3.5 px-3 text-center bg-green-500/5">
+                      {row.fd
+                        ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500/15 text-green-400 font-bold text-base">✓</span>
+                        : <span className="text-slate-600 text-lg">—</span>}
+                    </td>
+                    <td className="py-3.5 px-3 text-center">
+                      {row.mfp ? <span className="text-slate-400">✓</span> : <span className="text-slate-600">—</span>}
+                    </td>
+                    <td className="py-3.5 px-3 text-center">
+                      {row.cal ? <span className="text-slate-400">✓</span> : <span className="text-slate-600">—</span>}
+                    </td>
+                    <td className="py-3.5 px-3 text-center">
+                      {row.mf ? <span className="text-slate-400">✓</span> : <span className="text-slate-600">—</span>}
+                    </td>
+                    <td className="py-3.5 px-3 text-center hidden md:table-cell">
+                      {row.cron ? <span className="text-slate-400">✓</span> : <span className="text-slate-600">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-600 mt-3 text-center">Competitor pricing based on publicly listed monthly rates as of 2026. Features reflect each app&apos;s core offering.</p>
+
+          {/* Bottom pricing highlight */}
+          <div className="mt-12 bg-gradient-to-r from-green-500/10 to-purple-500/10 border border-green-500/20 rounded-2xl p-8 text-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+              <div>
+                <div className="text-4xl font-black text-white">$25<span className="text-lg font-normal text-slate-400">/month</span></div>
+                <p className="text-slate-400 text-sm mt-1">Cancel anytime. No contracts.</p>
+              </div>
+              <div className="hidden sm:block w-px h-12 bg-slate-700" />
+              <div className="text-left">
+                <p className="text-slate-300 font-medium">That&apos;s less than one smoothie a week.</p>
+                <p className="text-slate-500 text-sm">Get AI coaching, team features, and sport science — all in one app.</p>
+              </div>
+              <Button
+                onClick={() => router.push('/signup')}
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold text-base px-8 whitespace-nowrap"
+              >
+                Start Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24 px-4 border-t border-slate-800/60">
         <div className="max-w-2xl mx-auto text-center">
