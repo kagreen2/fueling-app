@@ -937,6 +937,12 @@ export default function AdminDashboard() {
                 Organizations
               </button>
               <button
+                onClick={() => router.push('/admin/fuel42')}
+                className="px-3 sm:px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg text-xs sm:text-sm font-bold transition-colors"
+              >
+                FUEL 42
+              </button>
+              <button
                 onClick={() => router.push('/coach/dashboard')}
                 className="px-3 sm:px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
               >

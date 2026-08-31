@@ -400,6 +400,20 @@ export default function OnboardingPage() {
       console.error('Error generating recommendations:', e)
     }
 
+    // Complete a claimed FUEL 42 enrollment after the athlete record and first InBody scan exist.
+    if (searchParams.get('challenge') === 'fuel42') {
+      try {
+        await fetch('/api/challenges/fuel42/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ athleteId }),
+        })
+      } catch (e) {
+        // Non-critical: the participant retains access and staff can finish assignment from the roster.
+        console.error('Error completing FUEL 42 enrollment:', e)
+      }
+    }
+
     // Mark any pending invitations as accepted
     try {
       await fetch('/api/coach/invitation-accepted', {

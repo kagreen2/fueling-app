@@ -81,10 +81,34 @@ export default function LoginPage( ) {
       } catch {}
     }
 
+    const fuel42Token = searchParams.get('token')
+    const isFuel42Setup = searchParams.get('challenge') === 'fuel42' && fuel42Token
+
+    // A secure FUEL 42 setup link always takes priority over normal role routing.
+    if (isFuel42Setup) {
+      const claim = await fetch('/api/challenges/fuel42/claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ token: fuel42Token }),
+      })
+      const claimResult = await claim.json()
+      if (!claim.ok) {
+        setError(claimResult.error || 'Unable to activate your FUEL 42 access.')
+        setLoading(false)
+        return
+      }
+      localStorage.setItem('fuel_user_type', 'member')
+      router.push('/athlete/onboarding?challenge=fuel42')
+      return
+    }
+
     // Route based on role AND subscription status
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, subscription_status')
+      .select('*')
       .eq('id', data.user.id)
       .single()
 
@@ -100,7 +124,8 @@ export default function LoginPage( ) {
       router.push('/admin')
     } else {
       // Athlete — check subscription status
-      if (profile.subscription_status !== 'active') {
+      const hasChallengeAccess = profile.challenge_access_until && new Date(profile.challenge_access_until).getTime() >= Date.now()
+      if (profile.subscription_status !== 'active' && !hasChallengeAccess) {
         router.push('/athlete/payment-required')
       } else {
         router.push('/athlete/dashboard')

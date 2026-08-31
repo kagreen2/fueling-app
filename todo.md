@@ -36,3 +36,11 @@
 
 ### Roadmap
 - [ ] Team Average Fuel Score Over Time — line chart showing team avg score over 7/14/30 days, useful for correlating with training load cycles
+
+## FUEL 42 Participant Onboarding
+
+- [x] Define a separate challenge pass through October 31, 2026, so FUEL 42 access does not create or distort a $25 recurring subscription.
+- [x] Add secure participant-claim APIs, access gating, initial onboarding completion, a Kelly-assigned coach workflow, and an admin FUEL 42 roster.
+- [x] Run the production Supabase FUEL 42 enrollment SQL and connect the supplied Gymnetics consultation link.
+- [ ] Deploy the app workflow and public confirmation-page booking CTA.
+- [ ] Test a live participant setup link through the complete claim and onboarding flow.

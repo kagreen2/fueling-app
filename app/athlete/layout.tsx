@@ -50,7 +50,7 @@ export default function AthleteLayout({
     async function handleUser(userId: string) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, subscription_status')
+        .select('*')
         .eq('id', userId)
         .single()
 
@@ -106,8 +106,9 @@ export default function AthleteLayout({
         return
       }
 
-      // Normal access check — must have active subscription
-      if (profile.subscription_status !== 'active') {
+      // Normal access check — active subscription or current challenge pass is required.
+      const hasChallengeAccess = profile.challenge_access_until && new Date(profile.challenge_access_until).getTime() >= Date.now()
+      if (profile.subscription_status !== 'active' && !hasChallengeAccess) {
         router.push('/athlete/payment-required')
         return
       }

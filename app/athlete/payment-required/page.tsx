@@ -28,15 +28,16 @@ export default function PaymentRequiredPage( ) {
         return
       }
 
-      // Check if already paid
+      // Check if already paid or enrolled in a current challenge pass.
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_status, full_name')
+        .select('*')
         .eq('id', user.id)
         .single()
 
-      if (profile?.subscription_status === 'active') {
-        router.push('/athlete/onboarding')
+      const hasChallengeAccess = profile?.challenge_access_until && new Date(profile.challenge_access_until).getTime() >= Date.now()
+      if (profile?.subscription_status === 'active' || hasChallengeAccess) {
+        router.push('/athlete/onboarding?challenge=fuel42')
         return
       }
 

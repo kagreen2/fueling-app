@@ -3,6 +3,37 @@ import { stripe } from '@/lib/stripe/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
+const FUEL42_PACKAGES: Record<string, { key: string; name: string; amountCents: number }> = {
+  plink_1U95KyFd19nnAKLW98iJQEQE: { key: 'member', name: 'FUEL 42 — Member Challenge Access', amountCents: 13900 },
+  plink_1U95V1Fd19nnAKLWA31wOB5w: { key: 'classes', name: 'FUEL 42 — Nutrition + Unlimited Classes', amountCents: 24900 },
+  plink_1U95YyFd19nnAKLWbhZhhz4a: { key: 'pt6', name: 'FUEL 42 — Nutrition + 6 Personal Training Sessions', amountCents: 49900 },
+  plink_1U95fZFd19nnAKLWLqkl0EUg: { key: 'pt12', name: 'FUEL 42 — Nutrition + 12 Personal Training Sessions', amountCents: 79900 },
+}
+
+function getFuel42Package(session: Stripe.Checkout.Session) {
+  const paymentLink = session.payment_link
+  const paymentLinkId = typeof paymentLink === 'string' ? paymentLink : paymentLink?.id
+  return paymentLinkId ? { paymentLinkId, package: FUEL42_PACKAGES[paymentLinkId] } : null
+}
+
+async function sendFuel42BookingEmail({ email, firstName, packageName }: { email: string; firstName: string; packageName: string }) {
+  const bookingUrl = process.env.FUEL42_BOOKING_URL || 'https://link.gymntx.com/widget/bookings/fuel42-challenge'
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) return false
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'Fuel Different <notifications@fueldifferent.app>',
+      to: email,
+      subject: 'You’re registered for FUEL 42 — book your InBody consultation',
+      html: `<div style="background:#0a0e1a;padding:36px 18px;font-family:Arial,Helvetica,sans-serif;color:#f7f9ff"><div style="max-width:600px;margin:0 auto;background:#11182a;border:1px solid #263550;padding:34px"><p style="margin:0 0 16px;color:#4ade80;font-size:12px;letter-spacing:2px;font-weight:800">IRON FLAG FITNESS · FUEL 42</p><h1 style="margin:0 0 18px;font-size:30px;line-height:1.1;color:#ffffff">You’re in for FUEL 42.</h1><p style="color:#c7d0e0;font-size:16px;line-height:1.6">Hi ${firstName},</p><p style="color:#c7d0e0;font-size:16px;line-height:1.6">Your ${packageName} purchase is confirmed. The next step is to book your initial InBody consultation for September 13, 14, or 15. During that appointment, we’ll set up Fuel Different together and make sure you are ready for the 42-day challenge beginning September 14.</p><p style="margin:28px 0"><a href="${bookingUrl}" style="display:inline-block;background:#4ade80;color:#08110c;text-decoration:none;font-weight:800;padding:15px 22px">BOOK YOUR INBODY CONSULTATION</a></p><p style="color:#9eabc0;font-size:14px;line-height:1.6">Questions? Contact hello@fueldifferent.app.</p></div></div>`,
+    }),
+  })
+  return response.ok
+}
+
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,6 +78,60 @@ export async function POST(req: NextRequest) {
         const type = session.metadata?.type
         const teamId = session.metadata?.team_id
         const coachId = session.metadata?.coach_id
+
+        // ---- FUEL 42 ONE-TIME CHALLENGE PURCHASE ----
+        // Payment Links do not have an app user yet. Record the purchaser now; staff sends the
+        // one-time setup link at the InBody consultation, which grants access through October 31.
+        const fuel42 = getFuel42Package(session)
+        if (fuel42?.package && session.payment_status === 'paid') {
+          try {
+            const email = session.customer_details?.email?.trim().toLowerCase()
+            if (!email) throw new Error('FUEL 42 checkout did not provide a customer email')
+
+            const fullName = session.customer_details?.name || null
+            const { data: existingEnrollment } = await supabaseAdmin
+              .from('fuel42_enrollments')
+              .select('id')
+              .eq('stripe_checkout_session_id', session.id)
+              .maybeSingle()
+
+            const { error: enrollmentError } = await supabaseAdmin
+              .from('fuel42_enrollments')
+              .upsert({
+                stripe_checkout_session_id: session.id,
+                stripe_payment_link_id: fuel42.paymentLinkId,
+                stripe_customer_id: typeof session.customer === 'string' ? session.customer : session.customer?.id || null,
+                full_name: fullName,
+                email,
+                phone: session.customer_details?.phone || null,
+                package_key: fuel42.package.key,
+                package_name: fuel42.package.name,
+                amount_cents: session.amount_total || fuel42.package.amountCents,
+                currency: session.currency || 'usd',
+                payment_status: 'paid',
+                status: 'purchased',
+                updated_at: new Date().toISOString(),
+              }, { onConflict: 'stripe_checkout_session_id' })
+            if (enrollmentError) throw enrollmentError
+
+            if (!existingEnrollment) {
+              const sent = await sendFuel42BookingEmail({
+                email,
+                firstName: fullName?.split(' ')[0] || 'there',
+                packageName: fuel42.package.name,
+              })
+              if (sent) {
+                await supabaseAdmin
+                  .from('fuel42_enrollments')
+                  .update({ first_email_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+                  .eq('stripe_checkout_session_id', session.id)
+              }
+            }
+          } catch (fuel42Error) {
+            // Do not interrupt existing subscription processing; Stripe retries can be handled safely by the unique checkout-session key.
+            console.error('Unable to record FUEL 42 enrollment:', fuel42Error)
+          }
+        }
 
         // ---- INDIVIDUAL ATHLETE SUBSCRIPTION ----
         if (type === 'athlete_individual' && userId && session.subscription) {

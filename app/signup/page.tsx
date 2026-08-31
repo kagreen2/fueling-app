@@ -29,18 +29,22 @@ export default function SignupPage( ) {
     role: 'athlete' as 'athlete' | 'member' | 'coach',
   })
 
+  const fuel42Token = searchParams.get('token')
+  const isFuel42Setup = searchParams.get('challenge') === 'fuel42' && Boolean(fuel42Token)
+
   // Pre-fill invite code and email from URL params (e.g., from coach invite or QR code scan)
   useEffect(() => {
     const invite = searchParams.get('invite')
     const email = searchParams.get('email')
-    if (invite || email) {
+    if (invite || email || isFuel42Setup) {
       setForm(prev => ({
         ...prev,
         ...(invite ? { inviteCode: invite.toUpperCase(), role: 'athlete' as const } : {}),
         ...(email ? { email: email.toLowerCase() } : {}),
+        ...(isFuel42Setup ? { role: 'member' as const } : {}),
       }))
     }
-  }, [searchParams])
+  }, [searchParams, isFuel42Setup])
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -135,6 +139,26 @@ export default function SignupPage( ) {
           }).eq('id', data.user.id)
         }
 
+        if (isFuel42Setup && fuel42Token) {
+          const claim = await fetch('/api/challenges/fuel42/claim', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
+            },
+            body: JSON.stringify({ token: fuel42Token }),
+          })
+          const claimResult = await claim.json()
+          if (!claim.ok) {
+            setError(claimResult.error || 'Unable to activate your FUEL 42 access.')
+            setLoading(false)
+            return
+          }
+          localStorage.setItem('fuel_user_type', 'member')
+          router.push('/athlete/onboarding?challenge=fuel42')
+          return
+        }
+
         if (form.role === 'coach') {
           router.push('/coach/dashboard')
         } else {
@@ -189,8 +213,8 @@ export default function SignupPage( ) {
           <p className="text-slate-400">Performance fueling for serious athletes &amp; fitness enthusiasts</p>
         </div>
 
-        {/* Role selection — 3 options */}
-        <div className="flex gap-3 mb-6">
+        {/* Standard role selection stays available for regular sign-up but is hidden for a secure FUEL 42 setup link. */}
+        <div className={`${isFuel42Setup ? 'hidden ' : ''}flex gap-3 mb-6`}>
           <button
             type="button"
             onClick={() => setForm(prev => ({ ...prev, role: 'athlete' }))}
@@ -280,7 +304,7 @@ export default function SignupPage( ) {
             />
           </div>
 
-          {isAthleteOrMember && (
+          {!isFuel42Setup && isAthleteOrMember && (
             <div>
               <label className="text-slate-300 text-sm font-medium mb-2 block">
                 Team Invite Code <span className="text-slate-500">(from your coach)</span>
@@ -306,7 +330,7 @@ export default function SignupPage( ) {
             </div>
           )}
 
-          {isAthleteOrMember && (
+          {!isFuel42Setup && isAthleteOrMember && (
             <div className="border rounded-xl px-4 py-3" style={{ backgroundColor: (form.role === 'member' ? '#3B82F6' : styles.colors.primary) + '0d', borderColor: (form.role === 'member' ? '#3B82F6' : styles.colors.primary) + '33' }}>
               <p className="text-sm" style={{ color: (form.role === 'member' ? '#93C5FD' : styles.colors.primary) + 'cc' }}>
                 After creating your account, you&apos;ll be directed to complete payment ($25/month). Have a promo code? You can enter it at checkout.
@@ -327,9 +351,11 @@ export default function SignupPage( ) {
             className="w-full font-semibold py-3 rounded-xl text-lg transition-colors mt-2 text-white disabled:opacity-50"
           >
             {loading
-              ? (isAthleteOrMember ? 'Creating account & preparing checkout...' : 'Creating account...')
+              ? (isFuel42Setup ? 'Creating your FUEL 42 account...' : isAthleteOrMember ? 'Creating account & preparing checkout...' : 'Creating account...')
               : form.role === 'coach'
               ? 'Create Coach Account'
+              : isFuel42Setup
+              ? 'Create Account & Start FUEL 42 Setup'
               : 'Create Account & Continue to Payment'}
           </Button>
 
