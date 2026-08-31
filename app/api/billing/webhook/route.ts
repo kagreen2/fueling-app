@@ -172,11 +172,18 @@ export async function POST(req: NextRequest) {
                 amountCents: session.amount_total || 0,
                 checkoutSessionId: session.id,
               })
-              const sent = gymneticsNotified || await sendFuel42BookingEmail({
+              const gymneticsOwnsBookingEmail = process.env.FUEL42_GYMNETICS_EMAIL_ACTIVE === 'true'
+              const sent = gymneticsNotified && gymneticsOwnsBookingEmail
+                ? true
+                : await sendFuel42BookingEmail({
                 email,
                 firstName: fullName?.split(' ')[0] || 'there',
                 packageName: fuel42.package.name,
               })
+
+              if (gymneticsNotified && !gymneticsOwnsBookingEmail) {
+                console.info('FUEL 42 purchase sent to Gymnetics; direct booking email remains active until the workflow is approved.')
+              }
               if (sent) {
                 await supabaseAdmin
                   .from('fuel42_enrollments')
