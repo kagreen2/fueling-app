@@ -16,6 +16,54 @@ function getFuel42Package(session: Stripe.Checkout.Session) {
   return paymentLinkId ? { paymentLinkId, package: FUEL42_PACKAGES[paymentLinkId] } : null
 }
 
+function isCompletedFuel42Checkout(session: Stripe.Checkout.Session) {
+  return session.payment_status === 'paid'
+    || (session.payment_status === 'no_payment_required' && session.amount_total === 0)
+}
+
+async function notifyGymneticsFuel42Purchase({
+  email,
+  fullName,
+  phone,
+  packageName,
+  packageKey,
+  amountCents,
+  checkoutSessionId,
+}: {
+  email: string
+  fullName: string | null
+  phone: string | null
+  packageName: string
+  packageKey: string
+  amountCents: number
+  checkoutSessionId: string
+}) {
+  const workflowWebhookUrl = process.env.FUEL42_GYMNETICS_WEBHOOK_URL
+  if (!workflowWebhookUrl) return false
+
+  try {
+    const response = await fetch(workflowWebhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source: 'stripe_fuel42_payment_link',
+        email,
+        full_name: fullName,
+        phone,
+        package_name: packageName,
+        package_key: packageKey,
+        amount_cents: amountCents,
+        checkout_session_id: checkoutSessionId,
+        booking_url: process.env.FUEL42_BOOKING_URL || 'https://link.gymntx.com/widget/bookings/fuel42-challenge',
+      }),
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Unable to send FUEL 42 purchase to Gymnetics:', error)
+    return false
+  }
+}
+
 async function sendFuel42BookingEmail({ email, firstName, packageName }: { email: string; firstName: string; packageName: string }) {
   const bookingUrl = process.env.FUEL42_BOOKING_URL || 'https://link.gymntx.com/widget/bookings/fuel42-challenge'
   const resendKey = process.env.RESEND_API_KEY
@@ -83,7 +131,7 @@ export async function POST(req: NextRequest) {
         // Payment Links do not have an app user yet. Record the purchaser now; staff sends the
         // one-time setup link at the InBody consultation, which grants access through October 31.
         const fuel42 = getFuel42Package(session)
-        if (fuel42?.package && session.payment_status === 'paid') {
+        if (fuel42?.package && isCompletedFuel42Checkout(session)) {
           try {
             const email = session.customer_details?.email?.trim().toLowerCase()
             if (!email) throw new Error('FUEL 42 checkout did not provide a customer email')
@@ -115,7 +163,16 @@ export async function POST(req: NextRequest) {
             if (enrollmentError) throw enrollmentError
 
             if (!existingEnrollment) {
-              const sent = await sendFuel42BookingEmail({
+              const gymneticsNotified = await notifyGymneticsFuel42Purchase({
+                email,
+                fullName,
+                phone: session.customer_details?.phone || null,
+                packageName: fuel42.package.name,
+                packageKey: fuel42.package.key,
+                amountCents: session.amount_total || 0,
+                checkoutSessionId: session.id,
+              })
+              const sent = gymneticsNotified || await sendFuel42BookingEmail({
                 email,
                 firstName: fullName?.split(' ')[0] || 'there',
                 packageName: fuel42.package.name,
