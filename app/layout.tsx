@@ -28,19 +28,20 @@ export const metadata: Metadata = {
     follow: true,
   },
   manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Fuel Different",
-  },
   icons: {
     icon: [
+      { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
       { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-192_4a157b7a.png", sizes: "192x192", type: "image/png" },
       { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-512_1306ffdf.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
       { url: "https://d2xsxph8kpxj0f.cloudfront.net/310519663449295669/awiUyp6PspLAK7G3oEev6w/fuel-icon-192_4a157b7a.png", sizes: "192x192" },
     ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Fuel Different",
   },
 };
 
