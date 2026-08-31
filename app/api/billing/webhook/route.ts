@@ -57,6 +57,12 @@ async function notifyGymneticsFuel42Purchase({
         booking_url: process.env.FUEL42_BOOKING_URL || 'https://link.gymntx.com/widget/bookings/fuel42-challenge',
       }),
     })
+    const responseSummary = (await response.text()).slice(0, 200)
+    console.info('FUEL 42 Gymnetics handoff result:', {
+      ok: response.ok,
+      status: response.status,
+      response: responseSummary,
+    })
     return response.ok
   } catch (error) {
     console.error('Unable to send FUEL 42 purchase to Gymnetics:', error)
@@ -154,7 +160,7 @@ export async function POST(req: NextRequest) {
                 phone: session.customer_details?.phone || null,
                 package_key: fuel42.package.key,
                 package_name: fuel42.package.name,
-                amount_cents: session.amount_total || fuel42.package.amountCents,
+                amount_cents: session.amount_total ?? fuel42.package.amountCents,
                 currency: session.currency || 'usd',
                 payment_status: 'paid',
                 status: 'purchased',
