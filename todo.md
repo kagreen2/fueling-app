@@ -175,6 +175,8 @@
 - [ ] Access meal-level records through the admin Nutrition data source. The visible Nutrition tab timed out when opened remotely, so inspect its implementation and use the same authenticated read path rather than changing Chris’s account.
 - [ ] Recalculate each recent meal and daily total directly from the stored calories, protein, carbohydrates, fat, quantity, serving size, and portion-scaling fields.
 - [ ] Compare the independently recalculated totals with the athlete dashboard and coach-facing totals to identify any arithmetic, rounding, date-boundary, or aggregation discrepancy.
+- [x] Query all of Chris Tavonatti’s stored meal records through a temporary admin-only read endpoint and independently sum each day. Every displayed coach-summary calorie total, protein total, and meal count exactly matches the underlying meal rows for Aug. 22 through Sep. 1; no dashboard summation, rounding, or date-grouping error was found.
+- [x] Confirm the meal records store final calories, protein, carbs, and fat directly. They do not contain quantity or serving-size scaling fields; each logged meal is counted once at the saved macro values. Daily calories are summed from the stored calorie field rather than recalculated from 4/4/9 macros.
 - [ ] Trace the app code that creates manual/photo meal entries, scales portions, saves edits, relogs meals, and aggregates daily macros.
 - [ ] Check whether any identified discrepancy is specific to Chris’s entry method or reproducible across other records using the same calculation path.
 - [ ] Report only the technical calculation findings and any software correction required; do not recommend or modify Chris’s nutrition targets.

@@ -39,11 +39,32 @@ export async function GET(request: NextRequest) {
   if ('error' in auth) return auth.error
 
   const athleteId = request.nextUrl.searchParams.get('athlete_id')
+  const startDate = request.nextUrl.searchParams.get('start')
+  const endDate = request.nextUrl.searchParams.get('end')
+  const compact = request.nextUrl.searchParams.get('compact') === '1'
   if (!athleteId) {
     return NextResponse.json({ error: 'athlete_id is required' }, { status: 400 })
   }
 
   const supabaseAdmin = getSupabaseAdmin()
+  let mealsQuery = supabaseAdmin
+    .from('meal_logs')
+    .select('*')
+    .eq('athlete_id', athleteId)
+  let summaryQuery = supabaseAdmin
+    .from('coach_meal_summary')
+    .select('date, total_calories, total_protein, meal_count')
+    .eq('athlete_id', athleteId)
+
+  if (startDate) {
+    mealsQuery = mealsQuery.gte('date', startDate)
+    summaryQuery = summaryQuery.gte('date', startDate)
+  }
+  if (endDate) {
+    mealsQuery = mealsQuery.lte('date', endDate)
+    summaryQuery = summaryQuery.lte('date', endDate)
+  }
+
   const [athleteResult, recommendationResult, mealsResult, summaryResult] = await Promise.all([
     supabaseAdmin
       .from('athletes')
@@ -52,20 +73,13 @@ export async function GET(request: NextRequest) {
       .single(),
     supabaseAdmin
       .from('nutrition_recommendations')
-      .select('daily_calories, daily_protein_g, daily_carbs_g, daily_fat_g, reasoning, created_at, updated_at')
-      .eq('athlete_id', athleteId)
-      .maybeSingle(),
-    supabaseAdmin
-      .from('meal_logs')
       .select('*')
       .eq('athlete_id', athleteId)
+      .maybeSingle(),
+    mealsQuery
       .order('date', { ascending: true })
       .order('logged_at', { ascending: true }),
-    supabaseAdmin
-      .from('coach_meal_summary')
-      .select('date, total_calories, total_protein, meal_count')
-      .eq('athlete_id', athleteId)
-      .order('date', { ascending: true }),
+    summaryQuery.order('date', { ascending: true }),
   ])
 
   if (athleteResult.error || !athleteResult.data) {
@@ -129,7 +143,14 @@ export async function GET(request: NextRequest) {
       source: meal.source ?? meal.input_method ?? meal.log_method ?? null,
       quantity: meal.quantity ?? null,
       serving_size: meal.serving_size ?? null,
-      stored_fields: Object.keys(meal).sort(),
+      athlete_confirmed: meal.athlete_confirmed ?? null,
+      athlete_correction: meal.athlete_correction ?? null,
+      coach_override: meal.coach_override ?? null,
+      estimated_calories: meal.est_calories ?? null,
+      estimated_protein: meal.est_protein_g ?? null,
+      estimated_carbs: meal.est_carbs_g ?? null,
+      estimated_fat: meal.est_fat_g ?? null,
+      ...(compact ? {} : { stored_fields: Object.keys(meal).sort() }),
     }
   })
 
