@@ -50,6 +50,16 @@ const clarified = normalizeMealAnalysis(baseAnalysis, {
 assert.equal(clarified.needsClarification, false)
 assert.equal(clarified.confidence, 'high')
 
+const staleModelFlagResolved = normalizeMealAnalysis({
+  ...baseAnalysis,
+  needsClarification: false,
+  missingDetails: ['raw_or_cooked'],
+}, {
+  description: '14 oz eye of round steak, potatoes, Brussels sprouts',
+  clarification: 'The steak was weighed cooked.',
+})
+assert.equal(staleModelFlagResolved.needsClarification, false)
+
 const photoOnly = normalizeMealAnalysis(baseAnalysis, { hasPhoto: true })
 assert.equal(photoOnly.needsClarification, false)
 assert.equal(photoOnly.confidence, 'medium')
