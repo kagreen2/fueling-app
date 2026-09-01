@@ -7,18 +7,10 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { StatCard } from '@/components/ui/StatCard'
+import { validateMacroDraft } from '@/lib/meals/analysis.mjs'
+import type { MacroDraft, MealAnalysisResult } from '@/lib/meals/analysis.mjs'
 
-interface MealAnalysis {
-  mealTitle: string
-  calories: number
-  protein: number
-  carbs: number
-  fat: number
-  confidence: 'high' | 'medium' | 'low'
-  feedback: string
-  nextStep: string
-  clarifyingQuestion?: string
-}
+type MealAnalysis = MealAnalysisResult
 
 interface PastMeal {
   meal_title: string
@@ -48,6 +40,15 @@ export default function MealsPage() {
   const [quickLogSuccess, setQuickLogSuccess] = useState<string | null>(null)
   const [athleteId, setAthleteId] = useState<string | null>(null)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [clarificationAnswer, setClarificationAnswer] = useState('')
+  const [clarificationContext, setClarificationContext] = useState('')
+  const [macroDraft, setMacroDraft] = useState<MacroDraft>({
+    calories: '',
+    protein: '',
+    carbs: '',
+    fat: '',
+  })
+  const [macroDraftError, setMacroDraftError] = useState('')
 
   // Backdate support: allow logging meals for today, yesterday, or 2 days ago
   const [selectedDate, setSelectedDate] = useState<string>('')
@@ -70,7 +71,7 @@ export default function MealsPage() {
     if (!selectedDate && dateOptions.length > 0) {
       setSelectedDate(dateOptions[0].value)
     }
-  }, [dateOptions])
+  }, [dateOptions, selectedDate])
 
   const [form, setForm] = useState({
     mealTitle: '',
@@ -81,11 +82,6 @@ export default function MealsPage() {
 
   const [analysis, setAnalysis] = useState<MealAnalysis | null>(null)
   const [error, setError] = useState('')
-
-  // Load past meals for Recent & Frequent sections
-  useEffect(() => {
-    loadPastMeals()
-  }, [])
 
   async function loadPastMeals() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -141,6 +137,13 @@ export default function MealsPage() {
     }
   }
 
+  // Load past meals for Recent & Frequent sections
+  useEffect(() => {
+    loadPastMeals()
+    // Supabase's browser client is stable for the lifetime of this page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Recent = last 5 unique meals by date
   const recentMeals = useMemo(() => pastMeals.slice(0, 5), [pastMeals])
 
@@ -192,9 +195,13 @@ export default function MealsPage() {
     setQuickLogging(null)
   }
 
-  function update(field: string, value: any) {
+  function update<K extends keyof typeof form>(field: K, value: (typeof form)[K]) {
     setForm(prev => ({ ...prev, [field]: value }))
     setAnalysis(null)
+    setClarificationAnswer('')
+    setClarificationContext('')
+    setMacroDraft({ calories: '', protein: '', carbs: '', fat: '' })
+    setMacroDraftError('')
     setError('')
   }
 
@@ -208,20 +215,26 @@ export default function MealsPage() {
     }
   }
 
-  async function analyzeMeal() {
+  async function analyzeMeal(newClarification = '') {
     if (!form.mealTitle && !form.description && !form.photo) {
       setError('Please add a meal title, description, or photo')
       return
     }
 
+    const clarification = [clarificationContext, newClarification.trim()]
+      .filter(Boolean)
+      .join('\n')
+
     setAnalyzing(true)
     setError('')
+    setMacroDraftError('')
 
     try {
       const formData = new FormData()
       if (form.photo) formData.append('photo', form.photo)
       if (form.description) formData.append('description', form.description)
       if (form.mealTitle) formData.append('mealTitle', form.mealTitle)
+      if (clarification) formData.append('clarification', clarification)
 
       const res = await fetch('/api/meals/analyze', {
         method: 'POST',
@@ -235,8 +248,22 @@ export default function MealsPage() {
         return
       }
 
-      setAnalysis(data)
-    } catch (err) {
+      const nextAnalysis = data as MealAnalysis
+      setAnalysis(nextAnalysis)
+      setMacroDraft({
+        calories: String(nextAnalysis.calories),
+        protein: String(nextAnalysis.protein),
+        carbs: String(nextAnalysis.carbs),
+        fat: String(nextAnalysis.fat),
+      })
+      if (!form.mealTitle.trim() && nextAnalysis.mealTitle) {
+        setForm(prev => ({ ...prev, mealTitle: nextAnalysis.mealTitle }))
+      }
+      if (newClarification.trim()) {
+        setClarificationContext(clarification)
+        setClarificationAnswer('')
+      }
+    } catch {
       setError('Analysis failed. Please try again.')
     }
 
@@ -246,6 +273,16 @@ export default function MealsPage() {
   async function handleSubmit() {
     if (!form.mealTitle || !analysis) {
       setError('Please analyze the meal first')
+      return
+    }
+    if (analysis.needsClarification) {
+      setError('Please answer the portion question before saving this meal.')
+      return
+    }
+
+    const macroValidation = validateMacroDraft(macroDraft)
+    if (!macroValidation.valid) {
+      setMacroDraftError(macroValidation.error)
       return
     }
 
@@ -269,7 +306,7 @@ export default function MealsPage() {
 
     let photoUrl = null
     if (form.photo) {
-      const fileName = `${athlete.id}/${Date.now()}-${form.photo.name}`
+      const fileName = `${athlete.id}/${crypto.randomUUID()}-${form.photo.name}`
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('meal-photos')
         .upload(fileName, form.photo)
@@ -288,12 +325,15 @@ export default function MealsPage() {
     const { error: insertError } = await supabase.from('meal_logs').insert({
       athlete_id: athlete.id,
       meal_title: form.mealTitle,
-      description: form.description || null,
+      description: [
+        form.description.trim(),
+        clarificationContext ? `Clarification: ${clarificationContext}` : '',
+      ].filter(Boolean).join('\n') || null,
       photo_url: photoUrl,
-      calories: analysis.calories,
-      protein: analysis.protein,
-      carbs: analysis.carbs,
-      fat: analysis.fat,
+      calories: macroValidation.values.calories,
+      protein: macroValidation.values.protein,
+      carbs: macroValidation.values.carbs,
+      fat: macroValidation.values.fat,
       confidence: analysis.confidence,
       ai_feedback: analysis.feedback,
       ai_next_step: analysis.nextStep,
@@ -524,6 +564,7 @@ export default function MealsPage() {
             <div className="relative">
               {photoPreview ? (
                 <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local blob/data URL preview */}
                   <img
                     src={photoPreview}
                     alt="Meal preview"
@@ -581,12 +622,12 @@ export default function MealsPage() {
           <CardHeader title="Meal Type" />
           <CardContent>
             <div className="grid grid-cols-4 gap-2">
-              {[
+              {([
                 { value: 'breakfast', label: 'Breakfast', icon: '🌅' },
                 { value: 'lunch', label: 'Lunch', icon: '☀️' },
                 { value: 'dinner', label: 'Dinner', icon: '🌙' },
                 { value: 'snack', label: 'Snack', icon: '🍎' },
-              ].map(option => (
+              ] as const).map(option => (
                 <button
                   key={option.value}
                   type="button"
@@ -646,43 +687,73 @@ export default function MealsPage() {
           <div className="mb-6 space-y-4">
             {/* Macros */}
             <div>
-              <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                Nutritional Breakdown
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <StatCard
-                  label="Calories"
-                  value={analysis.calories}
-                  unit="kcal"
-                  icon="🔥"
-                  color="red"
-                  size="sm"
-                />
-                <StatCard
-                  label="Protein"
-                  value={analysis.protein}
-                  unit="g"
-                  icon="💪"
-                  color="green"
-                  size="sm"
-                />
-                <StatCard
-                  label="Carbs"
-                  value={analysis.carbs}
-                  unit="g"
-                  icon="🌾"
-                  color="yellow"
-                  size="sm"
-                />
-                <StatCard
-                  label="Fat"
-                  value={analysis.fat}
-                  unit="g"
-                  icon="🧈"
-                  color="yellow"
-                  size="sm"
-                />
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                    {analysis.needsClarification ? 'Preliminary Estimate' : 'Review Your Macros'}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {analysis.needsClarification
+                      ? 'Answer the portion question below to improve this estimate.'
+                      : 'Use a package label or known serving values to make any corrections before saving.'}
+                  </p>
+                </div>
+                {!analysis.needsClarification && (
+                  <span className="text-xs text-green-300 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-full whitespace-nowrap">
+                    Editable
+                  </span>
+                )}
               </div>
+
+              {analysis.needsClarification ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <StatCard label="Calories" value={analysis.calories} unit="kcal" icon="🔥" color="red" size="sm" />
+                  <StatCard label="Protein" value={analysis.protein} unit="g" icon="💪" color="green" size="sm" />
+                  <StatCard label="Carbs" value={analysis.carbs} unit="g" icon="🌾" color="yellow" size="sm" />
+                  <StatCard label="Fat" value={analysis.fat} unit="g" icon="🧈" color="yellow" size="sm" />
+                </div>
+              ) : (
+                <Card className="border-slate-700">
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-3">
+                      {([
+                        { key: 'calories', label: 'Calories', unit: 'kcal', step: '1' },
+                        { key: 'protein', label: 'Protein', unit: 'g', step: '0.1' },
+                        { key: 'carbs', label: 'Carbohydrates', unit: 'g', step: '0.1' },
+                        { key: 'fat', label: 'Fat', unit: 'g', step: '0.1' },
+                      ] as const).map(item => (
+                        <label key={item.key} className="block">
+                          <span className="text-xs text-slate-400 font-medium">{item.label}</span>
+                          <div className="relative mt-1">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step={item.step}
+                              value={macroDraft[item.key]}
+                              onChange={event => {
+                                setMacroDraft(prev => ({ ...prev, [item.key]: event.target.value }))
+                                setMacroDraftError('')
+                              }}
+                              aria-label={`${item.label} estimate`}
+                              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2.5 pr-12 text-base font-semibold text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                              {item.unit}
+                            </span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-3">
+                      The values shown are estimates. Any changes you make here become the saved meal values.
+                    </p>
+                    {macroDraftError && (
+                      <p className="text-sm text-red-400 mt-2" role="alert">{macroDraftError}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Confidence Badge */}
@@ -722,12 +793,25 @@ export default function MealsPage() {
             </Card>
 
             {/* Clarifying Question */}
-            {analysis.clarifyingQuestion && (
+            {analysis.needsClarification && analysis.clarifyingQuestion && (
               <Card className="border-blue-500/30 bg-blue-500/5">
-                <CardHeader title="Question" />
+                <CardHeader title="One detail will improve this estimate" />
                 <CardContent>
-                  <p className="text-sm text-blue-300">
+                  <p className="text-sm text-blue-200 leading-relaxed">
                     {analysis.clarifyingQuestion}
+                  </p>
+                  <textarea
+                    value={clarificationAnswer}
+                    onChange={event => {
+                      setClarificationAnswer(event.target.value)
+                      setError('')
+                    }}
+                    placeholder="Add the missing portion detail..."
+                    rows={2}
+                    className="w-full mt-3 bg-slate-800 border border-blue-500/30 text-white rounded-lg px-4 py-3 placeholder-slate-500 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
+                  />
+                  <p className="text-xs text-slate-500 mt-2">
+                    Example: “The 14 oz was weighed cooked” or “I had half of one pancake.”
                   </p>
                 </CardContent>
               </Card>
@@ -739,13 +823,37 @@ export default function MealsPage() {
         <div className="space-y-3">
           {!analysis ? (
             <Button
-              onClick={analyzeMeal}
+              onClick={() => analyzeMeal()}
               isLoading={analyzing}
               size="lg"
               className="bg-purple-600 hover:bg-purple-700"
             >
               {analyzing ? 'Analyzing...' : 'Analyze with AI'}
             </Button>
+          ) : analysis.needsClarification ? (
+            <>
+              <Button
+                onClick={() => analyzeMeal(clarificationAnswer)}
+                isLoading={analyzing}
+                disabled={!clarificationAnswer.trim()}
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {analyzing ? 'Updating estimate...' : 'Update Estimate'}
+              </Button>
+              <Button
+                onClick={() => {
+                  setAnalysis(null)
+                  setClarificationAnswer('')
+                  setClarificationContext('')
+                  setMacroDraft({ calories: '', protein: '', carbs: '', fat: '' })
+                }}
+                variant="secondary"
+                size="lg"
+              >
+                Edit Meal Details
+              </Button>
+            </>
           ) : (
             <>
               <Button
@@ -761,6 +869,10 @@ export default function MealsPage() {
                   setForm({ mealTitle: '', description: '', photo: null, mealType: '' })
                   setPhotoPreview(null)
                   setAnalysis(null)
+                  setClarificationAnswer('')
+                  setClarificationContext('')
+                  setMacroDraft({ calories: '', protein: '', carbs: '', fat: '' })
+                  setMacroDraftError('')
                 }}
                 variant="secondary"
                 size="lg"

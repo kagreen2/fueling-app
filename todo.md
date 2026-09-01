@@ -183,3 +183,14 @@
 - [x] Confirm the meal-entry schema does not preserve a structured ingredient database, barcode/label source, serving quantity, or serving-size multiplier. Descriptions are sent to the AI as free text, and the returned calorie/protein/carbohydrate/fat estimates are saved directly. This can produce differences from database-based macro apps even when the dashboard arithmetic is correct.
 - [x] Prepare a technical calculation report without recommending or modifying Chris’s nutrition targets.
 - [x] Remove the temporary admin-only meal-audit endpoint, rebuild, push the cleanup in commit `45011fc`, confirm the production deployment is Ready, and verify the old route returns 404.
+
+## Meal-analysis accuracy — Phase 1
+
+- [x] Document the current `/api/meals/analyze` request/response contract and all frontend states that consume the AI result for text and photo analysis.
+- [x] Extend the analysis contract with structured ambiguity fields: `needsClarification`, a concise clarification question, and a list of missing details such as unit, serving count, or raw/cooked state.
+- [x] Add deterministic guardrails so incomplete quantities, unitless fractions, undefined serving sizes, ambiguous raw/cooked weights, and photo-only analysis cannot remain overconfident.
+- [x] Allow the athlete to answer a clarification question and re-run the same text/photo analysis with the clarification included, without duplicating or saving the meal prematurely.
+- [x] Make calories, protein, carbohydrates, and fat editable on the analysis review screen before saving, with numeric validation and a clear indication that athlete changes become the final saved values.
+- [x] Preserve the existing fast path for complete meal descriptions and keep quick-log/relog behavior unchanged in this phase.
+- [x] Add focused tests for clear descriptions, unitless portions, raw/cooked ambiguity, clarification resolution, snake-case model responses, photo-only confidence, and editable macro validation. Focused tests, lint, TypeScript, and the production build all pass.
+- [ ] Run a clean production build, inspect the focused diff, commit and push the implementation, verify the Vercel production deployment, and test the live meal-entry experience without modifying a real athlete’s records.
