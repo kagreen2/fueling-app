@@ -168,15 +168,18 @@
 
 ## Chris Tavonatti macro-calculation audit
 
-- [ ] Locate Chris Tavonatti’s athlete profile and identify the profile ID, current displayed macro values, and recent meal-log records without changing account data.
+- [x] Locate Chris Tavonatti’s athlete profile and identify the profile ID, current displayed macro values, and recent meal-log records without changing account data.
 - [x] Confirm authenticated read access to the Fuel Different admin dashboard and its 106-user directory. Proceed to the Users view and search for Chris Tavonatti; do not change his profile or targets.
 - [x] Identify the account as `Christopher Tavonatti` (`sigmarshammer13@yahoo.com`), active athlete, joined Aug. 21, 2026, with profile ID `3d1a6c07-0be5-47f9-9852-8a4ce9a21a36`. Opened the read-only coach athlete view; nutrition data is still loading.
 - [x] Load Chris’s coach dashboard. It displays daily targets of 2,504 calories, 177 g protein, 305 g carbohydrates, and 64 g fat. Eleven logged days show daily calories from 715 to 2,256 and protein from 65 g to 179 g; the displayed 11-day averages are 1,593 calories and 136 g protein. Next inspect meal-level records and independently recompute these daily and average totals.
-- [ ] Access meal-level records through the admin Nutrition data source. The visible Nutrition tab timed out when opened remotely, so inspect its implementation and use the same authenticated read path rather than changing Chris’s account.
-- [ ] Recalculate each recent meal and daily total directly from the stored calories, protein, carbohydrates, fat, quantity, serving size, and portion-scaling fields.
-- [ ] Compare the independently recalculated totals with the athlete dashboard and coach-facing totals to identify any arithmetic, rounding, date-boundary, or aggregation discrepancy.
+- [x] Access meal-level records through a temporary authenticated, admin-only read endpoint after the visible Nutrition tab timed out; no account data was changed.
+- [x] Recalculate each recent meal and daily total directly from the stored calories, protein, carbohydrates, fat, quantity, serving size, and portion-scaling fields.
+- [x] Compare the independently recalculated totals with the athlete dashboard and coach-facing totals; all stored daily calorie/protein totals and meal counts match exactly.
 - [x] Query all of Chris Tavonatti’s stored meal records through a temporary admin-only read endpoint and independently sum each day. Every displayed coach-summary calorie total, protein total, and meal count exactly matches the underlying meal rows for Aug. 22 through Sep. 1; no dashboard summation, rounding, or date-grouping error was found.
 - [x] Confirm the meal records store final calories, protein, carbs, and fat directly. They do not contain quantity or serving-size scaling fields; each logged meal is counted once at the saved macro values. Daily calories are summed from the stored calorie field rather than recalculated from 4/4/9 macros.
-- [ ] Trace the app code that creates manual/photo meal entries, scales portions, saves edits, relogs meals, and aggregates daily macros.
-- [ ] Check whether any identified discrepancy is specific to Chris’s entry method or reproducible across other records using the same calculation path.
-- [ ] Report only the technical calculation findings and any software correction required; do not recommend or modify Chris’s nutrition targets.
+- [x] Trace the app code that creates manual/photo meal entries, saves edits, relogs meals, and aggregates daily macros. New AI values are saved directly; quick-log/relog copies prior values without re-analysis or portion scaling.
+- [x] Check whether any identified discrepancy is specific to Chris’s entry method or reproducible across other records using the same calculation path. The arithmetic is sound; the estimation limitation can affect any athlete using ambiguous free text or photo analysis.
+- [x] Review Chris’s Aug. 22–28 meal-level records. All inspected entries use the final AI-generated macro values with `athlete_confirmed=false`, no athlete correction, and no coach override. Repeated meals such as Overnight Oats, Chicken Sandwich, P Shake V2, and Shrimp Wrap retain exactly the same saved macros across days, consistent with the app’s quick-log/relog behavior.
+- [x] Confirm the meal-entry schema does not preserve a structured ingredient database, barcode/label source, serving quantity, or serving-size multiplier. Descriptions are sent to the AI as free text, and the returned calorie/protein/carbohydrate/fat estimates are saved directly. This can produce differences from database-based macro apps even when the dashboard arithmetic is correct.
+- [x] Prepare a technical calculation report without recommending or modifying Chris’s nutrition targets.
+- [ ] Remove the temporary admin-only meal-audit endpoint, rebuild, push the cleanup, and confirm the production deployment before delivering the report.
