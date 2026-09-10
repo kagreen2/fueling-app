@@ -113,6 +113,18 @@ export async function POST(request: NextRequest) {
       else cyclePhase = 'luteal'
     }
 
+    // FUEL 42 participants can use their private target and latest body-composition data to refine the existing calculator.
+    const { data: activeFuel42Enrollment } = await supabase
+      .from('fuel42_enrollments')
+      .select('id')
+      .eq('athlete_id', athleteId)
+      .eq('status', 'onboarding_complete')
+      .gt('access_expires_at', new Date().toISOString())
+      .maybeSingle()
+    const { data: fuel42Challenge } = activeFuel42Enrollment
+      ? await supabase.from('fuel42_challenge_profiles').select('goal_weight_lbs, goal_body_fat_percentage, target_date').eq('athlete_id', athleteId).maybeSingle()
+      : { data: null }
+
     // Prepare athlete profile for calculation
     const athleteProfile = {
       age,
@@ -130,6 +142,9 @@ export async function POST(request: NextRequest) {
       activity_level: athlete.activity_level || undefined,
       training_style: athlete.training_style || undefined,
       cycle_phase: cyclePhase,
+      fuel42_goal_weight_lbs: fuel42Challenge?.goal_weight_lbs || undefined,
+      fuel42_goal_body_fat_percentage: fuel42Challenge?.goal_body_fat_percentage || undefined,
+      fuel42_target_date: fuel42Challenge?.target_date || undefined,
     }
 
     // Calculate evidence-based recommendations (pure math, no AI needed)

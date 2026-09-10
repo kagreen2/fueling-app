@@ -45,6 +45,10 @@ interface AthleteProfile {
   training_style?: string
   /** Menstrual cycle phase for female users (opt-in) */
   cycle_phase?: 'menstrual' | 'follicular' | 'ovulatory' | 'luteal'
+  /** Private FUEL 42 target inputs; only used by the secured challenge recommendation path. */
+  fuel42_goal_weight_lbs?: number
+  fuel42_goal_body_fat_percentage?: number
+  fuel42_target_date?: string
 }
 
 interface NutritionRecommendation {
@@ -392,6 +396,28 @@ function getYouthGrowthCalories(age: number): number {
   return 0                        // Adult
 }
 
+function getFuel42GoalAdjustment(athlete: AthleteProfile) {
+  const targetWeight = athlete.fuel42_goal_weight_lbs
+  const targetDate = athlete.fuel42_target_date ? new Date(`${athlete.fuel42_target_date}T12:00:00Z`) : null
+  const today = new Date()
+  const daysRemaining = targetDate ? Math.max(1, Math.ceil((targetDate.getTime() - today.getTime()) / 86_400_000)) : null
+  const weightChange = targetWeight ? targetWeight - athlete.weight_lbs : 0
+  const bodyFatGoalSuggestsLoss = athlete.fuel42_goal_body_fat_percentage != null && athlete.body_fat_percentage != null && athlete.fuel42_goal_body_fat_percentage < athlete.body_fat_percentage
+
+  if (weightChange < -0.5 && daysRemaining) {
+    const weeklyPercentChange = Math.abs(weightChange) / athlete.weight_lbs / (daysRemaining / 7) * 100
+    const deficit = weeklyPercentChange <= 0.5 ? 250 : weeklyPercentChange <= 0.75 ? 350 : 500
+    return { calories: -deficit, note: `FUEL 42 target-date guardrail: target rate is ${weeklyPercentChange.toFixed(1)}% of current weight per week; calories use a capped ${deficit}-calorie adjustment.` }
+  }
+  if (weightChange > 0.5 && daysRemaining) {
+    return { calories: 200, note: 'FUEL 42 target-date guardrail: a moderate 200-calorie surplus is used for the challenge period.' }
+  }
+  if (bodyFatGoalSuggestsLoss) {
+    return { calories: -300, note: 'FUEL 42 body-composition goal: a moderate 300-calorie adjustment is used while preserving protein and training fuel.' }
+  }
+  return { calories: 0, note: '' }
+}
+
 /**
  * Main recommendation function
  * 
@@ -474,7 +500,7 @@ export function calculateNutritionRecommendation(
     tdee += youthCalories
   }
 
-  // Step 5: Adjust for goal phase (caloric surplus/deficit)
+  // Step 5: Adjust for goal phase (caloric surplus/deficit). A FUEL 42 target date can refine the adjustment with a capped rate guardrail.
   const goalPhase = athlete.goal_phase.toLowerCase()
   let goalAdjustmentCals = 0
   if (goalPhase.includes('gain') || goalPhase.includes('muscle') || goalPhase.includes('lean_mass')) {
@@ -482,6 +508,8 @@ export function calculateNutritionRecommendation(
   } else if (goalPhase.includes('lose') || goalPhase.includes('fat') || goalPhase.includes('cut')) {
     goalAdjustmentCals = -300  // Moderate deficit to preserve muscle
   }
+  const fuel42Adjustment = getFuel42GoalAdjustment(athlete)
+  if (fuel42Adjustment.note) goalAdjustmentCals = fuel42Adjustment.calories
   tdee += goalAdjustmentCals
 
   // Step 6: Calculate macros — PROTEIN & CARBS FIRST approach
@@ -592,6 +620,7 @@ Fat: ${fat_g}g/day — fills remaining calories (min 0.8 g/kg for hormonal healt
 ${youthCalories > 0 ? `Youth athlete: +${youthCalories} cal added for growth and development.` : ''}
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
 ${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
+${fuel42Adjustment.note}
 ${athlete.season_phase === 'in_season' ? 'In-season: Elevated carb needs for competition + practice glycogen demands.' : ''}
 ${cycleNote ? `Cycle Phase Adjustment: ${cycleNote}` : ''}
     `.trim()
@@ -604,6 +633,7 @@ Fat: ${fat_g}g/day — fills remaining calories (min 0.8 g/kg for hormonal healt
 Activity level: ${athlete.activity_level || 'moderately active'} | Training style: ${athlete.training_style || 'mixed'}
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
 ${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
+${fuel42Adjustment.note}
 ${cycleNote ? `Cycle Phase Adjustment: ${cycleNote}` : ''}
     `.trim()
   }

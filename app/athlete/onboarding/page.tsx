@@ -25,10 +25,18 @@ const MEMBER_STEPS = [
   'Training',
 ]
 
+const FUEL42_STEPS = [
+  'Personal info',
+  'Body stats',
+  'Goals',
+  'Training',
+]
+
 export default function OnboardingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  const isFuel42 = searchParams.get('challenge') === 'fuel42'
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -44,6 +52,10 @@ export default function OnboardingPage() {
 
   // Pre-fill invite code from URL params (passed from signup page)
   useEffect(() => {
+    if (isFuel42) {
+      setForm(prev => ({ ...prev, userType: 'member' }))
+      setStep(0)
+    }
     const invite = searchParams.get('invite')
     if (invite) {
       setForm(prev => ({ ...prev, inviteCode: invite.toUpperCase(), userType: 'athlete' }))
@@ -78,12 +90,12 @@ export default function OnboardingPage() {
 
     // Pick up user type from signup page selection
     const storedUserType = localStorage.getItem('fuel_user_type')
-    if (storedUserType === 'athlete' || storedUserType === 'member') {
+    if (!isFuel42 && (storedUserType === 'athlete' || storedUserType === 'member')) {
       setForm(prev => ({ ...prev, userType: storedUserType }))
       setStep(1) // Skip the user type step since they already chose
-      localStorage.removeItem('fuel_user_type')
     }
-  }, [searchParams, supabase])
+    localStorage.removeItem('fuel_user_type')
+  }, [searchParams, supabase, isFuel42])
 
   const [form, setForm] = useState({
     // Step 0 — User type
@@ -122,7 +134,7 @@ export default function OnboardingPage() {
     cycleShareWithCoach: false,
   })
 
-  const STEPS = form.userType === 'member' ? MEMBER_STEPS : ATHLETE_STEPS
+  const STEPS = isFuel42 ? FUEL42_STEPS : form.userType === 'member' ? MEMBER_STEPS : ATHLETE_STEPS
 
   function toggleTrainingStyle(value: string) {
     setForm(prev => {
@@ -476,7 +488,7 @@ export default function OnboardingPage() {
       }
     }
 
-    router.push('/athlete/dashboard')
+    router.push(isFuel42 ? '/athlete/challenge/intake' : '/athlete/dashboard')
   }
 
   return (
@@ -502,8 +514,8 @@ export default function OnboardingPage() {
 
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">Let's Get Started</h1>
-          <p className="text-slate-400">Complete your profile to unlock personalized fueling insights</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{isFuel42 ? 'Build Your FUEL 42 Foundation' : "Let's Get Started"}</h1>
+          <p className="text-slate-400">{isFuel42 ? 'A few quick details will personalize your 42-day challenge.' : 'Complete your profile to unlock personalized fueling insights'}</p>
         </div>
 
         {/* Progress bar */}

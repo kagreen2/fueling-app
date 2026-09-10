@@ -39,6 +39,46 @@
 
 ## FUEL 42 Participant Onboarding
 
+### FUEL 42 challenge experience
+
+- [ ] Audit the existing athlete and general-fitness intake tracks, onboarding schema, FUEL 42 enrollment data, athlete navigation, and coach/admin views before introducing challenge-specific fields.
+- [ ] Define the FUEL 42 intake: goal weight, target date, starting body-fat percentage, goal context, baseline habits, challenge intentions, and explicit sharing choices for leaderboard participation.
+- [ ] Add an optional private intake disclosure for current GLP-1/weight-management medication, peptide, or related treatment use, including a clear statement that it is coaching context only and visible only to the participant and assigned coach.
+- [ ] Define leaderboard measures that encourage participation without exposing sensitive health data; specify which measures are visible to all challenge participants and which remain athlete/coach-only.
+- [ ] Implement FUEL 42 points for completed daily Fuel check-ins/Fuel Score and macro tracking activity; exclude macro-goal compliance from public point calculations.
+- [ ] Reuse the existing daily check-in `Activity today?` response and award one workout point whenever the selected activity is not `Rest / Recovery`, capped at five workout points per Monday–Sunday week.
+- [ ] Award one optional weekly weigh-in consistency point for a participant’s first private body-weight entry each challenge week; keep all body-weight values athlete-and-coach-only.
+- [ ] Add private end-of-challenge scoring for verified body-fat percentage reduction and/or skeletal-muscle gain using beginning and final body-composition scans; expose only the resulting challenge points and rank to participants.
+- [ ] Extend macro-target generation for FUEL 42 participants to use private goal weight, target date, target body-fat percentage, current scan/body-composition data, and training/fitness level; add rate-of-change guardrails and retain coach review visibility.
+- [ ] Add database support, row-level access rules, and challenge-specific APIs without contaminating recurring-member billing or non-challenge onboarding.
+- [ ] Build the challenge intake flow and a challenge leaderboard available to FUEL 42 pass holders upon athlete login.
+- [ ] Test privacy controls, challenge access, leaderboard calculations, and existing athlete/general-fitness onboarding paths before deployment.
+
+### Reusable 11 × 17-inch poster
+
+- [x] Regenerate the approved FUEL 42 flyer as an 11 × 17-inch reusable laminated poster, preserving the approved brand/photo/package content while replacing every date-specific detail with clearly writable Expo-marker boxes. Separate blank boxes are labeled “CHALLENGE DATES” and “REGISTER BY,” with no printed dates.
+- [x] Export and visually verify a print-ready one-page PDF and high-resolution PNG at the final 11 × 17-inch dimensions. The PDF is 792 × 1224 points (11 × 17 inches); the PNG is 3300 × 5100 pixels (300 pixels per inch).
+- [x] Resize the approved reusable poster to 16 × 20 inches, preserving all content and writable date fields; export a print-ready one-page PDF and high-resolution PNG. The PDF is 1152 × 1440 points (16 × 20 inches) and the PNG is 4800 × 6000 pixels (300 pixels per inch).
+- [x] Adapt the original dated FUEL 42 flyer into a square Instagram feed post, preserving “Sept 14 – Oct 25” and “Registration closes Sept 13.” Exported as a 1920 × 1920 PNG with mobile-readable challenge, benefit, and package-pricing hierarchy.
+- [x] Create a dated square Instagram variation using the supplied photo of Kelly and Jared, with the original challenge dates, registration deadline, benefits, and pricing callouts retained. Exported as a 1920 × 1920 PNG.
+
+### FUEL 42 Instagram Reel
+
+- [x] Review the six uploaded gym video clips for orientation, usable moments, sound, duration, and visual quality; do not alter the source files. Strongest native-vertical moments are weighted box step-ups at 0:00–0:03, tandem bench press at 0:13–0:15, and coached dumbbell curls at 0:17–0:20; the rowing start at 0:01–0:04 can support a vertical crop.
+- [x] Locate official InBody product and marketing resources and record usage restrictions. InBody’s marketing catalog states that reproduction or distribution is prohibited without express permission; its support guidance directs clients to approved Custom Marketing collateral. No InBody website media will be copied into the Reel.
+- [x] Review InBody’s official marketing catalog and support guidance. The catalog states its marketing content may not be reproduced or distributed without express permission, so no InBody website photo or video will be copied into the Reel.
+- [x] Confirm the user-selected rights-safe alternative: use the uploaded Iron Flag footage plus an original, unbranded body-composition scan visual created specifically for the Reel. The Reel may accurately state that FUEL 42 includes two InBody scans without implying InBody endorsement.
+- [x] Build a concise 15-second 9:16 storyboard featuring the challenge, the new Fuel Different app, two InBody scans, weekly coaching, Sept. 14 start, and Sept. 13 registration deadline.
+- [x] Produce the vertical Reel with original music, authentic Iron Flag training footage, founders imagery, an original unbranded scan visual, readable on-screen text, and a final `fueldifferent.app/fuel-42` call to action.
+- [x] Verify the final MP4 is exactly 15.0 seconds, 1080 × 1920, H.264 at 30 fps with stereo AAC audio, and decodes without errors.
+
+### FUEL 42 six-day reminder email
+
+- [x] Finalize an engaging combined-audience reminder with the subject `Ready for a Fall Reset? FUEL 42 Starts in 6 Days` and a concise matching preview line.
+- [x] Build a responsive, white-background, table-based Gymnetics HTML email with inline styles, all four accurate package options, and separate live registration buttons.
+- [x] Validate the HTML contains the correct September 14 start, October 25 end, September 13 deadline, package inclusions, four Stripe URLs, no scripts or forms, and no accidental dark email body.
+- [x] Prepare the HTML file with the exact subject and preview text for copy-and-paste use in Gymnetics.
+
 - [x] Define a separate challenge pass through October 31, 2026, so FUEL 42 access does not create or distort a $25 recurring subscription.
 - [x] Add secure participant-claim APIs, access gating, initial onboarding completion, a Kelly-assigned coach workflow, and an admin FUEL 42 roster.
 - [x] Run the production Supabase FUEL 42 enrollment SQL and connect the supplied Gymnetics consultation link.
@@ -193,4 +233,5 @@
 - [x] Make calories, protein, carbohydrates, and fat editable on the analysis review screen before saving, with numeric validation and a clear indication that athlete changes become the final saved values.
 - [x] Preserve the existing fast path for complete meal descriptions and keep quick-log/relog behavior unchanged in this phase.
 - [x] Add focused tests for clear descriptions, unitless portions, raw/cooked ambiguity, clarification resolution, snake-case model responses, photo-only confidence, and editable macro validation. Focused tests, lint, TypeScript, and the production build all pass.
-- [ ] Run a clean production build, inspect the focused diff, commit and push the implementation, verify the Vercel production deployment, and test the live meal-entry experience without modifying a real athlete’s records.
+- [x] Run focused guardrail tests, focused ESLint, a clean production build, and diff validation; commit and push the implementation in `46ee2e2` plus the clarification-loop safeguard in `bfe00d7`; verify the final Vercel production deployment is Ready.
+- [ ] Complete a brief acceptance check from an athlete account without saving the test meal: enter an ambiguous portion, confirm the clarification prompt appears, answer it, and confirm the editable macro review is displayed.

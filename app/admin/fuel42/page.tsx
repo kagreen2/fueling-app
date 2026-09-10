@@ -15,6 +15,7 @@ type Enrollment = {
   access_expires_at: string
   setup_email_sent_at: string | null
   onboarding_completed_at: string | null
+  athlete_id: string | null
   coach_id: string | null
   created_at: string
 }
@@ -122,7 +123,7 @@ export default function Fuel42AdminPage() {
                   <td className="px-4 py-4"><p className="text-slate-200">{enrollment.package_name}</p><p className="mt-1 text-emerald-300">${(enrollment.amount_cents / 100).toFixed(0)}</p></td>
                   <td className="px-4 py-4 text-slate-300">{new Date(enrollment.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-4"><span className={`inline-flex border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[enrollment.status]}`}>{formatStatus(enrollment.status)}</span></td>
-                  <td className="px-4 py-4">{enrollment.status === 'onboarding_complete' ? <span className="text-sm font-medium text-emerald-300">Complete</span> : <button onClick={() => sendSetup(enrollment)} disabled={sendingId === enrollment.id} className="bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60">{sendingId === enrollment.id ? 'Sending…' : enrollment.setup_email_sent_at ? 'Resend App Setup' : 'Send App Setup'}</button>}</td>
+                  <td className="px-4 py-4">{enrollment.status === 'onboarding_complete' ? <div className="flex flex-col items-start gap-2"><span className="text-sm font-medium text-emerald-300">Complete</span>{enrollment.athlete_id && <button onClick={() => router.push(`/admin/fuel42/scans?athlete=${enrollment.athlete_id}`)} className="border border-emerald-400/40 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-400/10">Verify Final Scan</button>}</div> : <button onClick={() => sendSetup(enrollment)} disabled={sendingId === enrollment.id} className="bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60">{sendingId === enrollment.id ? 'Sending…' : enrollment.setup_email_sent_at ? 'Resend App Setup' : 'Send App Setup'}</button>}</td>
                 </tr>
               ))}
             </tbody>

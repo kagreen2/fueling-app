@@ -34,7 +34,7 @@ export async function GET() {
   const supabaseAdmin = getSupabaseAdmin()
   const { data, error } = await supabaseAdmin
     .from('fuel42_enrollments')
-    .select('id, full_name, email, phone, package_key, package_name, amount_cents, payment_status, status, access_expires_at, setup_email_sent_at, setup_token_used_at, onboarding_completed_at, coach_id, created_at')
+    .select('id, full_name, email, phone, package_key, package_name, amount_cents, payment_status, status, access_expires_at, setup_email_sent_at, setup_token_used_at, onboarding_completed_at, athlete_id, coach_id, created_at')
     .order('created_at', { ascending: false })
 
   if (error) {

@@ -11,6 +11,7 @@ import { ProgressRing } from '@/components/ui/ProgressRing'
 import ChatPanel from '@/components/ChatPanel'
 import LightningBolt from '@/components/ui/LightningBolt'
 import WellnessSpotlight from '@/components/WellnessSpotlight'
+import Fuel42LeaderboardCard from '@/components/Fuel42LeaderboardCard'
 import { calculateFuelScore } from '@/lib/fuel-score'
 
 interface AthleteStats {
@@ -695,6 +696,8 @@ export default function AthleteDashboard() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6">
+
+        <Fuel42LeaderboardCard />
 
         {/* Today's Progress — rings with goal labels underneath */}
         <div className="mb-6">
