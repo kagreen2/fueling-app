@@ -7,6 +7,14 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { getLocalDateString } from '@/lib/utils/date'
 
+type Fuel42Status = {
+  eligible: boolean
+  needsBaseOnboarding: boolean
+  needsChallengeIntake: boolean
+  challengeIntakeComplete: boolean
+  challengeProfileReady: boolean
+}
+
 // Steps change based on user type
 const ATHLETE_STEPS = [
   'User type',
@@ -36,7 +44,11 @@ export default function OnboardingPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
-  const isFuel42 = searchParams.get('challenge') === 'fuel42'
+  const requestedFuel42 = searchParams.get('challenge') === 'fuel42'
+  const [fuel42Status, setFuel42Status] = useState<Fuel42Status | null>(null)
+  const [fuel42StatusLoading, setFuel42StatusLoading] = useState(true)
+  const [fuel42StatusError, setFuel42StatusError] = useState('')
+  const isFuel42 = fuel42Status?.eligible === true
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -49,6 +61,45 @@ export default function OnboardingPage() {
   const [inbodyScanning, setInbodyScanning] = useState(false)
   const [inbodyScanError, setInbodyScanError] = useState<string | null>(null)
   const [inbodyData, setInbodyData] = useState<any>(null)
+
+  // Verify challenge access from the authenticated enrollment record. A URL parameter alone never enables FUEL 42 mode.
+  useEffect(() => {
+    let active = true
+
+    async function loadFuel42Status() {
+      try {
+        const response = await fetch('/api/challenges/fuel42/status', { cache: 'no-store' })
+        if (response.status === 401) {
+          router.push('/login')
+          return
+        }
+
+        const result = await response.json()
+        if (!active) return
+
+        if (!response.ok) {
+          setFuel42Status(null)
+          if (requestedFuel42) setFuel42StatusError(result.error || 'Unable to verify your FUEL 42 access.')
+          return
+        }
+
+        setFuel42Status(result)
+        if (result.eligible) {
+          setForm(previous => ({ ...previous, userType: 'member' }))
+          setStep(0)
+        } else if (requestedFuel42) {
+          setFuel42StatusError('This account is not linked to an active FUEL 42 purchase. Please use the secure setup link sent by Iron Flag Fitness.')
+        }
+      } catch {
+        if (active && requestedFuel42) setFuel42StatusError('Unable to verify your FUEL 42 access. Please try again.')
+      } finally {
+        if (active) setFuel42StatusLoading(false)
+      }
+    }
+
+    loadFuel42Status()
+    return () => { active = false }
+  }, [requestedFuel42, router])
 
   // Pre-fill invite code from URL params (passed from signup page)
   useEffect(() => {
@@ -412,17 +463,25 @@ export default function OnboardingPage() {
       console.error('Error generating recommendations:', e)
     }
 
-    // Complete a claimed FUEL 42 enrollment after the athlete record and first InBody scan exist.
-    if (searchParams.get('challenge') === 'fuel42') {
+    // Complete a server-verified FUEL 42 enrollment after the athlete record and first InBody scan exist.
+    if (isFuel42) {
       try {
-        await fetch('/api/challenges/fuel42/complete', {
+        const completeResponse = await fetch('/api/challenges/fuel42/complete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ athleteId }),
         })
+        if (!completeResponse.ok) {
+          const completeResult = await completeResponse.json()
+          setError(completeResult.error || 'Your profile was saved, but FUEL 42 setup could not be completed. Please try again or ask Kelly for help.')
+          setLoading(false)
+          return
+        }
       } catch (e) {
-        // Non-critical: the participant retains access and staff can finish assignment from the roster.
         console.error('Error completing FUEL 42 enrollment:', e)
+        setError('Your profile was saved, but FUEL 42 setup could not be completed. Please try again or ask Kelly for help.')
+        setLoading(false)
+        return
       }
     }
 
@@ -491,6 +550,17 @@ export default function OnboardingPage() {
     router.push(isFuel42 ? '/athlete/challenge/intake' : '/athlete/dashboard')
   }
 
+  if (fuel42StatusLoading) {
+    return (
+      <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+          <p className="mt-4 text-sm text-slate-400">Checking your program access…</p>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col items-center justify-center p-6">
       {/* Background decoration */}
@@ -500,6 +570,19 @@ export default function OnboardingPage() {
       </div>
 
       <div className="w-full max-w-md relative z-10">
+        {isFuel42 && (
+          <div className="mb-5 border border-emerald-400/40 bg-emerald-400/10 p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">FUEL 42 Purchase Verified</p>
+            <p className="mt-2 text-sm leading-6 text-slate-200">Your challenge access is included. Complete this regular intake with Kelly, then you’ll continue to your private FUEL 42 goals—no additional payment is required.</p>
+          </div>
+        )}
+
+        {fuel42StatusError && (
+          <div className="mb-5 border border-amber-400/40 bg-amber-400/10 p-4 text-sm leading-6 text-amber-100">
+            {fuel42StatusError}
+          </div>
+        )}
+
         {/* Welcome-back nudge for returning users */}
         {step === 0 && (
           <div className="mb-4 bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start gap-3 animate-in fade-in duration-500">

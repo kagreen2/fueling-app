@@ -49,6 +49,8 @@ interface AthleteProfile {
   fuel42_goal_weight_lbs?: number
   fuel42_goal_body_fat_percentage?: number
   fuel42_target_date?: string
+  fuel42_adjustment_active?: boolean
+  calculation_date?: string
 }
 
 interface NutritionRecommendation {
@@ -396,20 +398,31 @@ function getYouthGrowthCalories(age: number): number {
   return 0                        // Adult
 }
 
-function getFuel42GoalAdjustment(athlete: AthleteProfile) {
+export function getFuel42GoalAdjustment(athlete: AthleteProfile) {
+  if (!athlete.fuel42_adjustment_active) return { calories: 0, note: '' }
+
   const targetWeight = athlete.fuel42_goal_weight_lbs
-  const targetDate = athlete.fuel42_target_date ? new Date(`${athlete.fuel42_target_date}T12:00:00Z`) : null
-  const today = new Date()
-  const daysRemaining = targetDate ? Math.max(1, Math.ceil((targetDate.getTime() - today.getTime()) / 86_400_000)) : null
-  const weightChange = targetWeight ? targetWeight - athlete.weight_lbs : 0
+  const targetDateValue = athlete.fuel42_target_date
+  const calculationDateValue = athlete.calculation_date || new Date().toISOString().slice(0, 10)
+
+  // Before Sept. 14, calculate the intended rate across the actual 42-day challenge rather than diluting it across early setup days.
+  const effectiveCalculationDate = calculationDateValue < '2026-09-14' ? '2026-09-14' : calculationDateValue
+  if (effectiveCalculationDate > '2026-10-25' || !targetDateValue) return { calories: 0, note: '' }
+
+  const targetDate = new Date(`${targetDateValue}T12:00:00Z`)
+  const effectiveDate = new Date(`${effectiveCalculationDate}T12:00:00Z`)
+  const daysRemaining = Math.ceil((targetDate.getTime() - effectiveDate.getTime()) / 86_400_000)
+  if (!Number.isFinite(daysRemaining) || daysRemaining <= 0 || athlete.weight_lbs <= 0) return { calories: 0, note: '' }
+
+  const weightChange = targetWeight != null ? targetWeight - athlete.weight_lbs : 0
   const bodyFatGoalSuggestsLoss = athlete.fuel42_goal_body_fat_percentage != null && athlete.body_fat_percentage != null && athlete.fuel42_goal_body_fat_percentage < athlete.body_fat_percentage
 
-  if (weightChange < -0.5 && daysRemaining) {
+  if (weightChange < -0.5) {
     const weeklyPercentChange = Math.abs(weightChange) / athlete.weight_lbs / (daysRemaining / 7) * 100
     const deficit = weeklyPercentChange <= 0.5 ? 250 : weeklyPercentChange <= 0.75 ? 350 : 500
     return { calories: -deficit, note: `FUEL 42 target-date guardrail: target rate is ${weeklyPercentChange.toFixed(1)}% of current weight per week; calories use a capped ${deficit}-calorie adjustment.` }
   }
-  if (weightChange > 0.5 && daysRemaining) {
+  if (weightChange > 0.5) {
     return { calories: 200, note: 'FUEL 42 target-date guardrail: a moderate 200-calorie surplus is used for the challenge period.' }
   }
   if (bodyFatGoalSuggestsLoss) {

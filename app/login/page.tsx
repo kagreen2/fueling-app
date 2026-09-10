@@ -82,7 +82,7 @@ export default function LoginPage( ) {
     }
 
     const fuel42Token = searchParams.get('token')
-    const isFuel42Setup = searchParams.get('challenge') === 'fuel42' && fuel42Token
+    const isFuel42Setup = searchParams.get('challenge') === 'fuel42' && Boolean(fuel42Token)
 
     // A secure FUEL 42 setup link always takes priority over normal role routing.
     if (isFuel42Setup) {
@@ -101,7 +101,7 @@ export default function LoginPage( ) {
         return
       }
       localStorage.setItem('fuel_user_type', 'member')
-      router.push('/athlete/onboarding?challenge=fuel42')
+      router.push(claimResult.next || '/athlete/onboarding')
       return
     }
 
@@ -123,15 +123,40 @@ export default function LoginPage( ) {
     } else if (profile.role === 'admin' || profile.role === 'super_admin') {
       router.push('/admin')
     } else {
-      // Athlete — check subscription status
+      // Challenge access is verified from the private enrollment record, not from URL parameters or the profile date alone.
       const hasChallengeAccess = profile.challenge_access_until && new Date(profile.challenge_access_until).getTime() >= Date.now()
-      if (profile.subscription_status !== 'active' && !hasChallengeAccess) {
+      if (hasChallengeAccess) {
+        const statusResponse = await fetch('/api/challenges/fuel42/status', {
+          cache: 'no-store',
+          headers: data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : undefined,
+        })
+        const challengeStatus = await statusResponse.json()
+        if (statusResponse.ok && challengeStatus.eligible) {
+          if (challengeStatus.needsBaseOnboarding) router.push('/athlete/onboarding')
+          else if (challengeStatus.needsChallengeIntake) router.push('/athlete/challenge/intake')
+          else router.push('/athlete/dashboard')
+          return
+        }
+      }
+
+      if (profile.subscription_status !== 'active') {
         router.push('/athlete/payment-required')
       } else {
-        router.push('/athlete/dashboard')
+        const { data: athleteProfile } = await supabase
+          .from('athletes')
+          .select('onboarding_complete')
+          .eq('profile_id', data.user.id)
+          .maybeSingle()
+        router.push(athleteProfile?.onboarding_complete ? '/athlete/dashboard' : '/athlete/onboarding')
       }
     }
   }
+
+  const setupToken = searchParams.get('token')
+  const setupEmail = searchParams.get('email')
+  const signupHref = searchParams.get('challenge') === 'fuel42' && setupToken
+    ? `/signup?challenge=fuel42&token=${encodeURIComponent(setupToken)}${setupEmail ? `&email=${encodeURIComponent(setupEmail)}` : ''}`
+    : '/signup'
 
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault()
@@ -284,7 +309,7 @@ export default function LoginPage( ) {
         <div className="mt-8 text-center space-y-3">
           <p className="text-slate-400 text-sm">
             New athlete?{' '}
-            <Link href="/signup" style={styles.primaryText} className="hover:opacity-80 font-medium transition">
+            <Link href={signupHref} style={styles.primaryText} className="hover:opacity-80 font-medium transition">
               Create account
             </Link>
           </p>

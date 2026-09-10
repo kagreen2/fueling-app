@@ -35,10 +35,25 @@ export default function PaymentRequiredPage( ) {
         .eq('id', user.id)
         .single()
 
-      const hasChallengeAccess = profile?.challenge_access_until && new Date(profile.challenge_access_until).getTime() >= Date.now()
-      if (profile?.subscription_status === 'active' || hasChallengeAccess) {
-        router.push('/athlete/onboarding?challenge=fuel42')
+      if (profile?.subscription_status === 'active') {
+        const { data: athleteProfile } = await supabase
+          .from('athletes')
+          .select('onboarding_complete')
+          .eq('profile_id', user.id)
+          .maybeSingle()
+        router.push(athleteProfile?.onboarding_complete ? '/athlete/dashboard' : '/athlete/onboarding?payment=success')
         return
+      }
+
+      const statusResponse = await fetch('/api/challenges/fuel42/status', { cache: 'no-store' })
+      if (statusResponse.ok) {
+        const challengeStatus = await statusResponse.json()
+        if (challengeStatus.eligible) {
+          if (challengeStatus.needsBaseOnboarding) router.push('/athlete/onboarding')
+          else if (challengeStatus.needsChallengeIntake) router.push('/athlete/challenge/intake')
+          else router.push('/athlete/dashboard')
+          return
+        }
       }
 
       setUserId(user.id)

@@ -122,8 +122,14 @@ export async function POST(request: NextRequest) {
       .gt('access_expires_at', new Date().toISOString())
       .maybeSingle()
     const { data: fuel42Challenge } = activeFuel42Enrollment
-      ? await supabase.from('fuel42_challenge_profiles').select('goal_weight_lbs, goal_body_fat_percentage, target_date').eq('athlete_id', athleteId).maybeSingle()
+      ? await supabase.from('fuel42_challenge_profiles').select('goal_weight_lbs, goal_body_fat_percentage, target_date, intake_completed_at').eq('athlete_id', athleteId).maybeSingle()
       : { data: null }
+    const calculationDate = new Date().toISOString().slice(0, 10)
+    const fuel42AdjustmentActive = Boolean(
+      activeFuel42Enrollment
+      && fuel42Challenge?.intake_completed_at
+      && calculationDate <= '2026-10-25'
+    )
 
     // Prepare athlete profile for calculation
     const athleteProfile = {
@@ -145,6 +151,8 @@ export async function POST(request: NextRequest) {
       fuel42_goal_weight_lbs: fuel42Challenge?.goal_weight_lbs || undefined,
       fuel42_goal_body_fat_percentage: fuel42Challenge?.goal_body_fat_percentage || undefined,
       fuel42_target_date: fuel42Challenge?.target_date || undefined,
+      fuel42_adjustment_active: fuel42AdjustmentActive,
+      calculation_date: calculationDate,
     }
 
     // Calculate evidence-based recommendations (pure math, no AI needed)

@@ -31,6 +31,9 @@ export default function SignupPage( ) {
 
   const fuel42Token = searchParams.get('token')
   const isFuel42Setup = searchParams.get('challenge') === 'fuel42' && Boolean(fuel42Token)
+  const loginHref = isFuel42Setup && fuel42Token
+    ? `/login?challenge=fuel42&token=${encodeURIComponent(fuel42Token)}`
+    : '/login'
 
   // Pre-fill invite code and email from URL params (e.g., from coach invite or QR code scan)
   useEffect(() => {
@@ -155,7 +158,7 @@ export default function SignupPage( ) {
             return
           }
           localStorage.setItem('fuel_user_type', 'member')
-          router.push('/athlete/onboarding?challenge=fuel42')
+          router.push(claimResult.next || '/athlete/onboarding')
           return
         }
 
@@ -380,7 +383,7 @@ export default function SignupPage( ) {
         <div className="mt-8 text-center space-y-3">
           <p className="text-slate-400 text-sm">
             Already have an account?{' '}
-            <Link href="/login" style={styles.primaryText} className="hover:opacity-80 font-medium transition">
+            <Link href={loginHref} style={styles.primaryText} className="hover:opacity-80 font-medium transition">
               Sign in
             </Link>
           </p>

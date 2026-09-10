@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
       .eq('id', enrollment.id)
 
     if (updateError) throw updateError
-    return NextResponse.json({ success: true, next: '/athlete/onboarding?challenge=fuel42' })
+    return NextResponse.json({ success: true, next: '/athlete/onboarding' })
   } catch (error: any) {
     console.error('Unable to claim FUEL 42 enrollment:', error)
     return NextResponse.json({ error: error.message || 'Unable to activate FUEL 42 access.' }, { status: 500 })

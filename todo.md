@@ -41,6 +41,14 @@
 
 ### FUEL 42 challenge experience
 
+- [x] Audit login, signup, challenge claim, enrollment completion, and regular onboarding redirects to identify every in-person and remote setup entry point.
+- [x] Add an authenticated server-side FUEL 42 status endpoint that recognizes a paid/claimed active enrollment for the current profile without trusting a public query parameter.
+- [x] Update regular onboarding to auto-select the FUEL 42 track for verified participants, show clear challenge context, and preserve the existing Athlete and General Fitness paths for nonparticipants.
+- [x] Keep `?challenge=fuel42` only as a convenience hint; require verified enrollment before enabling challenge-specific intake or redirects.
+- [ ] Confirm the staff-assisted flow works from InBody consultation through account setup, regular onboarding, challenge intake, target generation, and dashboard access.
+- [x] Limit challenge-specific macro adjustments to valid intake data and the intended FUEL 42 enrollment/challenge window so expired deadlines cannot force an ongoing maximum deficit.
+- [x] Add focused tests for eligible, ineligible, claimed-but-not-onboarded, completed, and expired enrollment states plus production-build validation.
+- [x] Write `FUEL42-ONBOARDING-PROCESS.md` with staff instructions for in-person setup and final scan verification, and save the formatted guide to Google Drive.
 - [ ] Audit the existing athlete and general-fitness intake tracks, onboarding schema, FUEL 42 enrollment data, athlete navigation, and coach/admin views before introducing challenge-specific fields.
 - [ ] Define the FUEL 42 intake: goal weight, target date, starting body-fat percentage, goal context, baseline habits, challenge intentions, and explicit sharing choices for leaderboard participation.
 - [ ] Add an optional private intake disclosure for current GLP-1/weight-management medication, peptide, or related treatment use, including a clear statement that it is coaching context only and visible only to the participant and assigned coach.
