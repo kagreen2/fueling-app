@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+// Design: Maintain Fuel Different’s dark, operational admin experience with clear green actions and explicit safety confirmation for staff-triggered setup emails.
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -35,16 +36,15 @@ function formatStatus(status: Enrollment['status']) {
 
 export default function Fuel42AdminPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [loading, setLoading] = useState(true)
   const [sendingId, setSendingId] = useState<string | null>(null)
+  const [confirmingEnrollment, setConfirmingEnrollment] = useState<Enrollment | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  async function loadEnrollments() {
-    setLoading(true)
-    setError('')
+  const loadEnrollments = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/login')
@@ -55,12 +55,15 @@ export default function Fuel42AdminPage() {
     if (!response.ok) setError(result.error || 'Unable to load FUEL 42 participants.')
     else setEnrollments(result.enrollments || [])
     setLoading(false)
-  }
+  }, [router, supabase])
 
-  useEffect(() => { loadEnrollments() }, [])
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => { void loadEnrollments() }, 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [loadEnrollments])
 
   async function sendSetup(enrollment: Enrollment) {
-    if (!confirm(`Send a secure FUEL 42 app-setup email to ${enrollment.email}? This assigns the participant to you as their FUEL 42 coach.`)) return
+    setConfirmingEnrollment(null)
     setSendingId(enrollment.id)
     setError('')
     setNotice('')
@@ -123,13 +126,27 @@ export default function Fuel42AdminPage() {
                   <td className="px-4 py-4"><p className="text-slate-200">{enrollment.package_name}</p><p className="mt-1 text-emerald-300">${(enrollment.amount_cents / 100).toFixed(0)}</p></td>
                   <td className="px-4 py-4 text-slate-300">{new Date(enrollment.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-4"><span className={`inline-flex border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[enrollment.status]}`}>{formatStatus(enrollment.status)}</span></td>
-                  <td className="px-4 py-4">{enrollment.status === 'onboarding_complete' ? <div className="flex flex-col items-start gap-2"><span className="text-sm font-medium text-emerald-300">Complete</span>{enrollment.athlete_id && <button onClick={() => router.push(`/admin/fuel42/scans?athlete=${enrollment.athlete_id}`)} className="border border-emerald-400/40 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-400/10">Verify Final Scan</button>}</div> : <button onClick={() => sendSetup(enrollment)} disabled={sendingId === enrollment.id} className="bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60">{sendingId === enrollment.id ? 'Sending…' : enrollment.setup_email_sent_at ? 'Resend App Setup' : 'Send App Setup'}</button>}</td>
+                  <td className="px-4 py-4">{enrollment.status === 'onboarding_complete' ? <div className="flex flex-col items-start gap-2"><span className="text-sm font-medium text-emerald-300">Complete</span>{enrollment.athlete_id && <button onClick={() => router.push(`/admin/fuel42/scans?athlete=${enrollment.athlete_id}`)} className="border border-emerald-400/40 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-400/10">Verify Final Scan</button>}</div> : <button onClick={() => setConfirmingEnrollment(enrollment)} disabled={sendingId === enrollment.id} className="bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60">{sendingId === enrollment.id ? 'Sending…' : enrollment.setup_email_sent_at ? 'Resend App Setup' : 'Send App Setup'}</button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
+
+      {confirmingEnrollment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 px-4" role="dialog" aria-modal="true" aria-labelledby="setup-email-title">
+          <div className="w-full max-w-md border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-400">Confirm setup email</p>
+            <h2 id="setup-email-title" className="mt-2 text-xl font-bold text-white">Send FUEL 42 app setup?</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300">This sends a secure access link to <strong className="text-white">{confirmingEnrollment.email}</strong>, assigns the participant to you as their FUEL 42 coach, and routes them around the regular $25/month payment page.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setConfirmingEnrollment(null)} className="border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">Cancel</button>
+              <button onClick={() => sendSetup(confirmingEnrollment)} className="bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-emerald-300">Send setup email</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

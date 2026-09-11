@@ -43,6 +43,7 @@
 
 - [ ] Capture the failed Kelly Green QA setup-email attempt, inspect send-route evidence and provider delivery status, and confirm whether any message was accepted.
 - [ ] Diagnose the stalled `Send App Setup` action without sending duplicate email to the QA address or changing real participant records.
+- [ ] Replace the browser-blocking native setup-email confirmation prompt with an in-page accessible confirmation control that preserves explicit staff confirmation before send.
 - [ ] Apply and deploy the smallest safe repair required for the FUEL 42 setup-email path, if a repair is needed.
 - [ ] Re-send exactly one verified QA setup email only after confirming the prior attempt was not accepted for delivery.
 - [ ] Complete the QA account-claim and regular-onboarding verification with the designated test account, stopping before any password entry or health-data submission that requires Kelly’s participation.
