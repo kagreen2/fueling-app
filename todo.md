@@ -60,6 +60,14 @@
 - [ ] Verify an authenticated FUEL 42 participant is auto-detected through regular onboarding and can read the private challenge intake and privacy-conscious leaderboard without changing live data.
 - [ ] Record the production verification results and any remaining controlled test that requires participant login or explicit approval.
 - [ ] With explicit user approval, repurpose only the existing `Kelly Green - FUEL 42 Test` enrollment for `kagreen2@gmail.com`, send one secure setup email, and verify the resulting paid-member setup path without a charge, Gymnetics handoff, or real-participant changes.
+- [ ] Verify the secure setup email’s existing-account sign-in path attaches the matching paid FUEL 42 enrollment without creating a duplicate profile, resetting prior data, or showing the $25 payment page.
+- [ ] Refine FUEL 42 intake so goal body-fat percentage appears first, goal body weight remains available, both are optional, and participants can indicate they are unsure rather than guessing.
+- [ ] Keep leaderboard body-composition points based only on staff-verified beginning and final scans, never on whether a participant reaches a self-entered goal.
+- [ ] Calculate body-recomposition targets using a 250–300 calorie adjustment and focused-fat-loss targets using a maximum 400–500 calorie or 20% adjustment, whichever is safer.
+- [ ] Set protein from goal weight with an InBody fat-free-mass cross-check so higher starting body fat does not create an excessive current-weight-based target.
+- [ ] Set fat near 30% for recomposition and 25–30% for focused fat loss, enforce a 20% automatic floor and a practical gram-based safeguard, then allocate remaining calories to carbohydrates.
+- [ ] Protect training-supportive carbohydrates by reducing the deficit before allowing carbohydrates to fall below the agreed practical range for demanding training.
+- [ ] Add focused calculator scenarios covering higher body-fat percentages, missing InBody data, uncertain body-fat goals, aggressive timelines, and post-challenge expiration.
 - [ ] Audit the existing athlete and general-fitness intake tracks, onboarding schema, FUEL 42 enrollment data, athlete navigation, and coach/admin views before introducing challenge-specific fields.
 - [ ] Define the FUEL 42 intake: goal weight, target date, starting body-fat percentage, goal context, baseline habits, challenge intentions, and explicit sharing choices for leaderboard participation.
 - [ ] Add an optional private intake disclosure for current GLP-1/weight-management medication, peptide, or related treatment use, including a clear statement that it is coaching context only and visible only to the participant and assigned coach.

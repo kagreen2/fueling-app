@@ -48,6 +48,8 @@ interface AthleteProfile {
   /** Private FUEL 42 target inputs; only used by the secured challenge recommendation path. */
   fuel42_goal_weight_lbs?: number
   fuel42_goal_body_fat_percentage?: number
+  fuel42_fat_free_mass_lbs?: number
+  fuel42_primary_goal?: string
   fuel42_target_date?: string
   fuel42_adjustment_active?: boolean
   calculation_date?: string
@@ -398,7 +400,7 @@ function getYouthGrowthCalories(age: number): number {
   return 0                        // Adult
 }
 
-export function getFuel42GoalAdjustment(athlete: AthleteProfile) {
+export function getFuel42GoalAdjustment(athlete: AthleteProfile, maintenanceCalories?: number) {
   if (!athlete.fuel42_adjustment_active) return { calories: 0, note: '' }
 
   const targetWeight = athlete.fuel42_goal_weight_lbs
@@ -416,19 +418,116 @@ export function getFuel42GoalAdjustment(athlete: AthleteProfile) {
 
   const weightChange = targetWeight != null ? targetWeight - athlete.weight_lbs : 0
   const bodyFatGoalSuggestsLoss = athlete.fuel42_goal_body_fat_percentage != null && athlete.body_fat_percentage != null && athlete.fuel42_goal_body_fat_percentage < athlete.body_fat_percentage
+  const strategy = (athlete.fuel42_primary_goal || athlete.goal_phase || '').toLowerCase()
+  const maximumDeficit = maintenanceCalories && maintenanceCalories > 0
+    ? Math.min(500, Math.round(maintenanceCalories * 0.20))
+    : 500
+  const cappedDeficit = (desired: number) => -Math.min(desired, maximumDeficit)
+
+  if (strategy.includes('body_recomposition')) {
+    const deficit = Math.abs(cappedDeficit(300))
+    return { calories: -deficit, note: `FUEL 42 body-recomposition strategy: a moderate ${deficit}-calorie adjustment preserves room for protein and training fuel.` }
+  }
+
+  if (strategy.includes('fat_loss')) {
+    const weeklyPercentChange = weightChange < -0.5
+      ? Math.abs(weightChange) / athlete.weight_lbs / (daysRemaining / 7) * 100
+      : null
+    const desiredDeficit = weeklyPercentChange != null && weeklyPercentChange > 0.75 ? 500 : 400
+    const deficit = Math.abs(cappedDeficit(desiredDeficit))
+    return { calories: -deficit, note: `FUEL 42 focused-fat-loss guardrail: calories use a ${deficit}-calorie adjustment, capped at 20% of estimated maintenance and never more than 500 calories.` }
+  }
 
   if (weightChange < -0.5) {
     const weeklyPercentChange = Math.abs(weightChange) / athlete.weight_lbs / (daysRemaining / 7) * 100
     const deficit = weeklyPercentChange <= 0.5 ? 250 : weeklyPercentChange <= 0.75 ? 350 : 500
-    return { calories: -deficit, note: `FUEL 42 target-date guardrail: target rate is ${weeklyPercentChange.toFixed(1)}% of current weight per week; calories use a capped ${deficit}-calorie adjustment.` }
+    const safeDeficit = Math.abs(cappedDeficit(deficit))
+    return { calories: -safeDeficit, note: `FUEL 42 target-date guardrail: target rate is ${weeklyPercentChange.toFixed(1)}% of current weight per week; calories use a capped ${safeDeficit}-calorie adjustment.` }
   }
   if (weightChange > 0.5) {
     return { calories: 200, note: 'FUEL 42 target-date guardrail: a moderate 200-calorie surplus is used for the challenge period.' }
   }
   if (bodyFatGoalSuggestsLoss) {
-    return { calories: -300, note: 'FUEL 42 body-composition goal: a moderate 300-calorie adjustment is used while preserving protein and training fuel.' }
+    const deficit = Math.abs(cappedDeficit(300))
+    return { calories: -deficit, note: `FUEL 42 body-composition goal: a moderate ${deficit}-calorie adjustment is used while preserving protein and training fuel.` }
   }
   return { calories: 0, note: '' }
+}
+
+function roundToNearestFive(value: number) {
+  return Math.max(0, Math.round(value / 5) * 5)
+}
+
+export function getFuel42MacroTargets(input: {
+  targetCalories: number
+  maintenanceCalories: number
+  currentWeightLbs: number
+  goalWeightLbs?: number
+  fatFreeMassLbs?: number
+  primaryGoal?: string
+  trainingDaysPerWeek: number
+  trainingStyle?: string
+  sport?: string
+}) {
+  const strategy = (input.primaryGoal || '').toLowerCase()
+  const isFocusedFatLoss = strategy.includes('fat_loss')
+  const isMuscleFocused = strategy.includes('build_muscle') || strategy.includes('muscle')
+  const trainingDescriptor = `${input.trainingStyle || ''},${input.sport || ''}`.toLowerCase()
+  const resistanceFocusedTraining = input.trainingDaysPerWeek >= 4 && ['crossfit', 'hyrox', 'strength', 'mixed', 'weightlifting', 'football', 'rugby'].some(value => trainingDescriptor.includes(value))
+  const proteinPerGoalPound = isFocusedFatLoss
+    ? (resistanceFocusedTraining ? 1.05 : 1.0)
+    : isMuscleFocused || resistanceFocusedTraining ? 1.0 : 0.9
+  const leanMassProteinFactor = isFocusedFatLoss ? 0.9 : 0.85
+  const adjustedWeightFromLeanMass = input.fatFreeMassLbs && input.fatFreeMassLbs > 0
+    ? input.fatFreeMassLbs / 0.75
+    : input.currentWeightLbs
+  const proteinWeightBasis = input.goalWeightLbs && input.goalWeightLbs > 0
+    ? input.goalWeightLbs
+    : Math.min(input.currentWeightLbs, adjustedWeightFromLeanMass)
+  const goalWeightProtein = proteinWeightBasis * proteinPerGoalPound
+  const leanMassProtein = input.fatFreeMassLbs && input.fatFreeMassLbs > 0
+    ? input.fatFreeMassLbs * leanMassProteinFactor
+    : 0
+  const proteinGrams = Math.min(250, roundToNearestFive(Math.max(goalWeightProtein, leanMassProtein)))
+
+  const targetFatPercentage = isFocusedFatLoss ? 0.275 : 0.30
+  const demandingTraining = input.trainingDaysPerWeek >= 3 && ['crossfit', 'hyrox', 'cardio', 'mixed', 'strength', 'football', 'basketball', 'soccer', 'hockey', 'lacrosse', 'rugby', 'rowing', 'running', 'cycling', 'swimming'].some(value => trainingDescriptor.includes(value))
+  const minimumCarbohydratePercentage = demandingTraining ? 0.30 : 0
+  let dailyCalories = Math.round(input.targetCalories)
+
+  const calculateFat = (calories: number) => {
+    const percentageTarget = calories * targetFatPercentage / 9
+    const goalWeightSafeguard = input.goalWeightLbs && input.goalWeightLbs > 0 ? input.goalWeightLbs * 0.3 : 0
+    const twentyPercentFloor = calories * 0.20 / 9
+    const thirtyFivePercentCap = calories * 0.35 / 9
+    return roundToNearestFive(Math.min(Math.max(percentageTarget, goalWeightSafeguard, twentyPercentFloor), thirtyFivePercentCap))
+  }
+
+  let fatGrams = calculateFat(dailyCalories)
+  if (minimumCarbohydratePercentage > 0) {
+    const caloriesNeededForTrainingCarbs = Math.ceil((proteinGrams * 4 + fatGrams * 9) / (1 - minimumCarbohydratePercentage))
+    if (caloriesNeededForTrainingCarbs > dailyCalories) {
+      dailyCalories = Math.min(Math.round(input.maintenanceCalories), caloriesNeededForTrainingCarbs)
+      fatGrams = calculateFat(dailyCalories)
+      const recalculatedMinimum = Math.ceil((proteinGrams * 4 + fatGrams * 9) / (1 - minimumCarbohydratePercentage))
+      dailyCalories = Math.min(Math.round(input.maintenanceCalories), Math.max(dailyCalories, recalculatedMinimum))
+      fatGrams = calculateFat(dailyCalories)
+    }
+  }
+
+  const carbohydrateCalories = Math.max(400, dailyCalories - proteinGrams * 4 - fatGrams * 9)
+  const carbohydrateGrams = Math.round(carbohydrateCalories / 4)
+  const actualCalories = Math.round(proteinGrams * 4 + carbohydrateGrams * 4 + fatGrams * 9)
+
+  return {
+    dailyCalories: actualCalories,
+    proteinGrams,
+    fatGrams,
+    carbohydrateGrams,
+    proteinWeightBasis,
+    targetFatPercentage,
+    demandingTraining,
+  }
 }
 
 /**
@@ -512,6 +611,7 @@ export function calculateNutritionRecommendation(
     youthCalories = getYouthGrowthCalories(athlete.age)
     tdee += youthCalories
   }
+  const maintenanceCalories = tdee
 
   // Step 5: Adjust for goal phase (caloric surplus/deficit). A FUEL 42 target date can refine the adjustment with a capped rate guardrail.
   const goalPhase = athlete.goal_phase.toLowerCase()
@@ -521,19 +621,14 @@ export function calculateNutritionRecommendation(
   } else if (goalPhase.includes('lose') || goalPhase.includes('fat') || goalPhase.includes('cut')) {
     goalAdjustmentCals = -300  // Moderate deficit to preserve muscle
   }
-  const fuel42Adjustment = getFuel42GoalAdjustment(athlete)
+  const fuel42Adjustment = getFuel42GoalAdjustment(athlete, maintenanceCalories)
   if (fuel42Adjustment.note) goalAdjustmentCals = fuel42Adjustment.calories
   tdee += goalAdjustmentCals
 
-  // Step 6: Calculate macros — PROTEIN & CARBS FIRST approach
-
-  // Protein: g/kg based on goal phase (ISSN)
-  const proteinPerKg = getProteinPerKg(athlete.goal_phase)
-  let protein_g = Math.round(weight_kg * proteinPerKg)
-  let protein_cals = protein_g * 4
-
-  // Carbs: g/kg based on training volume (IOC/Burke)
-  const carbsPerKg = getCarbsPerKg(
+  // Step 6: FUEL 42 uses private goal weight and InBody lean mass safeguards.
+  // Everyone else retains the established protein-and-carbohydrate-first method.
+  let proteinPerKg = getProteinPerKg(athlete.goal_phase)
+  let carbsPerKg = getCarbsPerKg(
     athlete.training_days_per_week,
     athlete.sport,
     athlete.season_phase,
@@ -541,8 +636,58 @@ export function calculateNutritionRecommendation(
     isAthlete ? 'athlete' : 'member',
     athlete.training_style
   )
-  let carbs_g = Math.round(weight_kg * carbsPerKg)
-  let carbs_cals = carbs_g * 4
+  let protein_g: number
+  let protein_cals: number
+  let carbs_g: number
+  let carbs_cals: number
+  let fat_g: number
+  let fatFloorGrams: number
+  let fuel42MacroNote = ''
+
+  if (athlete.fuel42_adjustment_active) {
+    const fuel42Macros = getFuel42MacroTargets({
+      targetCalories: tdee,
+      maintenanceCalories,
+      currentWeightLbs: athlete.weight_lbs,
+      goalWeightLbs: athlete.fuel42_goal_weight_lbs,
+      fatFreeMassLbs: athlete.fuel42_fat_free_mass_lbs,
+      primaryGoal: athlete.fuel42_primary_goal,
+      trainingDaysPerWeek: athlete.training_days_per_week,
+      trainingStyle: athlete.training_style,
+      sport: athlete.sport,
+    })
+    tdee = fuel42Macros.dailyCalories
+    protein_g = fuel42Macros.proteinGrams
+    carbs_g = fuel42Macros.carbohydrateGrams
+    fat_g = fuel42Macros.fatGrams
+    protein_cals = protein_g * 4
+    carbs_cals = carbs_g * 4
+    proteinPerKg = protein_g / weight_kg
+    carbsPerKg = carbs_g / weight_kg
+    fatFloorGrams = Math.round((tdee * 0.20) / 9)
+    fuel42MacroNote = `FUEL 42 macro safeguards: protein is based on ${fuel42Macros.proteinWeightBasis.toFixed(0)} lb goal/adjusted weight with an InBody lean-mass cross-check; fat targets ${Math.round(fuel42Macros.targetFatPercentage * 100)}% of calories; carbohydrates receive the remaining calories${fuel42Macros.demandingTraining ? ' with training-fuel protection' : ''}.`
+  } else {
+    protein_g = Math.round(weight_kg * proteinPerKg)
+    protein_cals = protein_g * 4
+    carbs_g = Math.round(weight_kg * carbsPerKg)
+    carbs_cals = carbs_g * 4
+    fatFloorGrams = Math.round(weight_kg * 0.8)
+    const fatFloorCals = fatFloorGrams * 9
+    const remainingCalories = tdee - protein_cals - carbs_cals
+
+    if (remainingCalories >= fatFloorCals) {
+      fat_g = Math.round(remainingCalories / 9)
+    } else {
+      fat_g = fatFloorGrams
+      const availableForCarbs = tdee - protein_cals - fatFloorCals
+      carbs_g = availableForCarbs > 0 ? Math.round(availableForCarbs / 4) : Math.max(100, Math.round(availableForCarbs / 4))
+      carbs_cals = carbs_g * 4
+    }
+
+    const maxFatFromPct = Math.round((tdee * 0.35) / 9)
+    if (fat_g > maxFatFromPct) fat_g = maxFatFromPct
+    carbs_g = Math.max(carbs_g, 100)
+  }
 
   // Apply cycle phase adjustments for female users who opted in
   let cycleNote = ''
@@ -551,49 +696,21 @@ export function calculateNutritionRecommendation(
     tdee += cycleAdj.calorieAdjustment
     protein_g = Math.round(protein_g * cycleAdj.proteinMultiplier)
     protein_cals = protein_g * 4
-    carbs_g = Math.round(carbs_g * cycleAdj.carbMultiplier)
+    carbs_g = athlete.fuel42_adjustment_active
+      ? Math.max(100, Math.round((tdee - protein_cals - fat_g * 9) / 4))
+      : Math.round(carbs_g * cycleAdj.carbMultiplier)
     carbs_cals = carbs_g * 4
     cycleNote = cycleAdj.note
   }
 
-  // Fat: remaining calories with a floor of 0.8 g/kg (hormonal health minimum)
-  const fatFloorGrams = Math.round(weight_kg * 0.8)
-  const fatFloorCals = fatFloorGrams * 9
-  let remaining_cals = tdee - protein_cals - carbs_cals
-  let fat_g: number
-
-  if (remaining_cals >= fatFloorCals) {
-    // Enough room — fat fills the remainder
-    fat_g = Math.round(remaining_cals / 9)
-  } else {
-    // Not enough room — set fat to floor and scale carbs down to fit
-    fat_g = fatFloorGrams
-    const available_for_carbs = tdee - protein_cals - fatFloorCals
-    if (available_for_carbs > 0) {
-      carbs_g = Math.round(available_for_carbs / 4)
-    } else {
-      // Extreme deficit scenario — keep minimum carbs for brain function (100g)
-      carbs_g = Math.max(100, Math.round(available_for_carbs / 4))
-    }
-    carbs_cals = carbs_g * 4
-  }
-
-  // Ensure fat doesn't exceed 35% of total calories (cap for health)
-  const maxFatFromPct = Math.round((tdee * 0.35) / 9)
-  if (fat_g > maxFatFromPct) {
-    fat_g = maxFatFromPct
-  }
-
-  // Ensure minimum carbs of 100g (brain function)
-  carbs_g = Math.max(carbs_g, 100)
-
   // Recalculate actual total calories from macros
   const totalCals = Math.round(protein_g * 4 + carbs_g * 4 + fat_g * 9)
+  const fatMethodology = athlete.fuel42_adjustment_active
+    ? `${fat_g}g (${fat_g * 9} cal) [goal-based 25–30% target with a 20% floor]`
+    : `${fat_g}g (${fat_g * 9} cal) [floor: ${fatFloorGrams}g = 0.8 g/kg]`
 
   // Build methodology string
   const goalAdjustmentStr = goalAdjustmentCals > 0 ? `+${goalAdjustmentCals}` : `${goalAdjustmentCals}`
-  const proteinPerLb = (proteinPerKg * 0.453592).toFixed(2) // for display in familiar units
-
   let methodology: string
   if (isAthlete) {
     methodology = `
@@ -607,7 +724,7 @@ ISSN/IOC Evidence-Based Calculation (Athlete — Protein & Carbs First):
 - Final TDEE: ${Math.round(tdee)} cal
 - Protein: ${proteinPerKg.toFixed(1)} g/kg × ${weight_kg.toFixed(1)}kg = ${protein_g}g (${Math.round(protein_cals)} cal)
 - Carbs: ${carbsPerKg.toFixed(1)} g/kg × ${weight_kg.toFixed(1)}kg = ${carbs_g}g (${carbs_g * 4} cal) [based on ${athlete.training_days_per_week} training days/week]
-- Fat: Remainder = ${fat_g}g (${fat_g * 9} cal) [floor: ${fatFloorGrams}g = 0.8 g/kg]
+- Fat: ${fatMethodology}
     `.trim()
   } else {
     methodology = `
@@ -619,7 +736,7 @@ ISSN/IOC Evidence-Based Calculation (General Fitness — Protein & Carbs First):
 - Final TDEE: ${Math.round(tdee)} cal
 - Protein: ${proteinPerKg.toFixed(1)} g/kg × ${weight_kg.toFixed(1)}kg = ${protein_g}g (${Math.round(protein_cals)} cal)
 - Carbs: ${carbsPerKg.toFixed(1)} g/kg × ${weight_kg.toFixed(1)}kg = ${carbs_g}g (${carbs_g * 4} cal) [based on ${athlete.training_days_per_week} training days/week, ${athlete.training_style || 'mixed'} style]
-- Fat: Remainder = ${fat_g}g (${fat_g * 9} cal) [floor: ${fatFloorGrams}g = 0.8 g/kg]
+- Fat: ${fatMethodology}
     `.trim()
   }
 
@@ -629,12 +746,13 @@ ISSN/IOC Evidence-Based Calculation (General Fitness — Protein & Carbs First):
 Based on ISSN Position Stands (Jäger 2017, Aragon 2017) and IOC Consensus (Burke 2018).
 Protein: ${proteinPerKg.toFixed(1)} g/kg/day — set by goal phase (${athlete.goal_phase}).
 Carbs: ${carbsPerKg.toFixed(1)} g/kg/day — set by training volume (${athlete.training_days_per_week} days/week, ${athlete.sport}, ${athlete.season_phase}).
-Fat: ${fat_g}g/day — fills remaining calories (min 0.8 g/kg for hormonal health).
+Fat: ${athlete.fuel42_adjustment_active ? `${fat_g}g/day — set by the FUEL 42 25–30% target with a 20% floor.` : `${fat_g}g/day — fills remaining calories (min 0.8 g/kg).`}
 ${youthCalories > 0 ? `Youth athlete: +${youthCalories} cal added for growth and development.` : ''}
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
-${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
-${fuel42Adjustment.note}
-${athlete.season_phase === 'in_season' ? 'In-season: Elevated carb needs for competition + practice glycogen demands.' : ''}
+	${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
+	${fuel42Adjustment.note}
+	${fuel42MacroNote}
+	${athlete.season_phase === 'in_season' ? 'In-season: Elevated carb needs for competition + practice glycogen demands.' : ''}
 ${cycleNote ? `Cycle Phase Adjustment: ${cycleNote}` : ''}
     `.trim()
   } else {
@@ -642,12 +760,13 @@ ${cycleNote ? `Cycle Phase Adjustment: ${cycleNote}` : ''}
 Based on ISSN Position Stands (Jäger 2017, Aragon 2017) and IOC Consensus (Burke 2018).
 Protein: ${proteinPerKg.toFixed(1)} g/kg/day — set by goal phase (${athlete.goal_phase}).
 Carbs: ${carbsPerKg.toFixed(1)} g/kg/day — set by training volume (${athlete.training_days_per_week} days/week, ${athlete.training_style || 'mixed'} style).
-Fat: ${fat_g}g/day — fills remaining calories (min 0.8 g/kg for hormonal health).
+Fat: ${athlete.fuel42_adjustment_active ? `${fat_g}g/day — set by the FUEL 42 25–30% target with a 20% floor.` : `${fat_g}g/day — fills remaining calories (min 0.8 g/kg).`}
 Activity level: ${athlete.activity_level || 'moderately active'} | Training style: ${athlete.training_style || 'mixed'}
 ${athlete.body_fat_percentage ? `Body Fat: ${athlete.body_fat_percentage}%` : 'Note: InBody scan would improve accuracy.'}
-${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
-${fuel42Adjustment.note}
-${cycleNote ? `Cycle Phase Adjustment: ${cycleNote}` : ''}
+	${athlete.inbody_bmr ? `Using InBody measured BMR (${athlete.inbody_bmr} kcal) for higher accuracy.` : 'Tip: An InBody scan can provide a measured BMR for more accurate calculations.'}
+	${fuel42Adjustment.note}
+	${fuel42MacroNote}
+	${cycleNote ? `Cycle Phase Adjustment: ${cycleNote}` : ''}
     `.trim()
   }
 

@@ -9,7 +9,7 @@ import {
   isFuel42Date,
 } from '../lib/fuel42/challenge.ts'
 import { hasVerifiedFuel42Access } from '../lib/fuel42/access.ts'
-import { getFuel42GoalAdjustment } from '../lib/nutrition-calculator.ts'
+import { getFuel42GoalAdjustment, getFuel42MacroTargets } from '../lib/nutrition-calculator.ts'
 
 assert.equal(FUEL42_START_DATE, '2026-09-14')
 assert.equal(FUEL42_END_DATE, '2026-10-25')
@@ -48,4 +48,48 @@ assert.equal(getFuel42GoalAdjustment(fuel42MacroInput).calories, -250)
 assert.equal(getFuel42GoalAdjustment({ ...fuel42MacroInput, calculation_date: '2026-10-26' }).calories, 0)
 assert.equal(getFuel42GoalAdjustment({ ...fuel42MacroInput, calculation_date: '2026-10-25' }).calories, 0)
 assert.equal(getFuel42GoalAdjustment({ ...fuel42MacroInput, fuel42_adjustment_active: false }).calories, 0)
+assert.equal(getFuel42GoalAdjustment({ ...fuel42MacroInput, fuel42_primary_goal: 'body_recomposition' }, 2200).calories, -300)
+assert.equal(getFuel42GoalAdjustment({ ...fuel42MacroInput, weight_lbs: 250, fuel42_goal_weight_lbs: 180, fuel42_primary_goal: 'fat_loss', calculation_date: '2026-09-14' }, 1800).calories, -360)
+
+const higherBodyFatMacros = getFuel42MacroTargets({
+  targetCalories: 1800,
+  maintenanceCalories: 2200,
+  currentWeightLbs: 250,
+  goalWeightLbs: 180,
+  fatFreeMassLbs: 150,
+  primaryGoal: 'fat_loss',
+  trainingDaysPerWeek: 5,
+  trainingStyle: 'crossfit',
+})
+assert.equal(higherBodyFatMacros.proteinGrams, 190)
+assert.equal(higherBodyFatMacros.fatGrams, 55)
+assert.ok(higherBodyFatMacros.carbohydrateGrams * 4 / higherBodyFatMacros.dailyCalories >= 0.30)
+assert.ok(higherBodyFatMacros.dailyCalories <= 1810)
+
+const adjustedWeightMacros = getFuel42MacroTargets({
+  targetCalories: 1900,
+  maintenanceCalories: 2200,
+  currentWeightLbs: 250,
+  fatFreeMassLbs: 150,
+  primaryGoal: 'body_recomposition',
+  trainingDaysPerWeek: 3,
+  trainingStyle: 'strength',
+})
+assert.equal(adjustedWeightMacros.proteinWeightBasis, 200)
+assert.equal(adjustedWeightMacros.proteinGrams, 180)
+
+const protectedTrainingCarbs = getFuel42MacroTargets({
+  targetCalories: 1400,
+  maintenanceCalories: 2000,
+  currentWeightLbs: 200,
+  goalWeightLbs: 180,
+  fatFreeMassLbs: 150,
+  primaryGoal: 'body_recomposition',
+  trainingDaysPerWeek: 5,
+  trainingStyle: 'crossfit',
+})
+const protectedCarbohydratePercentage = protectedTrainingCarbs.carbohydrateGrams * 4 / protectedTrainingCarbs.dailyCalories
+assert.ok(protectedTrainingCarbs.dailyCalories > 1400)
+assert.ok(protectedTrainingCarbs.dailyCalories <= 2000)
+assert.ok(protectedCarbohydratePercentage >= 0.30)
 console.log('FUEL 42 scoring guardrails passed.')

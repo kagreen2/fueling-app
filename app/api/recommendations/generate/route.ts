@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       .gt('access_expires_at', new Date().toISOString())
       .maybeSingle()
     const { data: fuel42Challenge } = activeFuel42Enrollment
-      ? await supabase.from('fuel42_challenge_profiles').select('goal_weight_lbs, goal_body_fat_percentage, target_date, intake_completed_at').eq('athlete_id', athleteId).maybeSingle()
+      ? await supabase.from('fuel42_challenge_profiles').select('primary_goal, goal_weight_lbs, goal_body_fat_percentage, target_date, intake_completed_at').eq('athlete_id', athleteId).maybeSingle()
       : { data: null }
     const calculationDate = new Date().toISOString().slice(0, 10)
     const fuel42AdjustmentActive = Boolean(
@@ -150,6 +150,8 @@ export async function POST(request: NextRequest) {
       cycle_phase: cyclePhase,
       fuel42_goal_weight_lbs: fuel42Challenge?.goal_weight_lbs || undefined,
       fuel42_goal_body_fat_percentage: fuel42Challenge?.goal_body_fat_percentage || undefined,
+      fuel42_fat_free_mass_lbs: latestScan?.fat_free_mass_lbs || undefined,
+      fuel42_primary_goal: fuel42Challenge?.primary_goal || undefined,
       fuel42_target_date: fuel42Challenge?.target_date || undefined,
       fuel42_adjustment_active: fuel42AdjustmentActive,
       calculation_date: calculationDate,
@@ -182,8 +184,9 @@ export async function POST(request: NextRequest) {
       methodology: recommendation.methodology,
       notes: recommendation.notes,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Recommendation generation error:', error)
-    return NextResponse.json({ error: error.message || 'Failed to generate recommendations' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to generate recommendations'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

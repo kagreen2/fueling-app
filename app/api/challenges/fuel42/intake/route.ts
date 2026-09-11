@@ -55,8 +55,9 @@ export async function GET() {
       athlete: athlete || {},
       latestScan: latestScan || null,
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Unable to load FUEL 42 intake.' }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unable to load FUEL 42 intake.'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
     if ('error' in context) return context.error
     const { admin, enrollment } = context
     const body = await req.json()
-    const targetDate = typeof body.targetDate === 'string' && body.targetDate >= '2026-09-14' && body.targetDate <= '2026-10-31'
+    const targetDate = typeof body.targetDate === 'string' && body.targetDate >= '2026-09-14' && body.targetDate <= FUEL42_TARGET_DATE
       ? body.targetDate
       : FUEL42_TARGET_DATE
     const support = ['no', 'yes', 'prefer_not_to_say'].includes(body.weightManagementSupport) ? body.weightManagementSupport : 'prefer_not_to_say'
@@ -118,7 +119,8 @@ export async function POST(req: NextRequest) {
       console.error('Unable to refresh FUEL 42 macro targets:', recommendationError)
     }
     return NextResponse.json({ challenge: data })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Unable to save FUEL 42 intake.' }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unable to save FUEL 42 intake.'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
