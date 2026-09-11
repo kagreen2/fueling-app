@@ -10,7 +10,7 @@
 
 ## Purpose
 
-This process is for clients who have already purchased FUEL 42 through Stripe but have not yet created a Fuel Different account. The participant does not need to exist in the app before the InBody appointment. Their Stripe purchase creates a private FUEL 42 enrollment, and the secure setup link connects that enrollment to the account they create.
+This process is for clients who have already purchased FUEL 42 through Stripe, including both new Fuel Different users and clients who already have accounts. The participant does not need to exist in the app before the InBody appointment. Their Stripe purchase creates a private FUEL 42 enrollment, and the secure setup link connects that enrollment to the correct new or existing account.
 
 > The participant must use the same email address used at Stripe checkout. The secure setup link verifies the purchase and prevents the participant from being sent to the normal $25-per-month subscription checkout.
 
@@ -23,7 +23,7 @@ This process is for clients who have already purchased FUEL 42 through Stripe bu
 | 3. Send setup | Select **Send App Setup** in the FUEL 42 roster. | The participant receives a secure account-setup link by email. | The enrollment moves to **Setup Sent**, and Kelly is assigned as the FUEL 42 coach. |
 | 4. Create or access account | Help the participant open the secure link on their phone. | A new participant creates an account; an existing Fuel Different user signs in. They use the same email used at purchase. | The setup token links the paid enrollment to the authenticated profile and grants temporary challenge access. |
 | 5. Complete regular intake | Stay with the participant while they enter personal details, body stats, goals, and training information. Upload or photograph the initial InBody printout on the **Body Stats** step. | The normal intake automatically displays **FUEL 42 Purchase Verified** and follows the challenge-specific path. No payment screen appears. | An athlete profile and initial scan record are created, the enrollment is marked **Onboarding Complete**, and the participant is assigned to Kelly. |
-| 6. Complete private challenge intake | Continue to the private FUEL 42 goals page. | The participant enters goal weight/body-fat preferences, target date, current habits, optional private treatment context, leaderboard preferences, and body-composition scoring consent. | Private challenge inputs are saved and personalized nutrition targets are refreshed. |
+| 6. Complete private challenge intake | Continue to the private FUEL 42 goals page and review the verified scan values with the participant. | The participant sees private starting weight, body-fat percentage, and skeletal-muscle mass. Goal body-fat percentage appears first, followed by optional goal body weight and the October 25 target date. The participant can defer the body-fat goal to the coach or choose no scale-weight goal. | Private challenge inputs are saved and personalized nutrition targets are refreshed from the InBody starting point, goals, training context, and guarded challenge strategy. |
 | 7. Confirm dashboard | Open the participant dashboard before the appointment ends. | The participant sees their Fuel Different dashboard and FUEL 42 progress/leaderboard card. | The participant can begin check-ins, meal logging, activity tracking, and private weekly weigh-ins. |
 
 ## Important Setup Rules
@@ -38,11 +38,23 @@ The setup link is unique to one purchase and should not be forwarded to another 
 
 During regular intake, a verified participant sees a green **FUEL 42 Purchase Verified** notice explaining that challenge access is included and no additional payment is required. Challenge participants are automatically treated as General Fitness members for the base profile so they receive the appropriate activity-level and multiple-choice training-style questions without sport/team questions.
 
-After base intake, the participant continues to the private FUEL 42 intake. Goal weight, goal body-fat percentage, InBody values, treatment context, and body-composition changes remain private. Other participants see only the chosen leaderboard display name, rank, and engagement points.
+After base intake, the participant continues to the private FUEL 42 intake. The verified InBody starting point is shown separately from the participant’s goals so current values are not confused with desired outcomes. Goal body-fat percentage is presented first because final challenge body-composition scoring uses the verified beginning and final scans. Goal weight remains available because it helps guide protein and calorie calculations, but a participant may choose not to set a scale-weight goal.
+
+Goal weight, goal body-fat percentage, InBody values, treatment context, and body-composition changes remain private. Other participants see only the chosen leaderboard display name, rank, and engagement points. Self-entered goals never award leaderboard points; final body-composition points use staff-verified scan changes only.
 
 ## Existing Fuel Different Users
 
 If the purchaser already has a Fuel Different account, use the **Already have an account? Sign in here** link in the setup email. After sign-in, the same secure claim occurs. The app then routes the participant to whichever step remains: regular onboarding, FUEL 42 private intake, or the dashboard.
+
+## Nutrition Target Guardrails
+
+FUEL 42 uses the latest InBody scan as the private starting point. Body-recomposition goals use a moderate 250–300 calorie adjustment. Focused-fat-loss goals use a 400–500 calorie adjustment, limited to no more than 20% below estimated maintenance. If a requested timeline would require a larger deficit, the app uses the safer cap rather than matching the aggressive deadline.
+
+Protein is based primarily on goal weight, with an InBody fat-free-mass cross-check. This prevents a participant with higher starting body fat from receiving an excessive protein target based on current total weight. Body-recomposition protein generally falls within 0.9–1.0 grams per pound of goal or adjusted weight; focused fat loss and frequent resistance training can move the target toward 1.0–1.1 grams per pound.
+
+Fat targets approximately 30% of calories for body recomposition and 25–30% for focused fat loss. The automatic calculation will not go below 20% of calories and also applies a practical goal-weight-based gram safeguard. Carbohydrates receive the remaining calories. For demanding training such as CrossFit, HYROX, strength, mixed conditioning, or endurance work, the app reduces the deficit before allowing carbohydrates to fall below the configured training-fuel range.
+
+Medication, peptide, or related treatment disclosure remains private coaching context and does not automatically lower calories or alter macros.
 
 ## Troubleshooting
 

@@ -28,3 +28,13 @@ Kelly subsequently updated the QA-only enrollment directly. A production roster 
 ## QA setup-email delivery failure diagnosis
 
 The approved setup-email action returned HTTP 403 before reaching the email provider, and the QA mailbox confirmed no delivery. Production logs isolate the failed `POST /api/challenges/fuel42/send-setup` request; the same authenticated session successfully loaded the protected roster endpoint. The setup route queried a non-existent `profiles.first_name` column during its staff authorization lookup, which caused the profile query to return no usable staff record and the route to reject the request as unauthorized. The route was corrected to use the existing `role` and `full_name` fields only. No prior setup email was accepted by the provider.
+
+## Repaired setup-email verification
+
+The authorization repair deployed in commit `7bc58a2`, followed by an accessible in-page confirmation replacement in commit `51babe5`. After the deployments reached production, exactly one approved QA setup email was sent. The route returned HTTP 200, the roster changed the QA enrollment from `Purchased` to `Setup Sent`, and Kelly confirmed that `kagreen2@gmail.com` received the email. No real participant record was changed and no duplicate send was issued.
+
+Kelly used the setup email’s existing-account sign-in option and reached FUEL 42 enrollment. This confirms that the email visibly supports existing Fuel Different users without requiring duplicate account creation. Final verification of the enrollment’s claimed/onboarding-complete state and dashboard challenge access remains pending until Kelly finishes the controlled intake.
+
+## Goal intake and macro guardrails
+
+Commit `6c7b5ec` deployed successfully to production. The private challenge intake now presents the verified InBody starting point separately, asks for goal body-fat percentage before optional goal weight, supports coach-guided uncertainty/no-scale-goal choices, and limits the target date to October 25. The FUEL 42 calculator now uses the configured recomposition and focused-fat-loss calorie adjustments, a 20% maximum-deficit guardrail, goal/adjusted-weight protein with InBody fat-free-mass cross-checking, percentage and gram safeguards for fat, and protected carbohydrates for demanding training. Focused linting, the expanded FUEL 42 tests, meal-analysis regression tests, and a full production build passed before deployment.
