@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const { data: staffProfile } = await authSupabase
       .from('profiles')
-      .select('role, first_name, full_name')
+      .select('role, full_name')
       .eq('id', user.id)
       .single()
     if (!staffProfile || !['admin', 'super_admin'].includes(staffProfile.role)) {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const setupUrl = `${appUrl}/signup?challenge=fuel42&token=${encodeURIComponent(enrollment.setup_token)}&email=${encodeURIComponent(enrollment.email)}`
     const loginUrl = `${appUrl}/login?challenge=fuel42&token=${encodeURIComponent(enrollment.setup_token)}`
     const firstName = enrollment.full_name?.trim().split(' ')[0] || 'there'
-    const staffName = staffProfile.first_name || staffProfile.full_name?.split(' ')[0] || 'Kelly'
+    const staffName = staffProfile.full_name?.trim().split(' ')[0] || 'Kelly'
 
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -90,8 +90,9 @@ export async function POST(req: NextRequest) {
     if (updateError) throw updateError
 
     return NextResponse.json({ success: true, setupUrl })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unable to send FUEL 42 setup email:', error)
-    return NextResponse.json({ error: error.message || 'Unable to send FUEL 42 setup email.' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Unable to send FUEL 42 setup email.'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -41,6 +41,11 @@
 
 ### FUEL 42 challenge experience
 
+- [ ] Capture the failed Kelly Green QA setup-email attempt, inspect send-route evidence and provider delivery status, and confirm whether any message was accepted.
+- [ ] Diagnose the stalled `Send App Setup` action without sending duplicate email to the QA address or changing real participant records.
+- [ ] Apply and deploy the smallest safe repair required for the FUEL 42 setup-email path, if a repair is needed.
+- [ ] Re-send exactly one verified QA setup email only after confirming the prior attempt was not accepted for delivery.
+- [ ] Complete the QA account-claim and regular-onboarding verification with the designated test account, stopping before any password entry or health-data submission that requires Kelly’s participation.
 - [x] Audit login, signup, challenge claim, enrollment completion, and regular onboarding redirects to identify every in-person and remote setup entry point.
 - [x] Add an authenticated server-side FUEL 42 status endpoint that recognizes a paid/claimed active enrollment for the current profile without trusting a public query parameter.
 - [x] Update regular onboarding to auto-select the FUEL 42 track for verified participants, show clear challenge context, and preserve the existing Athlete and General Fitness paths for nonparticipants.
@@ -49,6 +54,11 @@
 - [x] Limit challenge-specific macro adjustments to valid intake data and the intended FUEL 42 enrollment/challenge window so expired deadlines cannot force an ongoing maximum deficit.
 - [x] Add focused tests for eligible, ineligible, claimed-but-not-onboarded, completed, and expired enrollment states plus production-build validation.
 - [x] Write `FUEL42-ONBOARDING-PROCESS.md` with staff instructions for in-person setup and final scan verification, and save the formatted guide to Google Drive.
+- [ ] Confirm the production `fuel42_challenge_profiles` table and required columns are available after the user-completed Supabase migration, using read-only checks only.
+- [ ] Verify production challenge endpoints reject unauthenticated access and do not expose enrollment, goal, medication/peptide, body-composition, or scan data.
+- [ ] Verify an authenticated FUEL 42 participant is auto-detected through regular onboarding and can read the private challenge intake and privacy-conscious leaderboard without changing live data.
+- [ ] Record the production verification results and any remaining controlled test that requires participant login or explicit approval.
+- [ ] With explicit user approval, repurpose only the existing `Kelly Green - FUEL 42 Test` enrollment for `kagreen2@gmail.com`, send one secure setup email, and verify the resulting paid-member setup path without a charge, Gymnetics handoff, or real-participant changes.
 - [ ] Audit the existing athlete and general-fitness intake tracks, onboarding schema, FUEL 42 enrollment data, athlete navigation, and coach/admin views before introducing challenge-specific fields.
 - [ ] Define the FUEL 42 intake: goal weight, target date, starting body-fat percentage, goal context, baseline habits, challenge intentions, and explicit sharing choices for leaderboard participation.
 - [ ] Add an optional private intake disclosure for current GLP-1/weight-management medication, peptide, or related treatment use, including a clear statement that it is coaching context only and visible only to the participant and assigned coach.
