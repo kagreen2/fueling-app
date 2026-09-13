@@ -45,10 +45,10 @@
 - [ ] Identify the smallest safe correction for Android standalone display and readable mobile text without changing the active FUEL 42 registration flow.
 - [ ] Validate the correction at an Android-sized viewport and deploy it only after today’s registrations are clear.
 - [ ] Provide short Android installation and recovery instructions for participants who added a browser shortcut instead of installing the app.
-- [ ] Audit the FUEL 42 roster, challenge-profile, and leaderboard display-name fields before exposing a staff-only correction action.
-- [ ] Add an authenticated admin-only control to edit only a participant’s public FUEL 42 leaderboard display name from the roster.
-- [ ] Preserve participant privacy choices and ensure the staff edit never exposes or changes private health, scan, goal, medication, macro, or point-source data.
-- [ ] Validate authorization, input handling, and leaderboard reflection before deploying the staff display-name tool.
+- [x] Audit the FUEL 42 roster, challenge-profile, and leaderboard display-name fields before exposing a staff-only correction action.
+- [x] Add an authenticated admin-only control to edit only a participant’s public FUEL 42 leaderboard display name from the roster.
+- [x] Preserve participant privacy choices and ensure the staff edit never exposes or changes private health, scan, goal, medication, macro, or point-source data.
+- [x] Validate authorization, input handling, and leaderboard reflection before deploying the staff display-name tool.
 - [x] Capture the failed Kelly Green QA setup-email attempt, inspect send-route evidence and provider delivery status, and confirm whether any message was accepted.
 - [x] Diagnose the stalled `Send App Setup` action without sending duplicate email to the QA address or changing real participant records.
 - [x] Replace the browser-blocking native setup-email confirmation prompt with an in-page accessible confirmation control that preserves explicit staff confirmation before send.
@@ -94,6 +94,27 @@
 - [x] Add database support, row-level access rules, and challenge-specific APIs without contaminating recurring-member billing or non-challenge onboarding.
 - [x] Build the challenge intake flow and a challenge leaderboard available to FUEL 42 pass holders upon athlete login.
 - [x] Test privacy controls, challenge access, leaderboard calculations, and existing athlete/general-fitness onboarding paths before deployment.
+
+### Fuel Different Resource Library
+
+- [x] Inventory every accessible file in the shared Drive folder and record its title, type, topic, and reuse value without altering the originals.
+- [x] Extract the source content into a working editorial archive and identify duplicated, outdated, brand-specific, or unsupported material.
+- [x] Audit Fuel Different athlete navigation, mobile layouts, authentication, and existing content patterns before choosing the library architecture.
+- [x] Define the Resource Library taxonomy, article schema, search behavior, intended audiences, and privacy/access rules.
+- [x] Define the hybrid access model: foundational resources browseable by athletes plus staff-assigned resources for individual needs.
+- [x] Add a private resource-assignment model supporting athlete, assigning staff member, optional coaching note, optional due date, assigned/read timestamps, and removal status.
+- [x] Add athlete-facing `Recommended for You` above the browseable library, with clear assigned-by and completion states.
+- [x] Add admin/coach assignment controls that show only athletes the staff member is authorized to support and never infer or auto-assign sensitive women’s-health topics.
+- [x] Use existing in-app notification conventions to alert athletes to a new assigned resource without disclosing sensitive topic details outside the authenticated app.
+- [x] Research and verify performance nutrition, body-composition, menstrual-cycle, and perimenopause guidance using credible primary or professional sources.
+- [x] Extract Kelly’s notes, questions, practical observations, and course takeaways from the shared ChatGPT conversation without treating the conversation itself as scientific evidence.
+- [x] Separate Kelly’s coaching perspective, Dr. Stacy Sims course-derived concepts, and independently verified research in the editorial working notes.
+- [x] Do not reproduce paid course slides, proprietary frameworks, or distinctive wording; translate supported concepts into original Fuel Different education with source citations.
+- [x] Rewrite the useful source concepts as original Fuel Different content rather than copying another brand’s wording, frameworks, or proprietary materials.
+- [x] Create a dedicated women’s guide with practical cycle-aware and perimenopause-supportive nutrition guidance, inclusive language, uncertainty notes, and appropriate medical guardrails.
+- [x] Build a mobile-friendly in-app Resource Library with category browsing, search, article detail pages, citations, and clear educational-versus-individualized guidance.
+- [ ] Validate athlete access, responsive readability, search, links, citations, and all existing registration/onboarding flows before deployment.
+- [ ] Save the finalized editorial source pack and content index to Google Drive and document how Kelly can maintain the library.
 
 ### Reusable 11 × 17-inch poster
 

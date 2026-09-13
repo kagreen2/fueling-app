@@ -88,6 +88,13 @@ const QUICK_ACTIONS: QuickAction[] = [
     description: 'View your reflections',
     href: '/athlete/fuel-journal',
   },
+  {
+    id: 'resources',
+    icon: '📚',
+    label: 'Resource Library',
+    description: 'Practical nutrition guides',
+    href: '/athlete/resources',
+  },
 ]
 
 function greeting() {

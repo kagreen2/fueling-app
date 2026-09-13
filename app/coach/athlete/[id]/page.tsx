@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import InBodyProgressCharts from '@/components/InBodyProgressCharts'
 import ChatPanel from '@/components/ChatPanel'
@@ -588,16 +589,21 @@ export default function CoachAthleteDetailPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             {(isAdmin && !cameFromCoachDashboard) ? 'Back to Admin Dashboard' : 'Back to Dashboard'}
           </button>
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-lg font-bold flex-shrink-0">
-              {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center text-purple-400 text-lg font-bold flex-shrink-0">
+                {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-white">{profile?.full_name || 'Unknown'}</h1>
+                <p className="text-slate-400 text-sm">
+                  {formatSport(athlete?.sport)}{athlete?.position ? ` · ${athlete.position}` : ''} · {formatSeason(athlete?.season_phase)}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">{profile?.full_name || 'Unknown'}</h1>
-              <p className="text-slate-400 text-sm">
-                {formatSport(athlete?.sport)}{athlete?.position ? ` · ${athlete.position}` : ''} · {formatSeason(athlete?.season_phase)}
-              </p>
-            </div>
+            <Link href={`/coach/athlete/${athleteId}/resources`} className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-400/20">
+              📚 Assign Resource
+            </Link>
           </div>
         </div>
       </header>
