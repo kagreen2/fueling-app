@@ -1,6 +1,6 @@
 'use client'
 
-// Design: Maintain Fuel Different’s dark, operational admin experience with clear setup actions and a staff-only direct-link fallback for in-person consultations.
+// Design: Maintain Fuel Different’s dark, operational admin experience with clear setup actions, privacy-safe participant controls, and a staff-only direct-link fallback for in-person consultations.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -19,6 +19,9 @@ type Enrollment = {
   athlete_id: string | null
   coach_id: string | null
   created_at: string
+  leaderboard_display_name: string | null
+  leaderboard_opt_in: boolean | null
+  challenge_intake_completed: boolean
 }
 
 const STATUS_STYLES: Record<Enrollment['status'], string> = {
@@ -43,6 +46,9 @@ export default function Fuel42AdminPage() {
   const [copyingId, setCopyingId] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [confirmingEnrollment, setConfirmingEnrollment] = useState<Enrollment | null>(null)
+  const [editingNameEnrollment, setEditingNameEnrollment] = useState<Enrollment | null>(null)
+  const [leaderboardName, setLeaderboardName] = useState('')
+  const [savingName, setSavingName] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -107,6 +113,39 @@ export default function Fuel42AdminPage() {
     }
   }
 
+  function openLeaderboardNameEditor(enrollment: Enrollment) {
+    setLeaderboardName(enrollment.leaderboard_display_name || '')
+    setEditingNameEnrollment(enrollment)
+    setError('')
+    setNotice('')
+  }
+
+  async function saveLeaderboardName() {
+    if (!editingNameEnrollment) return
+    setSavingName(true)
+    setError('')
+    try {
+      const response = await fetch('/api/challenges/fuel42/leaderboard-name', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enrollmentId: editingNameEnrollment.id, displayName: leaderboardName }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Unable to update the leaderboard name.')
+      setEnrollments(current => current.map(enrollment => enrollment.id === editingNameEnrollment.id
+        ? { ...enrollment, leaderboard_display_name: result.displayName || null }
+        : enrollment))
+      setNotice(result.displayName
+        ? `Leaderboard display name updated to ${result.displayName}.`
+        : 'Leaderboard display name reset to the participant’s default first name and last initial.')
+      setEditingNameEnrollment(null)
+    } catch (nameError: unknown) {
+      setError(nameError instanceof Error ? nameError.message : 'Unable to update the leaderboard name.')
+    } finally {
+      setSavingName(false)
+    }
+  }
+
   const awaitingSetup = enrollments.filter(enrollment => enrollment.status === 'purchased').length
   const inProgress = enrollments.filter(enrollment => ['setup_sent', 'claimed'].includes(enrollment.status)).length
   const complete = enrollments.filter(enrollment => enrollment.status === 'onboarding_complete').length
@@ -148,11 +187,11 @@ export default function Fuel42AdminPage() {
             <tbody className="divide-y divide-slate-800">
               {loading ? <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">Loading FUEL 42 participants…</td></tr> : enrollments.length === 0 ? <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">No FUEL 42 purchases have been received yet.</td></tr> : enrollments.map(enrollment => (
                 <tr key={enrollment.id} className="bg-slate-950/40">
-                  <td className="px-4 py-4"><p className="font-semibold text-white">{enrollment.full_name || 'Name not provided'}</p><p className="mt-1 text-slate-400">{enrollment.email}{enrollment.phone ? ` · ${enrollment.phone}` : ''}</p></td>
+                  <td className="px-4 py-4"><p className="font-semibold text-white">{enrollment.full_name || 'Name not provided'}</p><p className="mt-1 text-slate-400">{enrollment.email}{enrollment.phone ? ` · ${enrollment.phone}` : ''}</p>{enrollment.challenge_intake_completed && <p className="mt-1 text-xs text-purple-200">Leaderboard: {enrollment.leaderboard_display_name || 'Default first name + last initial'}{enrollment.leaderboard_opt_in === false ? ' · Hidden by participant' : ''}</p>}</td>
                   <td className="px-4 py-4"><p className="text-slate-200">{enrollment.package_name}</p><p className="mt-1 text-emerald-300">${(enrollment.amount_cents / 100).toFixed(0)}</p></td>
                   <td className="px-4 py-4 text-slate-300">{new Date(enrollment.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-4"><span className={`inline-flex border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[enrollment.status]}`}>{formatStatus(enrollment.status)}</span></td>
-                  <td className="px-4 py-4">{enrollment.status === 'onboarding_complete' ? <div className="flex flex-col items-start gap-2"><span className="text-sm font-medium text-emerald-300">Complete</span>{enrollment.athlete_id && <button onClick={() => router.push(`/admin/fuel42/scans?athlete=${enrollment.athlete_id}`)} className="border border-emerald-400/40 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-400/10">Verify Final Scan</button>}</div> : <div className="flex flex-col items-start gap-2"><button onClick={() => setConfirmingEnrollment(enrollment)} disabled={sendingId === enrollment.id} className="bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60">{sendingId === enrollment.id ? 'Sending…' : enrollment.setup_email_sent_at ? 'Resend App Setup' : 'Send App Setup'}</button><button onClick={() => copySetupLink(enrollment)} disabled={copyingId === enrollment.id} className="border border-purple-400/50 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-purple-400/10 disabled:opacity-60">{copyingId === enrollment.id ? 'Copying…' : copiedId === enrollment.id ? 'Copied!' : 'Copy Setup Link'}</button></div>}</td>
+                  <td className="px-4 py-4">{enrollment.status === 'onboarding_complete' ? <div className="flex flex-col items-start gap-2"><span className="text-sm font-medium text-emerald-300">Complete</span>{enrollment.athlete_id && <button onClick={() => router.push(`/admin/fuel42/scans?athlete=${enrollment.athlete_id}`)} className="border border-emerald-400/40 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-400/10">Verify Final Scan</button>}{enrollment.challenge_intake_completed && <button onClick={() => openLeaderboardNameEditor(enrollment)} className="border border-purple-400/50 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-purple-400/10">Edit Leaderboard Name</button>}</div> : <div className="flex flex-col items-start gap-2"><button onClick={() => setConfirmingEnrollment(enrollment)} disabled={sendingId === enrollment.id} className="bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60">{sendingId === enrollment.id ? 'Sending…' : enrollment.setup_email_sent_at ? 'Resend App Setup' : 'Send App Setup'}</button><button onClick={() => copySetupLink(enrollment)} disabled={copyingId === enrollment.id} className="border border-purple-400/50 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-purple-400/10 disabled:opacity-60">{copyingId === enrollment.id ? 'Copying…' : copiedId === enrollment.id ? 'Copied!' : 'Copy Setup Link'}</button>{enrollment.challenge_intake_completed && <button onClick={() => openLeaderboardNameEditor(enrollment)} className="border border-purple-400/50 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-purple-400/10">Edit Leaderboard Name</button>}</div>}</td>
                 </tr>
               ))}
             </tbody>
@@ -169,6 +208,23 @@ export default function Fuel42AdminPage() {
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={() => setConfirmingEnrollment(null)} className="border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">Cancel</button>
               <button onClick={() => sendSetup(confirmingEnrollment)} className="bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-emerald-300">Send setup email</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingNameEnrollment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 px-4" role="dialog" aria-modal="true" aria-labelledby="leaderboard-name-title">
+          <div className="w-full max-w-md border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-purple-300">Public leaderboard display</p>
+            <h2 id="leaderboard-name-title" className="mt-2 text-xl font-bold text-white">Edit leaderboard name</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300">This changes only the public name shown for <strong className="text-white">{editingNameEnrollment.full_name || editingNameEnrollment.email}</strong>. It does not change their account name, privacy choices, goals, health information, scans, macros, or points.</p>
+            <label className="mt-5 block text-sm font-semibold text-slate-200" htmlFor="leaderboard-display-name">Display name</label>
+            <input id="leaderboard-display-name" value={leaderboardName} onChange={event => setLeaderboardName(event.target.value)} maxLength={60} placeholder="First name + last initial" className="mt-2 w-full border border-slate-600 bg-slate-950 px-3 py-2 text-white placeholder:text-slate-500 focus:border-purple-300 focus:outline-none" />
+            <p className="mt-2 text-xs leading-5 text-slate-500">Leave blank to return to the participant’s default first name and last initial.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setEditingNameEnrollment(null)} disabled={savingName} className="border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400 disabled:opacity-60">Cancel</button>
+              <button onClick={saveLeaderboardName} disabled={savingName} className="bg-purple-300 px-4 py-2 text-sm font-bold text-slate-950 hover:bg-purple-200 disabled:opacity-60">{savingName ? 'Saving…' : 'Save display name'}</button>
             </div>
           </div>
         </div>

@@ -42,5 +42,29 @@ export async function GET() {
     return NextResponse.json({ error: 'Unable to load FUEL 42 enrollments. Confirm that FUEL42-SETUP.sql has been run in Supabase.' }, { status: 500 })
   }
 
-  return NextResponse.json({ enrollments: data || [] })
+  const athleteIds = (data || []).map(enrollment => enrollment.athlete_id).filter(Boolean) as string[]
+  const { data: challengeProfiles, error: challengeProfileError } = athleteIds.length > 0
+    ? await supabaseAdmin
+      .from('fuel42_challenge_profiles')
+      .select('athlete_id, leaderboard_display_name, leaderboard_opt_in, intake_completed_at')
+      .in('athlete_id', athleteIds)
+    : { data: [], error: null }
+
+  if (challengeProfileError) {
+    console.error('Unable to load FUEL 42 public leaderboard preferences:', challengeProfileError)
+    return NextResponse.json({ error: 'Unable to load FUEL 42 participant display settings.' }, { status: 500 })
+  }
+
+  const challengeByAthlete = new Map((challengeProfiles || []).map(profile => [profile.athlete_id, profile]))
+  const enrollments = (data || []).map(enrollment => {
+    const challenge = enrollment.athlete_id ? challengeByAthlete.get(enrollment.athlete_id) : null
+    return {
+      ...enrollment,
+      leaderboard_display_name: challenge?.leaderboard_display_name || null,
+      leaderboard_opt_in: challenge?.leaderboard_opt_in ?? null,
+      challenge_intake_completed: Boolean(challenge?.intake_completed_at),
+    }
+  })
+
+  return NextResponse.json({ enrollments })
 }

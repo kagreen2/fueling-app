@@ -41,6 +41,14 @@
 
 ### FUEL 42 challenge experience
 
+- [ ] Audit the Android manifest, application metadata, viewport configuration, and installed-app behavior for browser-style rendering or undersized typography.
+- [ ] Identify the smallest safe correction for Android standalone display and readable mobile text without changing the active FUEL 42 registration flow.
+- [ ] Validate the correction at an Android-sized viewport and deploy it only after today’s registrations are clear.
+- [ ] Provide short Android installation and recovery instructions for participants who added a browser shortcut instead of installing the app.
+- [ ] Audit the FUEL 42 roster, challenge-profile, and leaderboard display-name fields before exposing a staff-only correction action.
+- [ ] Add an authenticated admin-only control to edit only a participant’s public FUEL 42 leaderboard display name from the roster.
+- [ ] Preserve participant privacy choices and ensure the staff edit never exposes or changes private health, scan, goal, medication, macro, or point-source data.
+- [ ] Validate authorization, input handling, and leaderboard reflection before deploying the staff display-name tool.
 - [x] Capture the failed Kelly Green QA setup-email attempt, inspect send-route evidence and provider delivery status, and confirm whether any message was accepted.
 - [x] Diagnose the stalled `Send App Setup` action without sending duplicate email to the QA address or changing real participant records.
 - [x] Replace the browser-blocking native setup-email confirmation prompt with an in-page accessible confirmation control that preserves explicit staff confirmation before send.
@@ -49,6 +57,9 @@
 - [ ] Verify or add an authenticated staff-only option to copy the individual secure FUEL 42 app-setup link directly from the roster without requiring email delivery.
 - [ ] Ensure direct setup links remain unique to the paid enrollment, expire appropriately, and cannot grant access without the matching authenticated purchase email.
 - [ ] Validate the direct-link copy path with the Kelly Green QA enrollment and provide concise morning weigh-in instructions for staff.
+- [ ] Replace the existing-account registration dead end with a clear secure choice between signing into an existing Fuel Different account and creating a new account from each FUEL 42 setup link.
+- [ ] Preserve the challenge token and matching-purchase-email check through both choices, including an explicit recovery action after a duplicate-account error.
+- [ ] Validate and deploy the existing-account recovery fix before further in-person challenge setup.
 - [ ] Complete the QA account-claim and regular-onboarding verification with the designated test account, stopping before any password entry or health-data submission that requires Kelly’s participation.
 - [x] Audit login, signup, challenge claim, enrollment completion, and regular onboarding redirects to identify every in-person and remote setup entry point.
 - [x] Add an authenticated server-side FUEL 42 status endpoint that recognizes a paid/claimed active enrollment for the current profile without trusting a public query parameter.
