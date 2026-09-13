@@ -1,6 +1,6 @@
 'use client'
 
-// Design: Maintain Fuel Different’s dark, operational admin experience with clear green actions and explicit safety confirmation for staff-triggered setup emails.
+// Design: Maintain Fuel Different’s dark, operational admin experience with clear setup actions and a staff-only direct-link fallback for in-person consultations.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -40,6 +40,8 @@ export default function Fuel42AdminPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [loading, setLoading] = useState(true)
   const [sendingId, setSendingId] = useState<string | null>(null)
+  const [copyingId, setCopyingId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [confirmingEnrollment, setConfirmingEnrollment] = useState<Enrollment | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -81,6 +83,30 @@ export default function Fuel42AdminPage() {
     setSendingId(null)
   }
 
+  async function copySetupLink(enrollment: Enrollment) {
+    setCopyingId(enrollment.id)
+    setCopiedId(null)
+    setError('')
+    setNotice('')
+    try {
+      const response = await fetch('/api/challenges/fuel42/setup-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enrollmentId: enrollment.id }),
+      })
+      const result = await response.json()
+      if (!response.ok || !result.setupUrl) throw new Error(result.error || 'Unable to retrieve the setup link.')
+      await navigator.clipboard.writeText(result.setupUrl)
+      setCopiedId(enrollment.id)
+      setNotice(`Secure app setup link copied for ${enrollment.full_name || enrollment.email}. It must be used with the purchase email.`)
+      window.setTimeout(() => setCopiedId(current => current === enrollment.id ? null : current), 2500)
+    } catch (copyError: unknown) {
+      setError(copyError instanceof Error ? copyError.message : 'Unable to copy the setup link.')
+    } finally {
+      setCopyingId(null)
+    }
+  }
+
   const awaitingSetup = enrollments.filter(enrollment => enrollment.status === 'purchased').length
   const inProgress = enrollments.filter(enrollment => ['setup_sent', 'claimed'].includes(enrollment.status)).length
   const complete = enrollments.filter(enrollment => enrollment.status === 'onboarding_complete').length
@@ -108,7 +134,7 @@ export default function Fuel42AdminPage() {
 
         <div className="mt-8 border border-slate-800 bg-slate-900/60 p-5">
           <h2 className="text-lg font-bold text-white">Consultation workflow</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">After the participant completes their InBody consultation, select <strong className="text-slate-200">Send App Setup</strong>. The secure email gives access through October 31, sends them directly into onboarding instead of the $25/month payment page, and assigns them to you as their FUEL 42 coach.</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">After the participant completes their InBody consultation, select <strong className="text-slate-200">Send App Setup</strong>. If email is delayed, use <strong className="text-slate-200">Copy Setup Link</strong> and send or open the individual secure link while they are with you. The link routes the matching purchaser around the $25/month payment page and assigns them to you as their FUEL 42 coach.</p>
         </div>
 
         {notice && <p className="mt-5 border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-200">{notice}</p>}
@@ -126,7 +152,7 @@ export default function Fuel42AdminPage() {
                   <td className="px-4 py-4"><p className="text-slate-200">{enrollment.package_name}</p><p className="mt-1 text-emerald-300">${(enrollment.amount_cents / 100).toFixed(0)}</p></td>
                   <td className="px-4 py-4 text-slate-300">{new Date(enrollment.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-4"><span className={`inline-flex border px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[enrollment.status]}`}>{formatStatus(enrollment.status)}</span></td>
-                  <td className="px-4 py-4">{enrollment.status === 'onboarding_complete' ? <div className="flex flex-col items-start gap-2"><span className="text-sm font-medium text-emerald-300">Complete</span>{enrollment.athlete_id && <button onClick={() => router.push(`/admin/fuel42/scans?athlete=${enrollment.athlete_id}`)} className="border border-emerald-400/40 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-400/10">Verify Final Scan</button>}</div> : <button onClick={() => setConfirmingEnrollment(enrollment)} disabled={sendingId === enrollment.id} className="bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60">{sendingId === enrollment.id ? 'Sending…' : enrollment.setup_email_sent_at ? 'Resend App Setup' : 'Send App Setup'}</button>}</td>
+                  <td className="px-4 py-4">{enrollment.status === 'onboarding_complete' ? <div className="flex flex-col items-start gap-2"><span className="text-sm font-medium text-emerald-300">Complete</span>{enrollment.athlete_id && <button onClick={() => router.push(`/admin/fuel42/scans?athlete=${enrollment.athlete_id}`)} className="border border-emerald-400/40 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-400/10">Verify Final Scan</button>}</div> : <div className="flex flex-col items-start gap-2"><button onClick={() => setConfirmingEnrollment(enrollment)} disabled={sendingId === enrollment.id} className="bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-300 disabled:opacity-60">{sendingId === enrollment.id ? 'Sending…' : enrollment.setup_email_sent_at ? 'Resend App Setup' : 'Send App Setup'}</button><button onClick={() => copySetupLink(enrollment)} disabled={copyingId === enrollment.id} className="border border-purple-400/50 px-3 py-2 text-xs font-bold text-purple-200 hover:bg-purple-400/10 disabled:opacity-60">{copyingId === enrollment.id ? 'Copying…' : copiedId === enrollment.id ? 'Copied!' : 'Copy Setup Link'}</button></div>}</td>
                 </tr>
               ))}
             </tbody>

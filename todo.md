@@ -46,6 +46,9 @@
 - [x] Replace the browser-blocking native setup-email confirmation prompt with an in-page accessible confirmation control that preserves explicit staff confirmation before send.
 - [x] Apply and deploy the smallest safe repair required for the FUEL 42 setup-email path, if a repair is needed.
 - [x] Re-send exactly one verified QA setup email only after confirming the prior attempt was not accepted for delivery.
+- [ ] Verify or add an authenticated staff-only option to copy the individual secure FUEL 42 app-setup link directly from the roster without requiring email delivery.
+- [ ] Ensure direct setup links remain unique to the paid enrollment, expire appropriately, and cannot grant access without the matching authenticated purchase email.
+- [ ] Validate the direct-link copy path with the Kelly Green QA enrollment and provide concise morning weigh-in instructions for staff.
 - [ ] Complete the QA account-claim and regular-onboarding verification with the designated test account, stopping before any password entry or health-data submission that requires Kelly’s participation.
 - [x] Audit login, signup, challenge claim, enrollment completion, and regular onboarding redirects to identify every in-person and remote setup entry point.
 - [x] Add an authenticated server-side FUEL 42 status endpoint that recognizes a paid/claimed active enrollment for the current profile without trusting a public query parameter.
