@@ -112,8 +112,23 @@
 - [x] Do not reproduce paid course slides, proprietary frameworks, or distinctive wording; translate supported concepts into original Fuel Different education with source citations.
 - [x] Rewrite the useful source concepts as original Fuel Different content rather than copying another brand’s wording, frameworks, or proprietary materials.
 - [x] Create a dedicated women’s guide with practical cycle-aware and perimenopause-supportive nutrition guidance, inclusive language, uncertainty notes, and appropriate medical guardrails.
+- [ ] Add a concise, evidence-aware Fuel Different resource on alcohol, training, sleep, hydration, recovery, appetite, and social-event planning without shame-based messaging or medical claims.
+- [ ] Trace Huberman-discussed alcohol themes to primary studies or official guidance and label media-derived claims as context rather than evidence.
 - [x] Build a mobile-friendly in-app Resource Library with category browsing, search, article detail pages, citations, and clear educational-versus-individualized guidance.
 - [ ] Validate athlete access, responsive readability, search, links, citations, and all existing registration/onboarding flows before deployment.
+- [ ] Audit the live Resource Library article format for paragraph density, scan time, image coverage, mobile readability, and quick-action clarity.
+- [ ] Define a quick-scan editorial format with a one-minute summary, key takeaways, bullet-first sections, practical examples, and optional deeper reading.
+- [ ] Add purposeful visual support for meal ideas, hydration, training fuel, recovery, cycle-aware fueling, and perimenopause resources with descriptive alt text and accessible contrast.
+- [ ] Rewrite the 22 resources into concise summaries, bullets, checklists, callouts, and expandable detail without removing citations or health guardrails.
+- [ ] Deliver each rewritten resource or small review batch to Kelly for approval before replacing the live app content.
+- [ ] Keep the current deployed Resource Library unchanged until the corresponding revised resource is explicitly approved.
+- [ ] Audit coach-to-athlete message creation, unread state, conversation routing, and existing in-app/push notification primitives.
+- [ ] Trigger a neutral athlete notification when a coach sends a new message, with duplicate prevention and no message-content preview.
+- [ ] Preserve admin fallback routing for athletes without an assigned coach and validate the existing chat flow before deployment.
+- [ ] Update the athlete library and article pages to prioritize visual scanning, short sections, image-led cards, and mobile-friendly reading.
+- [ ] Add a visible Print / Save as PDF action with a clean print stylesheet, readable page breaks, citations, and Fuel Different footer treatment.
+- [ ] Create handout-friendly quick-reference versions of the most-used resources so coaches can point athletes to a practical guide during sessions.
+- [ ] Validate representative resources, print output, image loading, accessibility, citations, assignment notes, and existing assignment/read-tracking flows before deployment.
 - [ ] Save the finalized editorial source pack and content index to Google Drive and document how Kelly can maintain the library.
 
 ### Reusable 11 × 17-inch poster

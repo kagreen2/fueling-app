@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { sendPushToUser } from '@/lib/notifications/send-push'
 
 function getSupabaseAdmin() {
   return createAdminClient(
@@ -55,13 +56,22 @@ export async function POST(req: NextRequest) {
         const coachName = coach?.first_name || coach?.full_name?.split(' ')[0] || 'Kelly'
         const participantFirstName = participant?.first_name || participant?.full_name?.split(' ')[0] || ''
 
-        await supabaseAdmin.from('chat_messages').insert({
+        const { data: welcomeMessage } = await supabaseAdmin.from('chat_messages').insert({
           sender_id: enrollment.coach_id,
           receiver_id: user.id,
           athlete_id: athleteId,
           message: `Welcome to FUEL 42${participantFirstName ? `, ${participantFirstName}` : ''}! I’m ${coachName}, and I’ll be in your corner as you build your 42-day rhythm. Reach out here any time you need support with your nutrition, habits, or progress.`,
           read: false,
-        })
+        }).select('id').single()
+
+        if (welcomeMessage?.id) {
+          await sendPushToUser(user.id, {
+            title: 'New message from your coach',
+            body: 'You have a new message in Fuel Different.',
+            tag: `coach-message-${athleteId}`,
+            url: '/athlete/dashboard',
+          })
+        }
       }
     }
 
@@ -77,8 +87,9 @@ export async function POST(req: NextRequest) {
 
     if (updateError) throw updateError
     return NextResponse.json({ success: true, enrolled: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unable to complete FUEL 42 enrollment:', error)
-    return NextResponse.json({ error: error.message || 'Unable to complete FUEL 42 enrollment.' }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Unable to complete FUEL 42 enrollment.'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

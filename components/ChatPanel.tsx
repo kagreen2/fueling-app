@@ -136,7 +136,7 @@ export default function ChatPanel({
     if (!text || sending) return
 
     setSending(true)
-    const { error } = await supabase
+    const { data: insertedMessage, error } = await supabase
       .from('chat_messages')
       .insert({
         sender_id: currentUserId,
@@ -145,6 +145,8 @@ export default function ChatPanel({
         message: text,
         read: false,
       })
+      .select('id')
+      .single()
 
     if (!error) {
       setNewMessage('')
@@ -170,6 +172,15 @@ export default function ChatPanel({
         } catch {
           // Silently fail — email notification is best-effort
         }
+      }
+
+      const staffRoles = new Set(['coach', 'admin', 'super_admin'])
+      if (insertedMessage?.id && staffRoles.has(senderRole || '')) {
+        fetch('/api/chat/notify-athlete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messageId: insertedMessage.id }),
+        }).catch(() => {})
       }
     }
     setSending(false)
