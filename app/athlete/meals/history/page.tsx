@@ -52,6 +52,17 @@ export default function MealHistoryPage() {
   const [relogPicker, setRelogPicker] = useState<string | null>(null) // meal.id when picker is open
   const [relogMealType, setRelogMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast')
   const [editingMeal, setEditingMeal] = useState<string | null>(null) // meal.id being edited
+  const [relogEditingMeal, setRelogEditingMeal] = useState<string | null>(null) // meal.id being copied to a new log
+  const [relogForm, setRelogForm] = useState<{
+    meal_title: string
+    description: string
+    calories: string
+    protein: string
+    carbs: string
+    fat: string
+    meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+    date: string
+  }>({ meal_title: '', description: '', calories: '', protein: '', carbs: '', fat: '', meal_type: 'breakfast', date: '' })
   const [editForm, setEditForm] = useState<{
     meal_title: string
     description: string
@@ -186,6 +197,70 @@ export default function MealHistoryPage() {
     } catch {
       return ''
     }
+  }
+
+  function startRelogEdit(meal: MealLog) {
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    setRelogForm({
+      meal_title: meal.meal_title || '',
+      description: meal.description || '',
+      calories: String(meal.calories || 0),
+      protein: String(meal.protein || 0),
+      carbs: String(meal.carbs || 0),
+      fat: String(meal.fat || 0),
+      meal_type: meal.meal_type || 'breakfast',
+      date: today,
+    })
+    setRelogEditingMeal(meal.id)
+    setRelogPicker(meal.id)
+  }
+
+  async function saveRelog(meal: MealLog) {
+    if (!relogForm.meal_title.trim() || !relogForm.date) return
+    setLoggingAgain(meal.id)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: athlete } = await supabase
+        .from('athletes')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single()
+
+      if (!athlete) return
+
+      const { error } = await supabase.from('meal_logs').insert({
+        athlete_id: athlete.id,
+        meal_title: relogForm.meal_title.trim(),
+        description: relogForm.description.trim() || null,
+        photo_url: meal.photo_url,
+        calories: parseFloat(relogForm.calories) || 0,
+        protein: parseFloat(relogForm.protein) || 0,
+        carbs: parseFloat(relogForm.carbs) || 0,
+        fat: parseFloat(relogForm.fat) || 0,
+        confidence: meal.confidence,
+        ai_feedback: meal.ai_feedback,
+        ai_next_step: meal.ai_next_step,
+        meal_type: relogForm.meal_type,
+        date: relogForm.date,
+        logged_at: new Date().toISOString(),
+      })
+
+      if (!error) {
+        setLoggedSuccess(meal.id)
+        setRelogPicker(null)
+        setRelogEditingMeal(null)
+        loadMeals()
+        setTimeout(() => setLoggedSuccess(null), 2000)
+      } else {
+        console.error('Error saving relogged meal:', error)
+      }
+    } catch (err) {
+      console.error('Error saving relogged meal:', err)
+    }
+    setLoggingAgain(null)
   }
 
   async function logAgain(meal: MealLog, overrideMealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack') {
@@ -675,41 +750,85 @@ export default function MealHistoryPage() {
                                 <div className="flex flex-col gap-2 mt-2">
                                   {/* Meal type picker (shown when re-logging) */}
                                   {relogPicker === meal.id && (
-                                    <div className="bg-slate-800 border border-slate-600 rounded-lg p-3" onClick={(e) => e.stopPropagation()}>
-                                      <p className="text-slate-300 text-xs font-medium mb-2">Log as:</p>
-                                      <div className="grid grid-cols-4 gap-1.5 mb-3">
-                                        {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map(type => (
-                                          <button
-                                            key={type}
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              setRelogMealType(type)
-                                            }}
-                                            className={`py-2 px-1 rounded-md text-xs font-medium capitalize transition-all ${
-                                              relogMealType === type
-                                                ? 'bg-purple-600 text-white'
-                                                : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                                            }`}
+                                    <div className="bg-slate-800 border border-slate-600 rounded-lg p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
+                                      <div>
+                                        <p className="text-slate-200 text-sm font-semibold">Customize before logging</p>
+                                        <p className="text-slate-500 text-xs mt-1">Change the portion details and macro totals for this copy. The original history entry will stay unchanged.</p>
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] text-slate-500 uppercase">Meal name</label>
+                                        <input
+                                          type="text"
+                                          value={relogForm.meal_title}
+                                          onChange={(e) => setRelogForm(prev => ({ ...prev, meal_title: e.target.value }))}
+                                          className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <label className="text-[10px] text-slate-500 uppercase">Log date</label>
+                                          <input
+                                            type="date"
+                                            value={relogForm.date}
+                                            onChange={(e) => setRelogForm(prev => ({ ...prev, date: e.target.value }))}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[10px] text-slate-500 uppercase">Meal type</label>
+                                          <select
+                                            value={relogForm.meal_type}
+                                            onChange={(e) => setRelogForm(prev => ({ ...prev, meal_type: e.target.value as typeof prev.meal_type }))}
+                                            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
                                           >
-                                            {type}
-                                          </button>
-                                        ))}
+                                            {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map(type => <option key={type} value={type}>{type}</option>)}
+                                          </select>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] text-slate-500 uppercase">What changed?</label>
+                                        <textarea
+                                          value={relogForm.description}
+                                          onChange={(e) => setRelogForm(prev => ({ ...prev, description: e.target.value }))}
+                                          rows={2}
+                                          placeholder="Example: 2 cups rice instead of 1 cup; added avocado"
+                                          className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] text-slate-500 uppercase">Updated totals</label>
+                                        <div className="grid grid-cols-2 gap-2 mt-1">
+                                          {([['calories', 'Calories'], ['protein', 'Protein (g)'], ['carbs', 'Carbs (g)'], ['fat', 'Fat (g)']] as const).map(([field, label]) => (
+                                            <div key={field}>
+                                              <label className="text-[10px] text-slate-500">{label}</label>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                step="any"
+                                                value={relogForm[field]}
+                                                onChange={(e) => setRelogForm(prev => ({ ...prev, [field]: e.target.value }))}
+                                                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500"
+                                              />
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
                                       <div className="flex gap-2">
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation()
-                                            logAgain(meal, relogMealType)
+                                            saveRelog(meal)
                                           }}
-                                          disabled={loggingAgain === meal.id}
-                                          className="flex-1 py-2 rounded-lg font-semibold text-sm bg-purple-600 hover:bg-purple-700 text-white transition-colors"
+                                          disabled={loggingAgain === meal.id || !relogForm.meal_title.trim() || !relogForm.date}
+                                          className="flex-1 py-2 rounded-lg font-semibold text-sm bg-purple-600 hover:bg-purple-700 text-white transition-colors disabled:opacity-50"
                                         >
-                                          {loggingAgain === meal.id ? '⏳ Logging...' : '✓ Log It'}
+                                          {loggingAgain === meal.id ? '⏳ Saving...' : '✓ Save Copy'}
                                         </button>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation()
                                             setRelogPicker(null)
+                                            setRelogEditingMeal(null)
                                           }}
                                           className="px-4 py-2 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
                                         >
@@ -727,13 +846,12 @@ export default function MealHistoryPage() {
                                     }}
                                     className="py-2.5 px-4 rounded-lg font-semibold text-sm bg-slate-600/50 text-slate-200 border border-slate-500/30 hover:bg-slate-600 hover:border-slate-500/50 transition-all active:scale-[0.97]"
                                   >
-                                    ✏️ Edit
+                                    ✏️ Edit Original
                                   </button>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      setRelogMealType(meal.meal_type || 'breakfast')
-                                      setRelogPicker(meal.id)
+                                      startRelogEdit(meal)
                                     }}
                                     disabled={loggingAgain === meal.id || loggedSuccess === meal.id}
                                     className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-[0.97] ${
@@ -748,7 +866,7 @@ export default function MealHistoryPage() {
                                       ? '✅ Logged!'
                                       : loggingAgain === meal.id
                                       ? '⏳ Logging...'
-                                      : '🔄 Log Again'}
+                                      : '🔄 Customize & Log'}
                                   </button>
                                   {confirmDelete === meal.id ? (
                                     <div className="flex gap-1.5">
