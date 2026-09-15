@@ -121,10 +121,36 @@
 - [ ] Add purposeful visual support for meal ideas, hydration, training fuel, recovery, cycle-aware fueling, and perimenopause resources with descriptive alt text and accessible contrast.
 - [ ] Rewrite the 22 resources into concise summaries, bullets, checklists, callouts, and expandable detail without removing citations or health guardrails.
 - [ ] Deliver each rewritten resource or small review batch to Kelly for approval before replacing the live app content.
+- [ ] Prepare review batch 1: Fuel Different Fundamentals, Protein, and Carbohydrates for quick-scan, visual, and print-ready review.
+- [ ] Update Protein resource and review deck recommendations from g/kg to g/lb body weight, using a goal-based 0.8–1.4 g/lb daily range with coach/body-composition context.
+- [x] Replace generic quick-scan bullet markers with the official Fuel Different lightning-bolt icon in Protein review deck.
+- [x] Apply lightning-bolt bullets and 0.8–1.4 g/lb protein ranges to Fundamentals and Carbohydrates review decks.
+- [x] Prepare the next resource (Hydration) review deck.
+- [x] Prepare review decks for Pre-Workout Fueling, Post-Workout Recovery, and The Fuel Different Grocery List.
+- [ ] Create a review slide deck for Resource Library Batch 1 before applying revisions to the live app.
+- [ ] Create separate review decks for Fundamentals, Protein, and Carbohydrates before applying revisions to the live app.
 - [ ] Keep the current deployed Resource Library unchanged until the corresponding revised resource is explicitly approved.
-- [ ] Audit coach-to-athlete message creation, unread state, conversation routing, and existing in-app/push notification primitives.
-- [ ] Trigger a neutral athlete notification when a coach sends a new message, with duplicate prevention and no message-content preview.
-- [ ] Preserve admin fallback routing for athletes without an assigned coach and validate the existing chat flow before deployment.
+- [x] Re-audit the original Nutrition Playbook source PDFs for specific food lists, meal combinations, and practical examples.
+- [x] Expand review decks with concrete food examples and meal options while preserving quick-scan formatting and branded lightning-bolt bullets.
+- [ ] Convert the original one-page Healthy Carbohydrate Guide PDF into a high-resolution JPEG and deliver it for reuse.
+- [x] Convert all 17 pages of the original Nutrition Playbook PDF into separate high-resolution JPEG files and deliver them for reuse.
+- [x] Prepare a Week 1 FUEL 42 welcome email explaining the points system, Wednesday 5:00 PM coaching call, and Nutrition Playbook resource link.
+- [x] Prepare a Week 2 FUEL 42 football-season email with flexible game-day guidance, the Dips & Aioli recipe-pack link, and Wednesday 5:00 PM coaching-call link.
+- [x] Prepare a Week 3 FUEL 42 busy-schedule email with meal-prep and portable-snack strategies, Better Fast Food Options guide, and Wednesday 5:00 PM coaching-call link.
+- [x] Prepare a Week 4 FUEL 42 meal-prep email with simple busy-week systems, Top 10 Crock Pot Recipes link, and Wednesday 5:00 PM coaching-call link.
+- [x] Prepare a Week 5 FUEL 42 pre- and post-training fuel email with Dr. Stacy Sims–informed women’s context, men’s context, supplied resource link, and Wednesday 5:00 PM coaching-call link.
+- [x] Update the Week 5 email to use the supplied pre- and post-workout tips guide and resource description.
+- [x] After Week 5, prepare a Week 1 Tips hydration email covering daily water and electrolytes, Fuel Different hydration tracking, the supplied water guide, and Wednesday 5:00 PM coaching-call link.
+- [x] Prepare a Week 6 FUEL 42 completion email with year-end goal setting, app and coaching continuation offers, final InBody booking reminder for 5 points, final Zoom call, and goal-mapping resource link.
+- [x] Prepare personalized Coach Kelly subject lines, preview text, and Monday SMS previews for all completed FUEL 42 email campaigns.
+- [x] Assess and propose a coach-side scheduled message feature for one-time and recurring athlete messages, including reliable notification delivery.
+- [ ] Implement the selected coach-side scheduled-message solution with reliable in-app and neutral push delivery.
+- [x] Select a reliable scheduled-message delivery method compatible with the current Vercel Hobby plan: database-backed scheduler approved.
+- [x] Before scheduled messages, add coach multi-select athlete assignment for supplement recommendations while retaining individual and full-team choices. TypeScript and production-build validation passed.
+- [ ] Diagnose and resolve Google Drive participant access for the Nutrition Playbook link used in the Week 1 FUEL 42 email.
+- [x] Audit coach-to-athlete message creation, unread state, conversation routing, and existing in-app/push notification primitives.
+- [x] Trigger a neutral athlete notification when a coach sends a new message, with duplicate prevention and no message-content preview.
+- [x] Preserve admin fallback routing for athletes without an assigned coach and validate the existing chat flow before deployment.
 - [ ] Update the athlete library and article pages to prioritize visual scanning, short sections, image-led cards, and mobile-friendly reading.
 - [ ] Add a visible Print / Save as PDF action with a clean print stylesheet, readable page breaks, citations, and Fuel Different footer treatment.
 - [ ] Create handout-friendly quick-reference versions of the most-used resources so coaches can point athletes to a practical guide during sessions.

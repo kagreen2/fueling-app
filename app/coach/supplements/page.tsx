@@ -85,13 +85,15 @@ export default function CoachSupplementsPage() {
   // Recommend form state
   const [selectedSupplement, setSelectedSupplement] = useState<LibrarySupplement | null>(null)
   const [recTarget, setRecTarget] = useState<'athlete' | 'team'>('athlete')
-  const [recAthleteId, setRecAthleteId] = useState('')
+  const [recAthleteIds, setRecAthleteIds] = useState<string[]>([])
+  const [recAthleteSearch, setRecAthleteSearch] = useState('')
   const [recTeamId, setRecTeamId] = useState('')
   const [recNote, setRecNote] = useState('')
   const [recPriority, setRecPriority] = useState<'essential' | 'recommended' | 'optional'>('recommended')
   const [recTiming, setRecTiming] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [recError, setRecError] = useState<string | null>(null)
 
   // Visibility state
   const [visibilityFilter, setVisibilityFilter] = useState('all')
@@ -275,33 +277,71 @@ export default function CoachSupplementsPage() {
     })
   }, [library, searchLib, categoryFilter])
 
+  const selectableAthletes = useMemo(() => {
+    const query = recAthleteSearch.trim().toLowerCase()
+    if (!query) return athletes
+    return athletes.filter(athlete =>
+      athlete.name.toLowerCase().includes(query) ||
+      athlete.teamName.toLowerCase().includes(query)
+    )
+  }, [athletes, recAthleteSearch])
+
+  function toggleAthleteSelection(athleteId: string) {
+    setRecAthleteIds(current =>
+      current.includes(athleteId)
+        ? current.filter(id => id !== athleteId)
+        : [...current, athleteId]
+    )
+    setRecError(null)
+  }
+
+  function selectVisibleAthletes() {
+    setRecAthleteIds(current => [...new Set([...current, ...selectableAthletes.map(athlete => athlete.id)])])
+    setRecError(null)
+  }
+
   async function submitRecommendation() {
     if (!selectedSupplement) return
-    if (recTarget === 'athlete' && !recAthleteId) return
-    if (recTarget === 'team' && !recTeamId) return
+    if (recTarget === 'athlete' && recAthleteIds.length === 0) {
+      setRecError('Select at least one athlete before sending this recommendation.')
+      return
+    }
+    if (recTarget === 'team' && !recTeamId) {
+      setRecError('Select a team before sending this recommendation.')
+      return
+    }
 
     setSaving(true)
-    const { error } = await supabase.from('supplement_recommendations').insert({
+    setRecError(null)
+    const sharedValues = {
       supplement_library_id: selectedSupplement.id,
       coach_id: coachUserId,
-      athlete_id: recTarget === 'athlete' ? recAthleteId : null,
-      team_id: recTarget === 'team' ? recTeamId : null,
       coach_note: recNote || null,
       priority: recPriority,
       timing: recTiming || null,
       thorne_product_url: selectedSupplement.thorne_product_url,
-    })
+    }
+    const { error } = recTarget === 'athlete'
+      ? await supabase
+        .from('supplement_recommendations')
+        .insert(recAthleteIds.map(athleteId => ({ ...sharedValues, athlete_id: athleteId })))
+      : await supabase
+        .from('supplement_recommendations')
+        .insert({ ...sharedValues, team_id: recTeamId })
 
     if (!error) {
       setSaveSuccess(true)
       setSelectedSupplement(null)
       setRecNote('')
       setRecTiming('')
-      setRecAthleteId('')
+      setRecAthleteIds([])
+      setRecAthleteSearch('')
       setRecTeamId('')
       setRecPriority('recommended')
       loadData()
       setTimeout(() => setSaveSuccess(false), 2000)
+    } else {
+      setRecError('The recommendation could not be sent. Please try again.')
     }
     setSaving(false)
   }
@@ -511,17 +551,23 @@ export default function CoachSupplementsPage() {
                   <label className="text-sm font-medium text-slate-300 mb-3 block">Assign To</label>
                   <div className="flex gap-2 mb-4">
                     <button
-                      onClick={() => setRecTarget('athlete')}
+                      onClick={() => {
+                        setRecTarget('athlete')
+                        setRecError(null)
+                      }}
                       className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         recTarget === 'athlete'
                           ? 'bg-purple-600 text-white border-purple-500'
                           : 'bg-slate-700 text-slate-400 border-slate-600 hover:text-white'
                       }`}
                     >
-                      Individual Athlete
+                      Select Athlete(s)
                     </button>
                     <button
-                      onClick={() => setRecTarget('team')}
+                      onClick={() => {
+                        setRecTarget('team')
+                        setRecError(null)
+                      }}
                       className={`flex-1 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         recTarget === 'team'
                           ? 'bg-purple-600 text-white border-purple-500'
@@ -533,20 +579,79 @@ export default function CoachSupplementsPage() {
                   </div>
 
                   {recTarget === 'athlete' ? (
-                    <select
-                      value={recAthleteId}
-                      onChange={e => setRecAthleteId(e.target.value)}
-                      className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600"
-                    >
-                      <option value="">Select an athlete...</option>
-                      {athletes.map(a => (
-                        <option key={a.id} value={a.id}>{a.name} ({a.teamName})</option>
-                      ))}
-                    </select>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs text-slate-400">
+                          Select one or more athletes. Each athlete receives an individual recommendation.
+                        </p>
+                        <span className="shrink-0 rounded-full bg-purple-500/15 px-2.5 py-1 text-xs font-semibold text-purple-300">
+                          {recAthleteIds.length} selected
+                        </span>
+                      </div>
+                      <input
+                        type="search"
+                        value={recAthleteSearch}
+                        onChange={event => setRecAthleteSearch(event.target.value)}
+                        placeholder="Search athletes or teams..."
+                        className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:border-purple-600"
+                      />
+                      <div className="flex items-center gap-3 text-xs font-semibold">
+                        <button
+                          type="button"
+                          onClick={selectVisibleAthletes}
+                          disabled={selectableAthletes.length === 0}
+                          className="text-purple-300 hover:text-purple-200 disabled:text-slate-600"
+                        >
+                          Select visible ({selectableAthletes.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRecAthleteIds([])
+                            setRecError(null)
+                          }}
+                          disabled={recAthleteIds.length === 0}
+                          className="text-slate-400 hover:text-white disabled:text-slate-600"
+                        >
+                          Clear selection
+                        </button>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-700 divide-y divide-slate-700">
+                        {selectableAthletes.length === 0 ? (
+                          <p className="px-4 py-5 text-center text-sm text-slate-500">No athletes match that search.</p>
+                        ) : (
+                          selectableAthletes.map(athlete => {
+                            const isSelected = recAthleteIds.includes(athlete.id)
+                            return (
+                              <label
+                                key={athlete.id}
+                                className={`flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors ${
+                                  isSelected ? 'bg-purple-500/15' : 'bg-slate-800/30 hover:bg-slate-700/60'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleAthleteSelection(athlete.id)}
+                                  className="h-4 w-4 rounded border-slate-500 bg-slate-800 accent-purple-500"
+                                />
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-sm font-medium text-white">{athlete.name}</span>
+                                  <span className="block truncate text-xs text-slate-500">{athlete.teamName || 'No team assigned'}</span>
+                                </span>
+                              </label>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
                   ) : (
                     <select
                       value={recTeamId}
-                      onChange={e => setRecTeamId(e.target.value)}
+                      onChange={e => {
+                        setRecTeamId(e.target.value)
+                        setRecError(null)
+                      }}
                       className="w-full bg-slate-700 border border-slate-600 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600"
                     >
                       <option value="">Select a team...</option>
@@ -608,7 +713,7 @@ export default function CoachSupplementsPage() {
                 {/* Submit */}
                 <button
                   onClick={submitRecommendation}
-                  disabled={saving || (recTarget === 'athlete' && !recAthleteId) || (recTarget === 'team' && !recTeamId)}
+                  disabled={saving || (recTarget === 'athlete' && recAthleteIds.length === 0) || (recTarget === 'team' && !recTeamId)}
                   className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
                     saving
                       ? 'bg-slate-700 text-slate-400 cursor-wait'
@@ -617,8 +722,17 @@ export default function CoachSupplementsPage() {
                       : 'bg-purple-600 hover:bg-purple-700 text-white active:scale-[0.98]'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {saveSuccess ? '✅ Recommendation Sent!' : saving ? 'Saving...' : 'Send Recommendation'}
+                  {saveSuccess
+                    ? '✅ Recommendation Sent!'
+                    : saving
+                    ? 'Saving...'
+                    : recTarget === 'athlete' && recAthleteIds.length > 1
+                    ? `Send to ${recAthleteIds.length} Athletes`
+                    : 'Send Recommendation'}
                 </button>
+                {recError && (
+                  <p className="text-center text-sm text-red-400" role="alert">{recError}</p>
+                )}
               </>
             )}
 
