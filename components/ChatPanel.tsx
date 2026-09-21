@@ -178,20 +178,22 @@ export default function ChatPanel({
         }
       }
 
-      const staffRoles = new Set(['coach', 'admin', 'super_admin'])
-      const athleteRecipientRoles = new Set(['athlete', 'member', 'general fitness'])
-      const normalizedSenderRole = (senderRole || '').toLowerCase()
-      const normalizedRecipientRole = (otherUserRole || '').toLowerCase()
-      // Coach profile pages pre-date the senderRole prop. When the other participant
-      // is an athlete/member, the current user is necessarily staff in this chat.
-      const messageIsFromStaff = staffRoles.has(normalizedSenderRole)
-        || athleteRecipientRoles.has(normalizedRecipientRole)
-      if (insertedMessage?.id && messageIsFromStaff) {
-        fetch('/api/chat/notify-athlete', {
+      // The server verifies the sender and recipient roles. Calling it for every
+      // message keeps coach notifications reliable even in older UI surfaces that
+      // do not pass a client-side role label.
+      if (insertedMessage?.id) {
+        try {
+          const notificationResponse = await fetch('/api/chat/notify-athlete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messageId: insertedMessage.id }),
-        }).catch(() => {})
+          })
+          if (!notificationResponse.ok) {
+            console.warn('Athlete push notification request failed:', notificationResponse.status)
+          }
+        } catch (notificationError) {
+          console.warn('Unable to request athlete push notification:', notificationError)
+        }
       }
     }
     setSending(false)

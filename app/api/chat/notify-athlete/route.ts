@@ -47,6 +47,11 @@ export async function POST(req: NextRequest) {
       url: '/athlete/dashboard',
     })
 
+    console.info('[CHAT NOTIFY ATHLETE] Push delivery attempt complete', {
+      messageId: message.id,
+      notified,
+    })
+
     return NextResponse.json({ success: true, notified })
   } catch (error) {
     console.error('[CHAT NOTIFY ATHLETE] Error:', error)

@@ -50,7 +50,13 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
       .select('id, subscription')
       .eq('user_id', userId)
 
-    if (error || !subscriptions || subscriptions.length === 0) {
+    if (error) {
+      console.error('Unable to fetch push subscriptions:', error.message)
+      return false
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.info('No active push subscription found for notification recipient')
       return false
     }
 
@@ -81,6 +87,11 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
       await supabase.from('push_subscriptions').delete().in('id', expiredIds)
     }
 
+    console.info('Push delivery attempt complete', {
+      subscriptionCount: subscriptions.length,
+      sent,
+      expiredSubscriptionCount: expiredIds.length,
+    })
     return sent
   } catch (err) {
     console.error('sendPushToUser error:', err)
