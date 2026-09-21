@@ -34,6 +34,8 @@ interface ChatPanelProps {
   otherUserEmail?: string
   /** If true, don't auto-mark messages as read when panel opens (used on coach detail page) */
   skipMarkRead?: boolean
+  /** Called after this viewer's unread messages are successfully marked read */
+  onMessagesRead?: () => void
 }
 
 function formatTime(dateStr: string): string {
@@ -64,6 +66,7 @@ export default function ChatPanel({
   senderRole,
   otherUserEmail,
   skipMarkRead = false,
+  onMessagesRead,
 }: ChatPanelProps) {
   const supabase = createClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -113,9 +116,10 @@ export default function ChatPanel({
           setMessages(prev =>
             prev.map(m => unreadIds.includes(m.id) ? { ...m, read: true } : m)
           )
+          onMessagesRead?.()
         })
     }
-  }, [isOpen, messages, currentUserId, supabase, skipMarkRead])
+  }, [isOpen, messages, currentUserId, supabase, skipMarkRead, onMessagesRead])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -175,7 +179,14 @@ export default function ChatPanel({
       }
 
       const staffRoles = new Set(['coach', 'admin', 'super_admin'])
-      if (insertedMessage?.id && staffRoles.has(senderRole || '')) {
+      const athleteRecipientRoles = new Set(['athlete', 'member', 'general fitness'])
+      const normalizedSenderRole = (senderRole || '').toLowerCase()
+      const normalizedRecipientRole = (otherUserRole || '').toLowerCase()
+      // Coach profile pages pre-date the senderRole prop. When the other participant
+      // is an athlete/member, the current user is necessarily staff in this chat.
+      const messageIsFromStaff = staffRoles.has(normalizedSenderRole)
+        || athleteRecipientRoles.has(normalizedRecipientRole)
+      if (insertedMessage?.id && messageIsFromStaff) {
         fetch('/api/chat/notify-athlete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

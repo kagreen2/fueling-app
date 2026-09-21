@@ -135,6 +135,7 @@ export default function AthleteDashboard() {
   const [userId, setUserId] = useState<string>('')
   const [coachProfile, setCoachProfile] = useState<{ id: string; full_name: string; email: string } | null>(null)
   const [showChat, setShowChat] = useState(false)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const [showCheckinReminder, setShowCheckinReminder] = useState(false)
   const [checkinStreak, setCheckinStreak] = useState(0)
   const [loadError, setLoadError] = useState(false)
@@ -323,6 +324,17 @@ export default function AthleteDashboard() {
 
       setAthlete(athleteData)
       setUserId(user.id)
+
+      const { count: unreadCount, error: unreadError } = await supabase
+        .from('chat_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('receiver_id', user.id)
+        .eq('read', false)
+      if (unreadError) {
+        console.error('Unable to load unread coach messages:', unreadError)
+      } else {
+        setUnreadMessageCount(unreadCount || 0)
+      }
 
       // Load coach profile via athlete_coach_assignments
       // coach_id in assignments is the user/profile ID directly
@@ -686,9 +698,14 @@ export default function AthleteDashboard() {
               <button
                 onClick={() => setShowChat(true)}
                 className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors relative"
-                title={`Chat with ${coachProfile.full_name?.split(' ')[0] || 'Coach'}`}
+                title={unreadMessageCount > 0 ? `${unreadMessageCount} unread message${unreadMessageCount === 1 ? '' : 's'} from your coach` : `Chat with ${coachProfile.full_name?.split(' ')[0] || 'Coach'}`}
               >
                 <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                {unreadMessageCount > 0 && (
+                  <span className="absolute -right-1 -top-1 min-w-4 rounded-full border-2 border-slate-900 bg-purple-500 px-1 text-[10px] font-bold leading-4 text-white" aria-label={`${unreadMessageCount} unread messages`}>
+                    {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+                  </span>
+                )}
               </button>
             )}
             <button
@@ -1039,6 +1056,7 @@ export default function AthleteDashboard() {
               senderName={profile?.full_name || 'Athlete'}
               senderRole={profile?.role || 'athlete'}
               otherUserEmail={coachProfile.email}
+              onMessagesRead={() => setUnreadMessageCount(0)}
             />
           </div>
         </div>
