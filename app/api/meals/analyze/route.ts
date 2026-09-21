@@ -130,8 +130,10 @@ Rules:
 - If a quantity is incomplete or lacks a usable unit, set needsClarification to true, lower confidence to medium or low, name the missing detail, and ask one short question
 - If a meat or fish weight could differ depending on whether it was measured raw or cooked, ask which state was weighed
 - If the user states a number of servings without defining the package serving size, ask what one serving represents
+- If the description names a branded or packaged food but does not include its nutrition-label values, do not silently substitute a generic food. Set confidence to medium or low and, when the product materially affects the meal, use missingDetails: ["package_label"] and ask for the label values or recommend the direct nutrition-label entry option.
+- When the user provides a brand plus exact portions, calculate each ingredient separately and do not inflate confidence merely because the portions are specific; the package nutrition facts still control packaged-food accuracy.
 - If a clarification is provided and resolves every missing detail, set needsClarification to false, clarifyingQuestion to null, and missingDetails to []
-- missingDetails should use concise machine-readable values such as "portion_unit", "serving_size", "raw_or_cooked", or "meal_details"
+- missingDetails should use concise machine-readable values such as "portion_unit", "serving_size", "package_label", "raw_or_cooked", or "meal_details"
 - ${feedbackGuidance}
 - ${nextStepGuidance}
 - If you cannot identify the food or portion clearly, set confidence to "low" and require clarification

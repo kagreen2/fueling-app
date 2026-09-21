@@ -28,6 +28,17 @@ interface PastMeal {
   last_logged: string
 }
 
+interface SavedMeal {
+  id: string
+  title: string
+  description: string | null
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | null
+}
+
 export default function MealsPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -36,12 +47,15 @@ export default function MealsPage() {
   const [saved, setSaved] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [pastMeals, setPastMeals] = useState<PastMeal[]>([])
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([])
+  const [savedMealsAvailable, setSavedMealsAvailable] = useState(false)
   const [quickLogging, setQuickLogging] = useState<string | null>(null)
   const [quickLogSuccess, setQuickLogSuccess] = useState<string | null>(null)
   const [athleteId, setAthleteId] = useState<string | null>(null)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [clarificationAnswer, setClarificationAnswer] = useState('')
   const [clarificationContext, setClarificationContext] = useState('')
+  const [macroSource, setMacroSource] = useState<'ai' | 'label'>('ai')
   const [macroDraft, setMacroDraft] = useState<MacroDraft>({
     calories: '',
     protein: '',
@@ -49,6 +63,7 @@ export default function MealsPage() {
     fat: '',
   })
   const [macroDraftError, setMacroDraftError] = useState('')
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false)
 
   // Backdate support: allow logging meals for today, yesterday, or 2 days ago
   const [selectedDate, setSelectedDate] = useState<string>('')
@@ -95,6 +110,15 @@ export default function MealsPage() {
 
     if (!athlete) return
     setAthleteId(athlete.id)
+
+    const { data: templates, error: templatesError } = await supabase
+      .from('meal_templates')
+      .select('id, title, description, calories, protein, carbs, fat, meal_type')
+      .eq('athlete_id', athlete.id)
+      .order('updated_at', { ascending: false })
+      .limit(6)
+    setSavedMealsAvailable(!templatesError)
+    setSavedMeals((templates || []) as SavedMeal[])
 
     // Get last 30 days of meals
     const thirtyDaysAgo = new Date()
@@ -195,13 +219,49 @@ export default function MealsPage() {
     setQuickLogging(null)
   }
 
+  async function quickLogSavedMeal(meal: SavedMeal) {
+    if (!athleteId) return
+    const loggingKey = `saved-${meal.id}`
+    setQuickLogging(loggingKey)
+    try {
+      const logDate = selectedDate || new Date().toISOString().split('T')[0]
+      const { error } = await supabase.from('meal_logs').insert({
+        athlete_id: athleteId,
+        meal_title: meal.title,
+        description: meal.description,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        confidence: null,
+        ai_feedback: null,
+        ai_next_step: null,
+        meal_type: meal.meal_type,
+        date: logDate,
+        logged_at: new Date().toISOString(),
+      })
+      if (!error) {
+        setQuickLogSuccess(loggingKey)
+        setTimeout(() => {
+          setQuickLogSuccess(null)
+          setSaved(true)
+        }, 700)
+      }
+    } catch (err) {
+      console.error('Saved meal logging error:', err)
+    }
+    setQuickLogging(null)
+  }
+
   function update<K extends keyof typeof form>(field: K, value: (typeof form)[K]) {
     setForm(prev => ({ ...prev, [field]: value }))
     setAnalysis(null)
     setClarificationAnswer('')
     setClarificationContext('')
+    setMacroSource('ai')
     setMacroDraft({ calories: '', protein: '', carbs: '', fat: '' })
     setMacroDraftError('')
+    setSaveAsTemplate(false)
     setError('')
   }
 
@@ -250,6 +310,7 @@ export default function MealsPage() {
 
       const nextAnalysis = data as MealAnalysis
       setAnalysis(nextAnalysis)
+      setMacroSource('ai')
       setMacroDraft({
         calories: String(nextAnalysis.calories),
         protein: String(nextAnalysis.protein),
@@ -268,6 +329,32 @@ export default function MealsPage() {
     }
 
     setAnalyzing(false)
+  }
+
+  function startNutritionLabelEntry() {
+    if (!form.mealTitle.trim()) {
+      setError('Add a meal name before entering nutrition-label values.')
+      return
+    }
+    setAnalysis({
+      mealTitle: form.mealTitle.trim(),
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      confidence: 'high',
+      feedback: '',
+      nextStep: '',
+      needsClarification: false,
+      clarifyingQuestion: null,
+      missingDetails: [],
+    })
+    setMacroDraft({ calories: '', protein: '', carbs: '', fat: '' })
+    setMacroSource('label')
+    setClarificationAnswer('')
+    setClarificationContext('')
+    setMacroDraftError('')
+    setError('')
   }
 
   async function handleSubmit() {
@@ -334,9 +421,9 @@ export default function MealsPage() {
       protein: macroValidation.values.protein,
       carbs: macroValidation.values.carbs,
       fat: macroValidation.values.fat,
-      confidence: analysis.confidence,
-      ai_feedback: analysis.feedback,
-      ai_next_step: analysis.nextStep,
+      confidence: macroSource === 'label' ? null : analysis.confidence,
+      ai_feedback: macroSource === 'label' ? null : analysis.feedback,
+      ai_next_step: macroSource === 'label' ? null : analysis.nextStep,
       clarifying_question: analysis.clarifyingQuestion || null,
       meal_type: form.mealType || null,
       date: logDate,
@@ -348,6 +435,23 @@ export default function MealsPage() {
       setError('Failed to save meal. Please try again.')
       setLoading(false)
       return
+    }
+
+    if (saveAsTemplate && savedMealsAvailable) {
+      const { error: templateError } = await supabase.from('meal_templates').insert({
+        athlete_id: athlete.id,
+        title: form.mealTitle.trim(),
+        description: form.description.trim() || null,
+        calories: macroValidation.values.calories,
+        protein: macroValidation.values.protein,
+        carbs: macroValidation.values.carbs,
+        fat: macroValidation.values.fat,
+        meal_type: form.mealType || null,
+        source: macroSource === 'label' ? 'manual' : 'corrected_ai',
+      })
+      if (templateError) {
+        console.error('Meal logged but saved meal creation failed:', templateError)
+      }
     }
 
     setSaved(true)
@@ -397,12 +501,20 @@ export default function MealsPage() {
             <h1 className="text-2xl font-bold">Log a Meal</h1>
             <p className="text-xs text-slate-400">AI-powered nutrition analysis</p>
           </div>
-          <button
-            onClick={() => router.push('/athlete/meals/history')}
-            className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors border border-slate-700"
-          >
-            History
-          </button>
+          <div className="flex items-center gap-2">
+            {savedMealsAvailable && <button
+              onClick={() => router.push('/athlete/meals/saved')}
+              className="text-xs px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-200 rounded-lg transition-colors border border-purple-500/25"
+            >
+              Saved
+            </button>}
+            <button
+              onClick={() => router.push('/athlete/meals/history')}
+              className="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors border border-slate-700"
+            >
+              History
+            </button>
+          </div>
         </div>
 
         {/* Date Selector Strip */}
@@ -433,6 +545,50 @@ export default function MealsPage() {
 
       {/* Content */}
       <div className="max-w-lg mx-auto px-4 py-6 pb-20">
+
+        {/* Saved Meals — persistent favorites and recipes */}
+        {savedMealsAvailable && <section className="mb-6 rounded-xl border border-purple-500/25 bg-purple-500/5 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">⚡ Saved Meals &amp; Recipes</p>
+              <p className="mt-1 text-xs leading-5 text-slate-400">Log the meals you have already checked—without running a new AI estimate.</p>
+            </div>
+            <button
+              onClick={() => router.push('/athlete/meals/saved')}
+              className="shrink-0 rounded-lg border border-purple-500/30 px-2.5 py-1.5 text-xs font-semibold text-purple-200 hover:bg-purple-500/10"
+            >
+              Manage
+            </button>
+          </div>
+          {savedMeals.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {savedMeals.slice(0, 3).map(meal => {
+                const loggingKey = `saved-${meal.id}`
+                return (
+                  <button
+                    key={meal.id}
+                    onClick={() => quickLogSavedMeal(meal)}
+                    disabled={quickLogging === loggingKey || quickLogSuccess === loggingKey}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-800/70 p-3 text-left transition-all hover:border-purple-500/40 hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-white">{quickLogSuccess === loggingKey ? '✓ ' : ''}{meal.title}</p>
+                        <p className="mt-0.5 text-xs text-slate-400">{meal.calories} kcal · {meal.protein}g P · {meal.carbs}g C · {meal.fat}g F</p>
+                      </div>
+                      <span className="shrink-0 rounded bg-purple-500/10 px-2 py-1 text-xs font-semibold text-purple-300">
+                        {quickLogging === loggingKey ? 'Adding...' : quickLogSuccess === loggingKey ? 'Added' : '+ Log'}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+              <button onClick={() => router.push('/athlete/meals/saved')} className="w-full pt-1 text-xs font-semibold text-purple-300 hover:text-purple-100">View all saved meals →</button>
+            </div>
+          ) : (
+            <button onClick={() => router.push('/athlete/meals/saved')} className="mt-3 text-xs font-semibold text-purple-300 hover:text-purple-100">Create your first saved meal or recipe →</button>
+          )}
+        </section>}
 
         {/* Previously Logged Meals - Collapsible Dropdown */}
         {(recentMeals.length > 0 || frequentMeals.length > 0) && (
@@ -690,17 +846,19 @@ export default function MealsPage() {
               <div className="flex items-start justify-between gap-4 mb-3">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-                    {analysis.needsClarification ? 'Preliminary Estimate' : 'Review Your Macros'}
+                    {analysis.needsClarification ? 'Preliminary Estimate' : macroSource === 'label' ? 'Nutrition-label macros' : 'Review Your Macros'}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
                     {analysis.needsClarification
                       ? 'Answer the portion question below to improve this estimate.'
-                      : 'Use a package label or known serving values to make any corrections before saving.'}
+                      : macroSource === 'label'
+                        ? 'These are your values from the label or a verified source. Review the serving count before saving.'
+                        : 'Use a package label or known serving values to make any corrections before saving.'}
                   </p>
                 </div>
                 {!analysis.needsClarification && (
-                  <span className="text-xs text-green-300 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-full whitespace-nowrap">
-                    Editable
+                  <span className={`text-xs border px-2 py-1 rounded-full whitespace-nowrap ${macroSource === 'label' ? 'text-blue-200 bg-blue-500/10 border-blue-500/20' : 'text-green-300 bg-green-500/10 border-green-500/20'}`}>
+                    {macroSource === 'label' ? 'Verified entry' : 'Editable'}
                   </span>
                 )}
               </div>
@@ -746,7 +904,9 @@ export default function MealsPage() {
                       ))}
                     </div>
                     <p className="text-xs text-slate-500 mt-3">
-                      The values shown are estimates. Any changes you make here become the saved meal values.
+                      {macroSource === 'label'
+                        ? 'These are your verified values. Any changes you make here become the saved meal values.'
+                        : 'The values shown are estimates. Any changes you make here become the saved meal values.'}
                     </p>
                     {macroDraftError && (
                       <p className="text-sm text-red-400 mt-2" role="alert">{macroDraftError}</p>
@@ -757,7 +917,7 @@ export default function MealsPage() {
             </div>
 
             {/* Confidence Badge */}
-            <Card>
+            {macroSource === 'ai' && <Card>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-400">AI Confidence</span>
@@ -770,27 +930,42 @@ export default function MealsPage() {
                   </span>
                 </div>
               </CardContent>
-            </Card>
+            </Card>}
+
+            {!analysis.needsClarification && savedMealsAvailable && (
+              <label className="flex items-start gap-3 rounded-xl border border-purple-500/25 bg-purple-500/5 p-4 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={saveAsTemplate}
+                  onChange={event => setSaveAsTemplate(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-500 bg-slate-700 text-purple-600 focus:ring-purple-500"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-white">Save this as a reusable meal</span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-400">After you review or correct the macros, keep this meal and its ingredient notes for one-tap logging later.</span>
+                </span>
+              </label>
+            )}
 
             {/* Feedback */}
-            <Card>
+            {macroSource === 'ai' && <Card>
               <CardHeader title="Coach Feedback" />
               <CardContent>
                 <p className="text-sm text-slate-300 leading-relaxed">
                   {analysis.feedback}
                 </p>
               </CardContent>
-            </Card>
+            </Card>}
 
             {/* Next Step */}
-            <Card className="border-green-500/30 bg-green-500/5">
+            {macroSource === 'ai' && <Card className="border-green-500/30 bg-green-500/5">
               <CardHeader title="Next Step" />
               <CardContent>
                 <p className="text-sm text-green-300 leading-relaxed">
                   💡 {analysis.nextStep}
                 </p>
               </CardContent>
-            </Card>
+            </Card>}
 
             {/* Clarifying Question */}
             {analysis.needsClarification && analysis.clarifyingQuestion && (
@@ -822,14 +997,24 @@ export default function MealsPage() {
         {/* Action Buttons */}
         <div className="space-y-3">
           {!analysis ? (
-            <Button
-              onClick={() => analyzeMeal()}
-              isLoading={analyzing}
-              size="lg"
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              {analyzing ? 'Analyzing...' : 'Analyze with AI'}
-            </Button>
+            <>
+              <Button
+                onClick={() => analyzeMeal()}
+                isLoading={analyzing}
+                size="lg"
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {analyzing ? 'Analyzing...' : 'Analyze with AI'}
+              </Button>
+              <button
+                type="button"
+                onClick={startNutritionLabelEntry}
+                className="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-blue-400 hover:bg-blue-500/10 hover:text-white"
+              >
+                Enter macros from a nutrition label instead
+              </button>
+              <p className="px-1 text-center text-xs leading-5 text-slate-500">Best for packaged foods, restaurant nutrition listings, or a meal with macros you already know.</p>
+            </>
           ) : analysis.needsClarification ? (
             <>
               <Button
@@ -873,6 +1058,7 @@ export default function MealsPage() {
                   setClarificationContext('')
                   setMacroDraft({ calories: '', protein: '', carbs: '', fat: '' })
                   setMacroDraftError('')
+                  setSaveAsTemplate(false)
                 }}
                 variant="secondary"
                 size="lg"

@@ -49,6 +49,8 @@ export default function MealHistoryPage() {
   const [loggedSuccess, setLoggedSuccess] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [savingTemplate, setSavingTemplate] = useState<string | null>(null)
+  const [savedTemplate, setSavedTemplate] = useState<string | null>(null)
   const [relogPicker, setRelogPicker] = useState<string | null>(null) // meal.id when picker is open
   const [relogMealType, setRelogMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast')
   const [editingMeal, setEditingMeal] = useState<string | null>(null) // meal.id being edited
@@ -326,6 +328,41 @@ export default function MealHistoryPage() {
       console.error('Error deleting meal:', err)
     }
     setDeleting(null)
+  }
+
+  async function saveMealAsTemplate(meal: MealLog) {
+    setSavingTemplate(meal.id)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: athlete } = await supabase
+        .from('athletes')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single()
+      if (!athlete) return
+
+      const { error } = await supabase.from('meal_templates').insert({
+        athlete_id: athlete.id,
+        title: meal.meal_title,
+        description: meal.description,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+        meal_type: meal.meal_type,
+        source: meal.confidence ? 'corrected_ai' : 'manual',
+      })
+      if (!error) {
+        setSavedTemplate(meal.id)
+        setTimeout(() => setSavedTemplate(null), 2200)
+      } else {
+        console.error('Error saving meal template:', error)
+      }
+    } catch (err) {
+      console.error('Error saving meal template:', err)
+    }
+    setSavingTemplate(null)
   }
 
   function startEdit(meal: MealLog) {
@@ -838,7 +875,7 @@ export default function MealHistoryPage() {
                                     </div>
                                   )}
 
-                                  <div className="flex gap-2">
+                                  <div className="flex flex-wrap gap-2">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
@@ -847,6 +884,20 @@ export default function MealHistoryPage() {
                                     className="py-2.5 px-4 rounded-lg font-semibold text-sm bg-slate-600/50 text-slate-200 border border-slate-500/30 hover:bg-slate-600 hover:border-slate-500/50 transition-all active:scale-[0.97]"
                                   >
                                     ✏️ Edit Original
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      saveMealAsTemplate(meal)
+                                    }}
+                                    disabled={savingTemplate === meal.id || savedTemplate === meal.id}
+                                    className={`py-2.5 px-3 rounded-lg font-semibold text-sm border transition-all active:scale-[0.97] ${
+                                      savedTemplate === meal.id
+                                        ? 'bg-green-500/15 border-green-500/30 text-green-300'
+                                        : 'bg-slate-700/60 border-slate-600 text-slate-200 hover:border-purple-500/45 hover:text-white'
+                                    }`}
+                                  >
+                                    {savedTemplate === meal.id ? '✓ Saved' : savingTemplate === meal.id ? 'Saving...' : '⚡ Save'}
                                   </button>
                                   <button
                                     onClick={(e) => {

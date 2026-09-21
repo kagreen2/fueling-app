@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getZoneInfo } from '@/lib/fuel-score'
 import { useOrganization, useOrgStyles } from '@/lib/organizations'
 import OrgBrand from '@/components/OrgBrand'
+import CoachMessagesWorkspace from '@/components/CoachMessagesWorkspace'
 
 interface Team {
   id: string
@@ -369,6 +370,17 @@ export default function CoachDashboardPage() {
     unread_count: number
     total_count: number
   }>>([])  
+  const [scheduledMessages, setScheduledMessages] = useState<Array<{
+    id: string
+    message: string
+    status: 'scheduled' | 'paused' | 'completed' | 'canceled'
+    recurrence: 'once' | 'weekly'
+    next_send_at: string
+    scheduled_for: string
+    audience_label: string | null
+    recipients: Array<{ athlete_id: string; recipient_name: string | null }>
+    delivery_summary: { sent: number; failed: number }
+  }>>([])
   const [coachUserId, setCoachUserId] = useState<string>('')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showAlertPanel, setShowAlertPanel] = useState(false)
@@ -830,10 +842,19 @@ export default function CoachDashboardPage() {
       } else {
         setAllConversations([])
       }
+
+      const scheduledResponse = await fetch('/api/coach/scheduled-messages', { cache: 'no-store' })
+      if (scheduledResponse.ok) {
+        const scheduledResult = await scheduledResponse.json()
+        setScheduledMessages(scheduledResult.schedules || [])
+      } else {
+        setScheduledMessages([])
+      }
     } catch {
       // chat_messages table might not exist yet
       setUnreadMessages([])
       setAllConversations([])
+      setScheduledMessages([])
     }
 
     setLoading(false)
@@ -1923,8 +1944,18 @@ export default function CoachDashboardPage() {
           </div>
         )}
 
-        {/* Messages View — Full Inbox */}
         {view === 'messages' && (
+          <CoachMessagesWorkspace
+            conversations={allConversations}
+            unreadCount={unreadMessages.length}
+            athletes={athletes}
+            scheduledMessages={scheduledMessages}
+            selectedTeam={selectedTeam}
+          />
+        )}
+
+        {/* Legacy messages view retained below temporarily for safe rollback */}
+        {false && view === 'messages' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-white font-semibold text-lg">Messages</h3>
