@@ -157,24 +157,20 @@ export default function ChatPanel({
       await loadMessages()
       inputRef.current?.focus()
 
-      // Send email notification to the other user (coach or athlete)
-      // Only send if the sender is an athlete/member messaging their coach
-      const isAthleteMessagingCoach = senderRole === 'athlete' || senderRole === 'member'
-      if (isAthleteMessagingCoach && otherUserEmail && senderName) {
+      // The server verifies that this is an athlete-to-staff message and derives
+      // the real coach recipient from the saved message before sending alerts.
+      if (insertedMessage?.id) {
         try {
-          fetch('/api/chat/notify', {
+          const notificationResponse = await fetch('/api/chat/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              coachEmail: otherUserEmail,
-              coachName: otherUserName,
-              athleteName: senderName,
-              messagePreview: text,
-              athleteId: athleteId,
-            }),
-          }).catch(() => {}) // Fire and forget — don't block UI
-        } catch {
-          // Silently fail — email notification is best-effort
+            body: JSON.stringify({ messageId: insertedMessage.id }),
+          })
+          if (!notificationResponse.ok) {
+            console.warn('Coach alert request failed:', notificationResponse.status)
+          }
+        } catch (notificationError) {
+          console.warn('Unable to request coach alert:', notificationError)
         }
       }
 
