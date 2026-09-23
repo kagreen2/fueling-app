@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface ChatMessage {
@@ -68,7 +68,7 @@ export default function ChatPanel({
   skipMarkRead = false,
   onMessagesRead,
 }: ChatPanelProps) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -128,12 +128,34 @@ export default function ChatPanel({
     }
   }, [messages, isOpen, scrollToBottom])
 
-  // Poll for new messages every 10 seconds
+  // Listen only for this conversation instead of querying the database every 10 seconds.
+  // A slower fallback keeps chat current if realtime is unavailable on an older project.
   useEffect(() => {
     if (!isOpen) return
-    const interval = setInterval(loadMessages, 10000)
-    return () => clearInterval(interval)
-  }, [isOpen, loadMessages])
+
+    const subscription = supabase
+      .channel(`chat-messages-${athleteId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `athlete_id=eq.${athleteId}`,
+        },
+        () => {
+          loadMessages()
+        }
+      )
+      .subscribe()
+
+    const fallbackInterval = window.setInterval(loadMessages, 30000)
+
+    return () => {
+      subscription.unsubscribe()
+      window.clearInterval(fallbackInterval)
+    }
+  }, [athleteId, isOpen, loadMessages, supabase])
 
   async function handleSend() {
     const text = newMessage.trim()

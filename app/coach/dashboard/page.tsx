@@ -353,14 +353,8 @@ export default function CoachDashboardPage() {
   const [pendingSupplements, setPendingSupplements] = useState<any[]>([])
   const [unreadMessages, setUnreadMessages] = useState<Array<{
     id: string
-    sender_id: string
-    receiver_id: string
     athlete_id: string
-    message: string
-    read: boolean
-    created_at: string
     sender_name?: string
-    sender_email?: string
   }>>([])  
   const [allConversations, setAllConversations] = useState<Array<{
     athlete_id: string
@@ -782,15 +776,14 @@ export default function CoachDashboardPage() {
       setPendingSupplements(pendingSupps || [])
     }
 
-    // Load chat messages for this coach (both unread for badge + all recent for inbox)
+    // Load the compact chat data needed for the badge, coach alerts, and inbox.
     try {
       // 1. Unread messages (for badge count)
       const { data: unreadMsgs } = await supabase
         .from('chat_messages')
-        .select('*')
+        .select('id, athlete_id')
         .eq('receiver_id', user.id)
         .eq('read', false)
-        .order('created_at', { ascending: false })
 
       if (unreadMsgs && unreadMsgs.length > 0) {
         const enriched = unreadMsgs.map(msg => {
@@ -798,7 +791,6 @@ export default function CoachDashboardPage() {
           return {
             ...msg,
             sender_name: athlete?.name || 'Unknown',
-            sender_email: athlete?.email || '',
           }
         })
         setUnreadMessages(enriched)
@@ -806,13 +798,13 @@ export default function CoachDashboardPage() {
         setUnreadMessages([])
       }
 
-      // 2. All recent conversations (for inbox view) — get last 50 messages involving this coach
+      // 2. The concise inbox only needs a recent conversation window, not full history.
       const { data: allMsgs } = await supabase
         .from('chat_messages')
-        .select('*')
+        .select('athlete_id, message, created_at, receiver_id, read')
         .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
-        .limit(200)
+        .limit(100)
 
       if (allMsgs && allMsgs.length > 0) {
         // Group by athlete_id to build conversation list

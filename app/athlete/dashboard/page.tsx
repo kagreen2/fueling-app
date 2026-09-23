@@ -256,16 +256,22 @@ export default function AthleteDashboard() {
 
   useEffect(() => {
     loadData()
-    
-    // Subscribe to real-time meal updates
+  }, [])
+
+  useEffect(() => {
+    if (!athlete?.id) return
+
+    // Only react to this athlete's meals. Without this filter, every active
+    // athlete dashboard reloads whenever anyone logs a meal.
     const subscription = supabase
-      .channel('meal-updates')
+      .channel(`meal-updates-${athlete.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'meal_logs',
+          filter: `athlete_id=eq.${athlete.id}`,
         },
         () => {
           debouncedReload()
@@ -293,7 +299,7 @@ export default function AthleteDashboard() {
       window.removeEventListener('focus', handleFocus)
       if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current)
     }
-  }, [debouncedReload])
+  }, [athlete?.id, debouncedReload])
 
   async function loadData() {
     try {
