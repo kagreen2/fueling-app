@@ -6,6 +6,115 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
 
+type Mode = 'fix_macros' | 'grocery_list' | 'question'
+
+function numberValue(value: unknown, fallback = 0): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function sanitizeDate(value: unknown): string {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  return new Date().toISOString().split('T')[0]
+}
+
+async function loadMealAssistantContext(supabase: any, profileId: string, requestedDate?: unknown) {
+  const currentDate = sanitizeDate(requestedDate)
+
+  const { data: athlete, error: athleteError } = await supabase
+    .from('athletes')
+    .select('*, profiles!athletes_profile_id_fkey(full_name)')
+    .eq('profile_id', profileId)
+    .single()
+
+  if (athleteError || !athlete) {
+    throw new Error('Athlete profile not found')
+  }
+
+  const { data: recommendations } = await supabase
+    .from('nutrition_recommendations')
+    .select('daily_calories, daily_protein_g, daily_carbs_g, daily_fat_g')
+    .eq('athlete_id', athlete.id)
+    .maybeSingle()
+
+  const targets = {
+    calories: Math.round(numberValue(recommendations?.daily_calories ?? athlete.calorie_goal, 2000)),
+    protein: Math.round(numberValue(recommendations?.daily_protein_g ?? athlete.protein_goal, 150)),
+    carbs: Math.round(numberValue(recommendations?.daily_carbs_g ?? athlete.carbs_goal, 250)),
+    fat: Math.round(numberValue(recommendations?.daily_fat_g ?? athlete.fat_goal, 65)),
+  }
+
+  const { data: todayMeals, error: mealsError } = await supabase
+    .from('meal_logs')
+    .select('meal_title, calories, protein, carbs, fat, logged_at, date')
+    .eq('athlete_id', athlete.id)
+    .eq('date', currentDate)
+    .order('logged_at', { ascending: true })
+
+  if (mealsError) throw mealsError
+
+  const meals = todayMeals || []
+  const consumed = {
+    calories: Math.round(meals.reduce((sum: number, meal: any) => sum + numberValue(meal.calories), 0)),
+    protein: Math.round(meals.reduce((sum: number, meal: any) => sum + numberValue(meal.protein), 0)),
+    carbs: Math.round(meals.reduce((sum: number, meal: any) => sum + numberValue(meal.carbs), 0)),
+    fat: Math.round(meals.reduce((sum: number, meal: any) => sum + numberValue(meal.fat), 0)),
+  }
+
+  const remaining = {
+    calories: Math.max(0, targets.calories - consumed.calories),
+    protein: Math.max(0, targets.protein - consumed.protein),
+    carbs: Math.max(0, targets.carbs - consumed.carbs),
+    fat: Math.max(0, targets.fat - consumed.fat),
+  }
+
+  const mealsLogged = meals.length > 0
+    ? meals.map((meal: any) => `- ${meal.meal_title || 'Meal'}: ${Math.round(numberValue(meal.calories))} cal, ${Math.round(numberValue(meal.protein))}g P, ${Math.round(numberValue(meal.carbs))}g C, ${Math.round(numberValue(meal.fat))}g F`).join('\n')
+    : 'No meals logged yet today.'
+
+  const publicContext = {
+    remaining,
+    consumed,
+    targets,
+    mealsLoggedCount: meals.length,
+    date: currentDate,
+    hasRecommendation: Boolean(recommendations),
+  }
+
+  return {
+    athlete,
+    name: (athlete as any).profiles?.full_name || 'Athlete',
+    sport: athlete.sport || 'general fitness',
+    userType: athlete.user_type || 'athlete',
+    goalPhase: athlete.goal_phase?.replace(/_/g, ' ') || 'general health',
+    trainingStyle: athlete.training_style || '',
+    currentDate,
+    targets,
+    consumed,
+    remaining,
+    mealsLogged,
+    publicContext,
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const date = request.nextUrl.searchParams.get('date')
+    const context = await loadMealAssistantContext(supabase, user.id, date)
+    return NextResponse.json({ context: context.publicContext })
+  } catch (error: any) {
+    console.error('Meal assistant context error:', error)
+    const status = error.message === 'Athlete profile not found' ? 404 : 500
+    return NextResponse.json({ error: error.message || 'Unable to load macro context' }, { status })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -15,57 +124,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { mode, message, photo } = body
-    // mode: 'fix_macros' | 'grocery_list' | 'question'
+    const { mode, message, photo, date } = body
+    const activeMode: Mode = mode === 'fix_macros' || mode === 'grocery_list' || mode === 'question' ? mode : 'question'
 
-    // Fetch athlete data for context
-    const { data: athlete } = await supabase
-      .from('athletes')
-      .select('*, profiles!athletes_profile_id_fkey(full_name)')
-      .eq('profile_id', user.id)
-      .single()
-
-    if (!athlete) {
-      return NextResponse.json({ error: 'Athlete profile not found' }, { status: 404 })
-    }
-
-    const name = (athlete as any).profiles?.full_name || 'Athlete'
-    const sport = athlete.sport || 'general fitness'
-    const userType = athlete.user_type || 'athlete'
-    const goalPhase = athlete.goal_phase?.replace(/_/g, ' ') || 'general health'
-    const trainingStyle = athlete.training_style || ''
-
-    // Get today's macro targets
-    const calorieGoal = athlete.calorie_goal || 2000
-    const proteinGoal = athlete.protein_goal || 150
-    const carbsGoal = athlete.carbs_goal || 250
-    const fatGoal = athlete.fat_goal || 65
-
-    // Get today's logged meals
-    const today = new Date().toISOString().split('T')[0]
-    const { data: todayMeals } = await supabase
-      .from('meal_logs')
-      .select('meal_title, calories, protein_g, carbs_g, fat_g, logged_at')
-      .eq('athlete_id', athlete.id)
-      .gte('logged_at', `${today}T00:00:00`)
-      .lte('logged_at', `${today}T23:59:59`)
-      .order('logged_at', { ascending: true })
-
-    const consumed = {
-      calories: (todayMeals || []).reduce((s, m) => s + (m.calories || 0), 0),
-      protein: (todayMeals || []).reduce((s, m) => s + (m.protein_g || 0), 0),
-      carbs: (todayMeals || []).reduce((s, m) => s + (m.carbs_g || 0), 0),
-      fat: (todayMeals || []).reduce((s, m) => s + (m.fat_g || 0), 0),
-    }
-
-    const remaining = {
-      calories: Math.max(0, calorieGoal - consumed.calories),
-      protein: Math.max(0, proteinGoal - consumed.protein),
-      carbs: Math.max(0, carbsGoal - consumed.carbs),
-      fat: Math.max(0, fatGoal - consumed.fat),
-    }
-
-    const mealsLogged = todayMeals?.map(m => `- ${m.meal_title}: ${m.calories} cal, ${m.protein_g}g P, ${m.carbs_g}g C, ${m.fat_g}g F`).join('\n') || 'No meals logged yet today.'
+    const context = await loadMealAssistantContext(supabase, user.id, date)
+    const { name, sport, userType, goalPhase, trainingStyle, targets, consumed, remaining, mealsLogged } = context
 
     const contextBlock = `
 ATHLETE CONTEXT:
@@ -74,17 +137,17 @@ ATHLETE CONTEXT:
 - Goal: ${goalPhase}
 ${trainingStyle ? `- Training style: ${trainingStyle}` : ''}
 
-DAILY MACRO TARGETS:
-- Calories: ${calorieGoal} kcal
-- Protein: ${proteinGoal}g
-- Carbs: ${carbsGoal}g
-- Fat: ${fatGoal}g
+DAILY MACRO TARGETS FROM FUEL DIFFERENT:
+- Calories: ${targets.calories} kcal
+- Protein: ${targets.protein}g
+- Carbs: ${targets.carbs}g
+- Fat: ${targets.fat}g
 
 TODAY'S INTAKE SO FAR:
-- Calories: ${consumed.calories} / ${calorieGoal} kcal (${remaining.calories} remaining)
-- Protein: ${consumed.protein}g / ${proteinGoal}g (${remaining.protein}g remaining)
-- Carbs: ${consumed.carbs}g / ${carbsGoal}g (${remaining.carbs}g remaining)
-- Fat: ${consumed.fat}g / ${fatGoal}g (${remaining.fat}g remaining)
+- Calories: ${consumed.calories} / ${targets.calories} kcal (${remaining.calories} remaining)
+- Protein: ${consumed.protein}g / ${targets.protein}g (${remaining.protein}g remaining)
+- Carbs: ${consumed.carbs}g / ${targets.carbs}g (${remaining.carbs}g remaining)
+- Fat: ${consumed.fat}g / ${targets.fat}g (${remaining.fat}g remaining)
 
 MEALS LOGGED TODAY:
 ${mealsLogged}
@@ -93,64 +156,58 @@ ${mealsLogged}
     let systemPrompt: string
     let userPrompt: string
 
-    if (mode === 'fix_macros') {
-      systemPrompt = `You are a friendly, expert nutrition coach AI built into the Fuel Different app. You help athletes and fitness enthusiasts find the perfect meal to hit their remaining macro targets for the day.
+    if (activeMode === 'fix_macros') {
+      systemPrompt = `You are a friendly, expert nutrition coach AI built into the Fuel Different app. You help athletes and fitness enthusiasts choose practical foods based on their saved macro targets and today's logged intake.
 
 ${contextBlock}
 
 INSTRUCTIONS:
-- Suggest 2-3 specific, practical meal ideas that would help them hit their remaining macros
-- Each suggestion should include the meal name, estimated macros (calories, protein, carbs, fat), and a brief description
-- Prioritize meals that are realistic and easy to prepare
-- Consider what they've already eaten today to avoid repetition
-- Be encouraging and specific
-- Format your response in a conversational, friendly tone
-- Use simple formatting with meal names in bold
+- Use the Fuel Different macro targets and remaining macros above as the source of truth. Do not ask the athlete to retype calories, protein, carbs, or fat.
+- Suggest 2-3 specific, practical meal or snack ideas that fit the remaining macros.
+- Include estimated macros for each suggestion: calories, protein, carbs, and fat.
+- If a macro is already over target, say so briefly and suggest options that keep that macro low while still supporting protein, carbs, or calories as needed.
+- Prioritize realistic foods, exact portions, and easy swaps.
+- Consider what they have already eaten today to avoid repetition.
+- Be encouraging, concise, and specific.
+- Use simple formatting with meal names in bold.
 
-If the user provides additional context (like available ingredients, dietary restrictions, or preferences), incorporate that into your suggestions.`
+If the user provides additional context like available ingredients, dietary restrictions, or preferences, incorporate that while still anchoring the suggestions to their current macro context.`
 
-      userPrompt = message || `I need help hitting my remaining macros for today. What should I eat next?`
-
-    } else if (mode === 'grocery_list') {
-      systemPrompt = `You are a friendly, expert nutrition coach AI built into the Fuel Different app. You help athletes and fitness enthusiasts build smart grocery lists that align with their macro targets and goals.
+      userPrompt = message || 'Use my Fuel Different macro targets and what I have logged today. What should I eat next?'
+    } else if (activeMode === 'grocery_list') {
+      systemPrompt = `You are a friendly, expert nutrition coach AI built into the Fuel Different app. You help athletes and fitness enthusiasts build smart grocery lists that align with their saved macro targets and goals.
 
 ${contextBlock}
 
 INSTRUCTIONS:
-- Generate a practical weekly grocery list organized by category (Proteins, Produce, Grains & Carbs, Dairy, Pantry Staples, Snacks)
-- Each item should be a specific product with approximate quantity
-- The list should support hitting their daily macro targets across a full week
-- Prioritize whole, nutrient-dense foods
-- Include variety so meals don't get boring
-- Consider their goal phase and training style
-- If the user mentions specific preferences, dietary restrictions, or budget constraints, incorporate those
-- Be practical — suggest items available at any standard grocery store
-- Format with clear categories and bullet points`
+- Use the saved daily macro targets above. Do not ask the athlete to retype their macros.
+- Generate a practical grocery list organized by category: Proteins, Produce, Grains & Carbs, Dairy, Pantry Staples, Snacks.
+- Each item should be a specific food with approximate quantity.
+- The list should support consistently hitting their daily calories, protein, carbs, and fat across a full week.
+- Prioritize whole, nutrient-dense foods and include convenient options.
+- Consider their goal phase, training style, and any preferences, restrictions, or budget details the athlete mentions.
+- Format with clear categories and bullet points.`
 
-      userPrompt = message || `Build me a weekly grocery list that will help me hit my macro targets consistently.`
-
+      userPrompt = message || 'Build me a weekly grocery list that will help me hit my Fuel Different macro targets consistently.'
     } else {
-      // General nutrition Q&A
-      systemPrompt = `You are a friendly, expert nutrition coach AI built into the Fuel Different app. You answer nutrition questions with evidence-based advice personalized to the athlete's profile and goals.
+      systemPrompt = `You are a friendly, expert nutrition coach AI built into the Fuel Different app. You answer nutrition questions with evidence-based advice personalized to the athlete's saved targets, logged intake, profile, and goals.
 
 ${contextBlock}
 
 INSTRUCTIONS:
-- Answer the question directly and specifically
-- Personalize your answer based on their profile, goals, and current intake
-- Reference their actual macro targets and today's intake when relevant
-- Keep answers concise but thorough (2-4 paragraphs max)
-- Cite general nutrition science principles when applicable
-- Be encouraging and supportive
-- If the question is outside your expertise (medical advice, injury treatment, etc.), recommend they consult a healthcare professional
-- Never recommend specific supplement brands`
+- Use the saved macro targets and today's logged intake above whenever the answer involves meal timing, meal suggestions, protein, carbs, fat, or calories.
+- Do not ask the athlete to retype their macros.
+- Answer directly and specifically.
+- Keep answers concise but useful.
+- Be encouraging and supportive.
+- If the question is outside your scope, such as medical advice or injury treatment, recommend they consult a healthcare professional.
+- Never recommend specific supplement brands.`
 
       userPrompt = message || 'What should I know about my nutrition today?'
     }
 
     const content: any[] = []
 
-    // Handle photo if provided (for "here's what I have" scenarios)
     if (photo) {
       content.push({
         type: 'image',
@@ -171,20 +228,15 @@ INSTRUCTIONS:
       messages: [{ role: 'user', content }],
     })
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const text = response.content[0]?.type === 'text' ? response.content[0].text : ''
 
     return NextResponse.json({
       response: text,
-      context: {
-        remaining,
-        consumed,
-        targets: { calories: calorieGoal, protein: proteinGoal, carbs: carbsGoal, fat: fatGoal },
-        mealsLoggedCount: todayMeals?.length || 0,
-      },
+      context: context.publicContext,
     })
-
   } catch (error: any) {
     console.error('Meal assistant error:', error)
-    return NextResponse.json({ error: error.message || 'Assistant failed' }, { status: 500 })
+    const status = error.message === 'Athlete profile not found' ? 404 : 500
+    return NextResponse.json({ error: error.message || 'Assistant failed' }, { status })
   }
 }

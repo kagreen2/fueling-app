@@ -30,6 +30,13 @@ interface MacroContext {
   consumed: { calories: number; protein: number; carbs: number; fat: number }
   targets: { calories: number; protein: number; carbs: number; fat: number }
   mealsLoggedCount: number
+  date: string
+  hasRecommendation: boolean
+}
+
+function getLocalDateString() {
+  const date = new Date()
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 const MODE_CONFIG = {
@@ -68,6 +75,7 @@ export default function MealAssistantPage() {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [macroContext, setMacroContext] = useState<MacroContext | null>(null)
+  const [contextLoading, setContextLoading] = useState(false)
   const [savedItems, setSavedItems] = useState<SavedItem[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -92,7 +100,24 @@ export default function MealAssistantPage() {
     if (!user) { router.push('/login'); return }
     const { data: athlete } = await supabase.from('athletes').select('id').eq('profile_id', user.id).single()
     if (!athlete) { router.push('/athlete/onboarding'); return }
+    await loadMacroContext()
     setLoading(false)
+  }
+
+  async function loadMacroContext() {
+    setContextLoading(true)
+    try {
+      const response = await fetch(`/api/meal-assistant?date=${encodeURIComponent(getLocalDateString())}`, {
+        cache: 'no-store',
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Unable to load macro targets')
+      if (data.context) setMacroContext(data.context)
+    } catch (error) {
+      console.error('Unable to load Meal Assistant macro context:', error)
+    } finally {
+      setContextLoading(false)
+    }
   }
 
   function toggleSave(msgId: string, content: string) {
@@ -117,7 +142,7 @@ export default function MealAssistantPage() {
   function selectMode(mode: Mode) {
     setActiveMode(mode)
     setMessages([])
-    setMacroContext(null)
+    void loadMacroContext()
     setTimeout(() => inputRef.current?.focus(), 100)
   }
 
@@ -144,6 +169,7 @@ export default function MealAssistantPage() {
         body: JSON.stringify({
           mode: activeMode,
           message: text,
+          date: getLocalDateString(),
         }),
       })
 
@@ -220,6 +246,44 @@ export default function MealAssistantPage() {
               I know your macro targets and what you've eaten today. Pick a mode and let's get you fueled right.
             </p>
           </div>
+
+          <section className="mb-6 rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-purple-300">Today&apos;s macro snapshot</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {macroContext?.hasRecommendation
+                    ? 'Pulled automatically from your Fuel Different targets and today’s meal log.'
+                    : 'Loading your saved targets and today’s meal log.'}
+                </p>
+              </div>
+              <button
+                onClick={() => void loadMacroContext()}
+                disabled={contextLoading}
+                className="shrink-0 rounded-lg border border-purple-400/25 px-2.5 py-1.5 text-xs font-semibold text-purple-200 transition-colors hover:bg-purple-400/10 disabled:opacity-50"
+              >
+                {contextLoading ? 'Loading…' : 'Refresh'}
+              </button>
+            </div>
+            {macroContext ? (
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { label: 'Calories', value: `${macroContext.remaining.calories}`, suffix: 'cal left', color: 'text-purple-300' },
+                  { label: 'Protein', value: `${macroContext.remaining.protein}g`, suffix: 'left', color: 'text-blue-300' },
+                  { label: 'Carbs', value: `${macroContext.remaining.carbs}g`, suffix: 'left', color: 'text-amber-300' },
+                  { label: 'Fat', value: `${macroContext.remaining.fat}g`, suffix: 'left', color: 'text-rose-300' },
+                ].map((macro) => (
+                  <div key={macro.label} className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-3">
+                    <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">{macro.label}</p>
+                    <p className={`mt-1 text-base font-bold ${macro.color}`}>{macro.value}</p>
+                    <p className="text-[10px] text-slate-500">{macro.suffix}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 h-20 animate-pulse rounded-xl bg-slate-800/60" />
+            )}
+          </section>
 
           <div className="space-y-4">
             {(Object.entries(MODE_CONFIG) as [Mode, typeof MODE_CONFIG[Mode]][]).map(([mode, config]) => (
@@ -322,12 +386,22 @@ export default function MealAssistantPage() {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => { setMessages([]); setMacroContext(null) }}
-            className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-slate-800 transition-all"
-          >
-            New Chat
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => void loadMacroContext()}
+              disabled={contextLoading}
+              className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-slate-800 transition-all disabled:opacity-50"
+              title="Refresh macros from today’s meal log"
+            >
+              {contextLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+            <button
+              onClick={() => setMessages([])}
+              className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-slate-800 transition-all"
+            >
+              New Chat
+            </button>
+          </div>
         </div>
       </div>
 
@@ -335,7 +409,7 @@ export default function MealAssistantPage() {
       {macroContext && (
         <div className="bg-slate-800/60 border-b border-slate-700/40">
           <div className="max-w-2xl mx-auto px-4 py-2.5 flex items-center gap-4 overflow-x-auto text-xs">
-            <span className="text-slate-500 shrink-0">Remaining:</span>
+            <span className="text-slate-500 shrink-0">Auto-filled:</span>
             <span className="text-purple-400 font-medium shrink-0">{macroContext.remaining.calories} cal</span>
             <span className="text-blue-400 font-medium shrink-0">{macroContext.remaining.protein}g P</span>
             <span className="text-amber-400 font-medium shrink-0">{macroContext.remaining.carbs}g C</span>
